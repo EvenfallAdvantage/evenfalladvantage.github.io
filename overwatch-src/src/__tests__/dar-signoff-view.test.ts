@@ -30,7 +30,7 @@ describe("getSignedTimesheetIds", () => {
 });
 describe("getDarSignoff", () => {
   it("maps the row", async () => {
-    expect(await getDarSignoff("a")).toEqual({ id: "s1", timesheetId: "a", summary: "Quiet", signedName: "ZZ Guard", signedAt: "2026-10-21T04:40:58Z" });
+    expect(await getDarSignoff("a")).toEqual({ id: "s1", timesheetId: "a", summary: "Quiet", signedName: "ZZ Guard", signedAt: "2026-10-21T04:40:58Z", signaturePng: null });
     single = null;
     expect(await getDarSignoff("a")).toBeNull();
   });

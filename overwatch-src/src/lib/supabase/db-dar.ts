@@ -14,6 +14,7 @@
 import { createClient } from "./client";
 import { logDbReadError } from "./db-error";
 import { formatMemberName } from "@/lib/format-names";
+import { isValidSignatureDataUrl } from "@/lib/signature/signature";
 
 export interface DAREntry {
   time: string;
@@ -207,7 +208,12 @@ export interface DarSignoff {
   summary: string;
   signedName: string;
   signedAt: string;
+  /** PNG data URL snapshot taken at signing, or null (typed name only). */
+  signaturePng: string | null;
 }
+
+/** PostgREST / Postgres "column does not exist" (migration not applied yet). */
+const isMissingColumn = (code?: string) => code === "PGRST204" || code === "42703";
 
 /** Sign the DAR for one of my own finished timesheets. Returns null + reason on failure. */
 export async function signDAR(params: {
@@ -217,16 +223,22 @@ export async function signDAR(params: {
   summary: string;
   signedName: string;
   report: DailyActivityReport | null;
+  /** Optional drawn/saved signature (PNG data URL), stored as a snapshot. */
+  signaturePng?: string | null;
 }): Promise<{ ok: true } | { ok: false; reason: "not_enabled" | "already_signed" | "error" }> {
   const supabase = createClient();
-  const { error } = await supabase.from("dar_signoffs").insert({
+  const row = {
     company_id: params.companyId,
     timesheet_id: params.timesheetId,
     user_id: params.userId,
     summary: params.summary.trim().slice(0, 4000),
     signed_name: params.signedName.trim().slice(0, 120),
     report: params.report ?? {},
-  });
+  };
+  const sig = isValidSignatureDataUrl(params.signaturePng) ? params.signaturePng : null;
+  let { error } = await supabase.from("dar_signoffs").insert(sig ? { ...row, signature_png: sig } : row);
+  // Before the signature migration is applied: sign with the typed name only.
+  if (error && sig && isMissingColumn(error.code)) ({ error } = await supabase.from("dar_signoffs").insert(row));
   if (!error) return { ok: true };
   if (error.code === "23505") return { ok: false, reason: "already_signed" };
   if (error.code === "42P01" || error.code === "PGRST205") return { ok: false, reason: "not_enabled" };
@@ -236,14 +248,13 @@ export async function signDAR(params: {
 
 export async function getDarSignoff(timesheetId: string): Promise<DarSignoff | null> {
   const supabase = createClient();
-  const { data, error } = await supabase
-    .from("dar_signoffs")
-    .select("id, timesheet_id, summary, signed_name, signed_at")
-    .eq("timesheet_id", timesheetId)
-    .maybeSingle();
+  const base = "id, timesheet_id, summary, signed_name, signed_at";
+  const q = (cols: string) => supabase.from("dar_signoffs").select(cols).eq("timesheet_id", timesheetId).maybeSingle();
+  let { data, error } = await q(`${base}, signature_png`);
+  if (error && isMissingColumn(error.code)) ({ data, error } = await q(base));
   if (error || !data) return null;
-  const d = data as { id: string; timesheet_id: string; summary: string; signed_name: string; signed_at: string };
-  return { id: d.id, timesheetId: d.timesheet_id, summary: d.summary, signedName: d.signed_name, signedAt: d.signed_at };
+  const d = data as unknown as { id: string; timesheet_id: string; summary: string; signed_name: string; signed_at: string; signature_png?: string | null };
+  return { id: d.id, timesheetId: d.timesheet_id, summary: d.summary, signedName: d.signed_name, signedAt: d.signed_at, signaturePng: isValidSignatureDataUrl(d.signature_png) ? d.signature_png : null };
 }
 
 /**
