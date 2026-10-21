@@ -1,3 +1,4 @@
+import { parseUTC } from "./parse-utc";
 /**
  * Timezone utilities for event/shift time handling.
  *
@@ -100,7 +101,9 @@ export function formatInTimezone(
   timezone: string,
   options?: Intl.DateTimeFormatOptions,
 ): string {
-  return new Date(utcIso).toLocaleString("en-US", {
+  // DB timestamps can arrive without a zone ("2026-10-24 20:06:00"); new Date()
+  // would read those as device-local time. parseUTC treats them as UTC.
+  return parseUTC(utcIso).toLocaleString("en-US", {
     timeZone: timezone,
     ...options,
   });
@@ -111,7 +114,7 @@ export function formatInTimezone(
  * in a specific timezone.  Used to pre-fill edit forms.
  */
 export function utcToLocalInput(utcIso: string, timezone: string): string {
-  const d = new Date(utcIso);
+  const d = parseUTC(utcIso);
   const parts = new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
     year: "numeric",
