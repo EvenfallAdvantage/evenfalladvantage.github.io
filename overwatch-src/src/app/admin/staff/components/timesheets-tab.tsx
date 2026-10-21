@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { isLikelyAccidental, countsAsPending } from "@/lib/timesheets/accidental";
 import Link from "next/link";
 import {
-  Clock, Loader2, ChevronDown, ChevronUp, Flag, Download, Trash2,
+  Clock, Loader2, ChevronDown, ChevronUp, Flag, Download, Trash2, FileSignature,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +15,8 @@ import { formatMemberName } from "@/lib/format-names";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 import { TimesheetVerifyBadge } from "@/components/timeclock/location-check";
+import { DarSignoffView } from "@/components/timeclock/dar-signoff-view";
+import { getSignedTimesheetIds } from "@/lib/supabase/db-dar";
 
 type Sheet = Record<string, unknown> & {
   id: string;
@@ -56,6 +58,15 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
     () => allTimesheets.filter((t: Sheet) => !t.clock_out),
     [allTimesheets],
   );
+  const [signedIds, setSignedIds] = useState<Set<string>>(new Set());
+  const [openReport, setOpenReport] = useState<string | null>(null);
+  const timesheetIdsKey = timesheets.map((t: Sheet) => t.id).join(",");
+  useEffect(() => {
+    let alive = true;
+    const ids = timesheetIdsKey ? timesheetIdsKey.split(",") : [];
+    getSignedTimesheetIds(ids).then((set) => { if (alive) setSignedIds(set); }).catch(() => {});
+    return () => { alive = false; };
+  }, [timesheetIdsKey]);
   const [approving, setApproving] = useState<string | null>(null);
   const [collapsedOps, setCollapsedOps] = useState<Set<string>>(new Set());
   const [syncingGusto, setSyncingGusto] = useState(false);
@@ -204,6 +215,14 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                                 {parseUTC(t.clock_in).toLocaleDateString()} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </p>
                             </div>
+                            {signedIds.has(t.id) && (
+                              <button type="button" onClick={() => setOpenReport(openReport === t.id ? null : t.id)}
+                                aria-expanded={openReport === t.id}
+                                className="inline-flex items-center gap-1 rounded bg-emerald-500/15 px-2 py-1 text-[10px] font-medium text-emerald-500 hover:bg-emerald-500/25"
+                                title="View the officer's signed report">
+                                <FileSignature className="h-3 w-3" /> Signed
+                              </button>
+                            )}
                             <span className="font-mono text-sm font-semibold">{hrs}h</span>
                             <div className="flex items-center gap-1">
                               {t.approved ? (
@@ -227,6 +246,9 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                                 </button>
                               )}
                             </div>
+                            {openReport === t.id && (
+                              <div className="basis-full"><DarSignoffView timesheetId={t.id} showEmpty /></div>
+                            )}
                           </div>
                         );
                       })}
