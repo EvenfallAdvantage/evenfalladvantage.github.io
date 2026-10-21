@@ -369,3 +369,9 @@ enabled = true
 verify_jwt = false
 # pg_cron caller (every minute); authenticated by x-integrations-cron-secret (Vault).
 # Optional Edge secret AISSTREAM_API_KEY (set by the owner); without it, Digitraffic only.
+
+[functions.health]
+enabled = true
+# Public uptime endpoint: monitors call it without a user token.
+verify_jwt = false
+entrypoint = "./functions/health/index.ts"
