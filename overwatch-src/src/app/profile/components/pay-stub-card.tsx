@@ -62,7 +62,7 @@ export function PayStubCard({ activeCompanyId }: PayStubCardProps) {
 
         {/* Recent timesheets with pay */}
         {data.timesheets.length > 0 && (
-          <div className="max-h-48 overflow-auto">
+          <div className="max-h-48 overflow-auto" tabIndex={0} role="region" aria-label="Pay stubs">
             <table className="w-full text-xs min-w-[420px]">
               <thead>
                 <tr className="text-muted-foreground border-b border-border/30">

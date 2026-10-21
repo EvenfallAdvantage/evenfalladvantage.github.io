@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
-import { adjustBrightness } from "@/lib/brand-utils";
+import { adjustBrightness, readableOn } from "@/lib/brand-utils";
 
 function applyBrandTheme(brandColor: string, accentColor: string) {
   const root = document.documentElement;
@@ -15,12 +15,12 @@ function applyBrandTheme(brandColor: string, accentColor: string) {
 
   // Accent color → primary in dark, accent everywhere
   root.style.setProperty("--sidebar-primary", accentColor);
-  root.style.setProperty("--sidebar-primary-foreground", "#ffffff");
+  root.style.setProperty("--sidebar-primary-foreground", readableOn(accentColor));
   root.style.setProperty("--sidebar-ring", accentColor);
 
   // Accent used for highlights, focus rings, active states
   root.style.setProperty("--accent", accentColor);
-  root.style.setProperty("--accent-foreground", "#ffffff");
+  root.style.setProperty("--accent-foreground", readableOn(accentColor));
   root.style.setProperty("--ring", accentColor);
   root.style.setProperty("--chart-1", accentColor);
   root.style.setProperty("--chart-2", accentColor);
@@ -31,7 +31,7 @@ function applyBrandTheme(brandColor: string, accentColor: string) {
 
   if (isDark) {
     root.style.setProperty("--primary", accentColor);
-    root.style.setProperty("--primary-foreground", "#ffffff");
+    root.style.setProperty("--primary-foreground", readableOn(accentColor));
     // Background uses brand primary
     root.style.setProperty("--background", adjustBrightness(brandColor, 1.1));
     root.style.setProperty("--card", adjustBrightness(brandColor, 1.2));

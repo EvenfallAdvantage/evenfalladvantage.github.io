@@ -86,16 +86,20 @@ export function WorkHistoryCard({ mp, onMpChange }: Props) {
   return (
     <Card>
       <CardHeader className="pb-2">
-        <button
-          onClick={() => setExpanded(prev => !prev)}
-          className="flex items-center justify-between w-full text-left"
-        >
-          <CardTitle className="text-sm font-medium flex items-center gap-1.5">
-            <Briefcase className="h-3.5 w-3.5" /> Work History
-            {(mp.work_history ?? []).length > 0 && (
-              <Badge variant="secondary" className="text-[10px] ml-1">{(mp.work_history ?? []).length}</Badge>
-            )}
-          </CardTitle>
+        <div className="flex items-center justify-between w-full gap-1">
+          <button
+            type="button"
+            onClick={() => setExpanded(prev => !prev)}
+            aria-expanded={!!expanded}
+            className="flex flex-1 items-center justify-between text-left min-h-[24px]"
+          >
+            <CardTitle className="text-sm font-medium flex items-center gap-1.5">
+              <Briefcase className="h-3.5 w-3.5" /> Work History
+              {(mp.work_history ?? []).length > 0 && (
+                <Badge variant="secondary" className="text-[10px] ml-1">{(mp.work_history ?? []).length}</Badge>
+              )}
+            </CardTitle>
+          </button>
           <div className="flex items-center gap-1">
             {editing === null && (
               <Button
@@ -105,9 +109,11 @@ export function WorkHistoryCard({ mp, onMpChange }: Props) {
                 <Plus className="h-3 w-3" /> Add
               </Button>
             )}
-            {expanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+            <button type="button" onClick={() => setExpanded(prev => !prev)} aria-label={expanded ? "Collapse Work History" : "Expand Work History"} className="flex h-6 w-6 items-center justify-center">
+              {expanded ? <ChevronUp className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />}
+            </button>
           </div>
-        </button>
+        </div>
       </CardHeader>
       {expanded && (
         <CardContent className="space-y-2 pt-0">
