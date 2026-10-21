@@ -16,6 +16,8 @@ import { cachedRead, isOffline, writeCache } from "@/lib/offline/cached-read";
 import { clockInOffline, clockOutOffline, isPendingSync } from "@/lib/offline/with-offline";
 import { toast } from "sonner";
 import { parseUTC } from "@/lib/parse-utc";
+import { DarSignoffModal } from "@/components/dar-signoff-modal";
+import { useAuthStore } from "@/stores/auth-store";
 import { formatDuration, type Timesheet } from "./shared";
 
 /** Thrown after an offline clock-in so callers skip the live reload. */
@@ -35,6 +37,8 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
 
   // Clock-in modal state
   const [showClockInModal, setShowClockInModal] = useState(false);
+  const [darTimesheetId, setDarTimesheetId] = useState<string | null>(null);
+  const authUser = useAuthStore((s) => s.user);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [detectedShifts, setDetectedShifts] = useState<any[]>([]);
   const [loadingShifts, setLoadingShifts] = useState(false);
@@ -116,7 +120,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
           writeCache(`duty:${activeCompanyId ?? "none"}`, [null, recentShifts]);
           setActive(null);
           toast.success("Clocked out offline. It will sync with the time you tapped.");
-        } else await load();
+        } else { const sheetId = active.id; await load(); setDarTimesheetId(sheetId); }
         onReload?.();
       } catch (err) {
         console.error("Clock out failed:", err);
@@ -253,6 +257,15 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
           companyId={activeCompanyId}
         />
       )}
+      <DarSignoffModal
+        key={darTimesheetId ?? "none"}
+        open={!!darTimesheetId}
+        onClose={() => setDarTimesheetId(null)}
+        timesheetId={darTimesheetId}
+        companyId={activeCompanyId}
+        userId={authUser?.id ?? null}
+        defaultName={`${authUser?.firstName ?? ""} ${authUser?.lastName ?? ""}`.trim()}
+      />
     </>
   );
 }

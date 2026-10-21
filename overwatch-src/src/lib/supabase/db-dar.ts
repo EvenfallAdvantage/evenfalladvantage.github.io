@@ -198,3 +198,57 @@ export async function generateEventDARs(
 
   return dars;
 }
+
+// ─── Officer sign-off at clock-out (NEXT_TEN #4) ──────────
+
+export interface DarSignoff {
+  id: string;
+  timesheetId: string;
+  summary: string;
+  signedName: string;
+  signedAt: string;
+}
+
+/** Sign the DAR for one of my own finished timesheets. Returns null + reason on failure. */
+export async function signDAR(params: {
+  companyId: string;
+  timesheetId: string;
+  userId: string;
+  summary: string;
+  signedName: string;
+  report: DailyActivityReport | null;
+}): Promise<{ ok: true } | { ok: false; reason: "not_enabled" | "already_signed" | "error" }> {
+  const supabase = createClient();
+  const { error } = await supabase.from("dar_signoffs").insert({
+    company_id: params.companyId,
+    timesheet_id: params.timesheetId,
+    user_id: params.userId,
+    summary: params.summary.trim().slice(0, 4000),
+    signed_name: params.signedName.trim().slice(0, 120),
+    report: params.report ?? {},
+  });
+  if (!error) return { ok: true };
+  if (error.code === "23505") return { ok: false, reason: "already_signed" };
+  if (error.code === "42P01" || error.code === "PGRST205") return { ok: false, reason: "not_enabled" };
+  logDbReadError("dar:sign", error);
+  return { ok: false, reason: "error" };
+}
+
+export async function getDarSignoff(timesheetId: string): Promise<DarSignoff | null> {
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("dar_signoffs")
+    .select("id, timesheet_id, summary, signed_name, signed_at")
+    .eq("timesheet_id", timesheetId)
+    .maybeSingle();
+  if (error || !data) return null;
+  const d = data as { id: string; timesheet_id: string; summary: string; signed_name: string; signed_at: string };
+  return { id: d.id, timesheetId: d.timesheet_id, summary: d.summary, signedName: d.signed_name, signedAt: d.signed_at };
+}
+
+/** Plain-text DAR lines for the sign-off screen. */
+export function darSummaryLines(r: DailyActivityReport): string[] {
+  const lines = [`${r.totalHours.toFixed(1)} h on duty`, `${r.patrolCount} checkpoint scan${r.patrolCount === 1 ? "" : "s"}`, `${r.incidentCount} incident${r.incidentCount === 1 ? "" : "s"} filed`];
+  if (r.breakMinutes) lines.push(`${r.breakMinutes} min break`);
+  return lines;
+}
