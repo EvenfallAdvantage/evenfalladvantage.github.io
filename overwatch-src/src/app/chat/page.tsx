@@ -52,7 +52,7 @@ export default function ChatPage() {
     <div className="space-y-4">
       {/* Tabs */}
       <SubTabList>
-        <Link href="/updates"
+        <Link href="/updates" role="tab" aria-selected="false"
           className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0">
           Briefing
         </Link>

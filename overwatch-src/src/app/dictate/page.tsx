@@ -206,7 +206,7 @@ export default function DictatePage() {
             <div className="grid gap-3 sm:grid-cols-3">
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Person Type</label>
-                <select value={personType} onChange={e => setPersonType(e.target.value)} className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm">
+                <select aria-label="Person type" value={personType} onChange={e => setPersonType(e.target.value)} className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm">
                   {PERSON_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
               </div>
@@ -216,7 +216,7 @@ export default function DictatePage() {
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Link to Incident</label>
-                <select value={linkedIncidentId} onChange={e => setLinkedIncidentId(e.target.value)} className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm">
+                <select aria-label="Link to incident" value={linkedIncidentId} onChange={e => setLinkedIncidentId(e.target.value)} className="mt-1 w-full rounded-md border border-input bg-background px-2 py-1.5 text-sm">
                   <option value="">None</option>
                   {incidents.map((inc: Incident) => <option key={inc.id} value={inc.id}>{inc.title} ({inc.status})</option>)}
                 </select>
