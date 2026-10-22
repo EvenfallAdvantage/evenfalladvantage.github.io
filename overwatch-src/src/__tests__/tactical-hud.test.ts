@@ -28,3 +28,14 @@ describe("gods-eye-view effect ports", () => {
     }
   });
 });
+
+describe("NVG readability", () => {
+  it("uses moderate gain/bloom and preserves entity colours", () => {
+    expect(NVG_EFFECT.uniforms.gain).toBeLessThanOrEqual(0.4);
+    expect(NVG_EFFECT.uniforms.bloom).toBeLessThanOrEqual(0.2);
+    expect(NVG_EFFECT.uniforms.chroma).toBeGreaterThan(0.5);
+    expect(NVG_EFFECT.fragmentShader).toContain("uniform float chroma;");
+    expect(NVG_EFFECT.fragmentShader).toContain("smoothstep(0.75, 1.0");
+    expect(NVG_EFFECT.fragmentShader).not.toContain("mix(0.8, 2.5, gain)");
+  });
+});

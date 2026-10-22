@@ -22,7 +22,7 @@ export interface EffectSpec {
 export const NVG_EFFECT: EffectSpec = {
   name: "ow_gev_nvg",
   animated: true,
-  uniforms: { intensity: 1, gain: 0.55, bloom: 0.3, scanlineStr: 1.0, pixelation: 2.5 },
+  uniforms: { intensity: 1, gain: 0.35, bloom: 0.15, scanlineStr: 0.6, pixelation: 1.5, chroma: 0.75 },
   fragmentShader: `
     uniform sampler2D colorTexture;
     uniform vec2 colorTextureDimensions;
@@ -32,6 +32,7 @@ export const NVG_EFFECT: EffectSpec = {
     uniform float bloom;
     uniform float scanlineStr;
     uniform float pixelation;
+    uniform float chroma;
     in vec2 v_textureCoordinates;
 
     // ── Noise functions ───────────────────────────────────
@@ -156,9 +157,9 @@ export const NVG_EFFECT: EffectSpec = {
       float aspect = dims.x / dims.y;
       centered.x *= aspect;
       float radius = length(centered);
-      float tubeMask = pow(1.0 - smoothstep(0.6, 1.05, radius), 0.7);
+      float tubeMask = pow(1.0 - smoothstep(0.95, 1.35, radius), 0.7);
       // Tube brightness falloff (center brightest)
-      float tubeShading = 1.0 - radius * radius * 0.3;
+      float tubeShading = 1.0 - radius * radius * 0.15;
       tubeShading = max(tubeShading, 0.0);
 
       // If outside tube, render black
@@ -184,31 +185,35 @@ export const NVG_EFFECT: EffectSpec = {
       float luma = dot(original.rgb, vec3(0.299, 0.587, 0.114));
 
       // ── Auto-gain response ──────────────────────────────
-      // Higher gain = more amplification, more noise, more bloom
-      float gainLevel = mix(0.8, 2.5, gain);
-      float amplified = clamp(luma * gainLevel, 0.0, 1.0);
+      // Moderate gain (old 0.8–2.5 range clipped most of the scene to white).
+      float gainLevel = mix(0.8, 1.6, gain);
 
-      // Slight contrast curve for gain response
-      amplified = pow(amplified, mix(1.2, 0.7, gain));
-
-      // ── Intensifier tube bloom (THE key NVG visual) ─────
-      // Bloom around bright sources — wider kernel for realistic halos
+      // ── Intensifier tube bloom + local mean ─────────────
+      // Bloom only from genuinely bright sources (>0.75) so the scene doesn't wash out.
       float bloomAccum = 0.0;
+      float meanAccum = 0.0;
       float bloomW = 0.0;
       for (int y = -5; y <= 5; y++) {
         for (int x = -5; x <= 5; x++) {
           vec2 offset = vec2(float(x), float(y)) * texel * 4.0;
           float sLuma = dot(texture(colorTexture, distUV + offset).rgb, vec3(0.299, 0.587, 0.114));
-          float bright = smoothstep(0.4, 0.9, sLuma * gainLevel);
+          float bright = smoothstep(0.75, 1.0, sLuma * gainLevel);
           float w = exp(-float(x * x + y * y) / 18.0);
           bloomAccum += bright * w;
+          meanAccum += sLuma * w;
           bloomW += w;
         }
       }
       bloomAccum /= bloomW;
+      float localMean = meanAccum / bloomW;
+
+      // Local contrast (unsharp) + S-curve so roads/edges separate from terrain.
+      float detail = luma + (luma - localMean) * 1.2;
+      float amplified = clamp(detail * gainLevel, 0.0, 1.0);
+      amplified = mix(amplified, amplified * amplified * (3.0 - 2.0 * amplified), 0.6);
 
       // Edge glow / corona on bright objects
-      float corona = bloomAccum * bloom * 1.5;
+      float corona = bloomAccum * bloom;
 
       // ── P43 phosphor green (530nm) ──────────────────────
       vec3 phosphor = vec3(0.16, 1.0, 0.22);
@@ -272,6 +277,13 @@ export const NVG_EFFECT: EffectSpec = {
       float blink = step(0.5, fract(time * 0.8));
       // REC dot in slightly warmer green
       nvgColor += vec3(0.3, 1.0, 0.2) * recDot * blink * intensity;
+
+      // ── Chroma preserve: strongly saturated pixels (entity category colours,
+      // UI accents) keep their hue so aircraft/ship/satellite stay distinguishable.
+      float sat = max(original.r, max(original.g, original.b)) - min(original.r, min(original.g, original.b));
+      float keep = smoothstep(0.3, 0.6, sat) * chroma;
+      vec3 boosted = original.rgb / max(max(original.r, max(original.g, original.b)), 0.001) * max(amplified, 0.7);
+      nvgColor = mix(nvgColor, boosted, keep);
 
       // ── Final composite ─────────────────────────────────
       nvgColor = clamp(nvgColor, 0.0, 1.0);

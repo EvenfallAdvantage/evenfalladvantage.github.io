@@ -105,6 +105,7 @@ export function useOrbitLayer(params: {
             <div>Lat: ${sat.lat.toFixed(3)}&deg; Lng: ${sat.lng.toFixed(3)}&deg;</div>
           </div>`,
         });
+        (entity as { _owColor?: string })._owColor = satColor;
         entityGroupsRef.current.orbits.push(entity);
 
         // Ground track polyline at orbital altitude (async).
