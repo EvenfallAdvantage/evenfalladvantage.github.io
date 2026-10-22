@@ -5,8 +5,10 @@
  *  - Reverse geocode: Photon (komoot, OSM data) with lang=en. Nominatim is not used:
  *    it returns HTTP 403 to Supabase's shared egress IPs on every call (its usage
  *    policy discourages cloud bulk use), so it only added ~1s of latency per request.
- *  - Place article: Wikidata `wikibase:around` search for populated items near the
- *    click with an enwiki sitelink, matched to the Photon city (pickPlace).
+ *  - Place article: exact Wikipedia title for the Photon city (then "City, State",
+ *    "City City"), accepted only if the article's own coordinates are within 30 km
+ *    (articleNear). Only if every candidate fails: a small Wikidata nearby query
+ *    (3 km, LIMIT 15, short timeout). Country article is the last resort.
  *  - Country facts + leaders: Wikidata SPARQL by ISO 3166-1 alpha-2 code (P297).
  *    Replaces RestCountries v3.1, which was retired (it now returns
  *    `{"success":false,...}` with HTTP 200 after a redirect, and v5 needs an API key).
@@ -29,7 +31,8 @@ export function parsePhoton(d: PhotonResponse | null | undefined): LocationInfo 
   const p = d?.features?.[0]?.properties;
   if (!p || !p.countrycode) return null;
   // Photon's lang=en returns English names where OSM has them, else the local name.
-  const city = p.city ?? p.town ?? p.village ?? p.district ?? "";
+  const isSettlement = p.type === "city" || p.type === "town" || p.type === "village";
+  const city = p.city ?? p.town ?? p.village ?? (isSettlement ? p.name : undefined) ?? p.district ?? "";
   // Skip POI / street names (often local-script only, e.g. a school in Tokyo).
   const lead = p.type && PLACE_TYPES.has(p.type) ? p.name : undefined;
   const parts = [lead, p.district, city, p.county, p.state, p.country]
@@ -44,7 +47,7 @@ export function parsePhoton(d: PhotonResponse | null | undefined): LocationInfo 
 }
 
 /** Wikidata query: populated items with an English Wikipedia article within `km` of the point. */
-export function nearbyPlacesSparql(lat: number, lng: number, km = 15): string {
+export function nearbyPlacesSparql(lat: number, lng: number, km = 3, limit = 15): string {
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("bad coords");
   return `SELECT ?item ?label ?article (MAX(?p) AS ?pop) (MIN(?d) AS ?dist) WHERE {
   SERVICE wikibase:around { ?item wdt:P625 ?loc.
@@ -53,7 +56,7 @@ export function nearbyPlacesSparql(lat: number, lng: number, km = 15): string {
   FILTER NOT EXISTS { ?item wdt:P576 [] }
   ?article schema:about ?item; schema:isPartOf <https://en.wikipedia.org/>.
   OPTIONAL { ?item rdfs:label ?label FILTER(lang(?label)="en") }
-} GROUP BY ?item ?label ?article ORDER BY DESC(?pop) LIMIT 40`;
+} GROUP BY ?item ?label ?article LIMIT ${Math.max(1, Math.min(50, Math.floor(limit)))}`;
 }
 
 export interface PlaceHit { title: string; label: string; pop: number; dist: number }
@@ -86,6 +89,31 @@ export function pickPlace(hits: PlaceHit[], city: string | undefined): PlaceHit 
     if (m) return m;
   }
   return byPop.find((h) => h.dist <= 8 && !AGGREGATE.test(h.label) && !AGGREGATE.test(h.title)) ?? null;
+}
+
+/** Great-circle distance in km. */
+export function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const r = (d: number) => (d * Math.PI) / 180;
+  const a = Math.sin(r(lat2 - lat1) / 2) ** 2 + Math.cos(r(lat1)) * Math.cos(r(lat2)) * Math.sin(r(lon2 - lon1) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+export interface WikiSummaryLike { type?: string; extract?: string; coordinates?: { lat?: number; lon?: number } }
+
+/** Article is a real (non-disambiguation) page whose coordinates are within maxKm of the click. */
+export function articleNear(w: WikiSummaryLike | null | undefined, lat: number, lng: number, maxKm = 30): boolean {
+  if (!w?.extract || w.type === "disambiguation") return false;
+  const c = w.coordinates;
+  if (typeof c?.lat !== "number" || typeof c?.lon !== "number") return false;
+  return haversineKm(lat, lng, c.lat, c.lon) <= maxKm;
+}
+
+/** Title candidates for the clicked place, most specific-likely first, de-duplicated. */
+export function titleCandidates(city: string | undefined, state: string | undefined): string[] {
+  const c = city?.trim();
+  if (!c) return [];
+  const s = state?.trim();
+  return [...new Set([c, s && s !== c ? `${c}, ${s}` : "", `${c}, ${c}`, `${c} City`].filter(Boolean))];
 }
 
 /** Trim to <= max chars at a sentence end, else a word boundary (adds an ellipsis). */

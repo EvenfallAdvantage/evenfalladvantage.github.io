@@ -9,11 +9,14 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { requireIntelUser } from "../_shared/intel-auth.ts";
 import {
-  countrySparql, type LocationInfo, nearbyPlacesSparql, parseCountry, parseNearby,
-  parsePhoton, type PhotonResponse, pickPlace, trimExtract, UA, type WikidataResponse,
+  articleNear, countrySparql, type LocationInfo, nearbyPlacesSparql, parseCountry, parseNearby,
+  parsePhoton, type PhotonResponse, pickPlace, titleCandidates, trimExtract, UA, type WikidataResponse,
 } from "./lib.ts";
 
-interface WikiSummary { title?: string; extract?: string; thumbnail?: { source?: string }; }
+interface WikiSummary {
+  title?: string; type?: string; extract?: string; thumbnail?: { source?: string };
+  coordinates?: { lat?: number; lon?: number };
+}
 
 async function getJson<T>(label: string, url: string, ms: number): Promise<T | null> {
   try {
@@ -47,20 +50,31 @@ const wikiSummary = (title: string) => getJson<WikiSummary>(
   5_000,
 );
 
-/** Exact article for the clicked place via Wikidata; falls back to the country article. */
-async function placeSummary(lat: number, lng: number, city: string | undefined, country: string): Promise<WikiSummary | null> {
+/**
+ * Article for the clicked place:
+ *  1. exact title candidates (city, "city, state", …) accepted only if the article's
+ *     coordinates are within 30 km of the click — cheap (~0.1 s each), covers most clicks;
+ *  2. otherwise (ambiguous / no coords) a small Wikidata nearby query (3 km, 15 rows, 3.5 s);
+ *  3. country article as the last resort.
+ */
+async function placeSummary(lat: number, lng: number, city: string | undefined, state: string | undefined, country: string): Promise<WikiSummary | null> {
+  for (const t of titleCandidates(city, state)) {
+    const w = await wikiSummary(t);
+    if (articleNear(w, lat, lng)) return w;
+  }
   const hits = parseNearby(await getJson<WikidataResponse>(
     "wikidata-nearby",
     `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(nearbyPlacesSparql(lat, lng))}`,
-    6_000,
+    3_500,
   ));
   const place = pickPlace(hits, city);
-  for (const t of [place?.title, country]) {
-    if (!t) continue;
-    const w = await wikiSummary(t);
+  if (place) {
+    const w = await wikiSummary(place.title);
     if (w?.extract) return w;
   }
-  return null;
+  if (!country) return null;
+  const w = await wikiSummary(country);
+  return w?.extract ? w : null;
 }
 
 Deno.serve(async (req) => {
@@ -93,7 +107,7 @@ Deno.serve(async (req) => {
             7_000,
           ).then((d) => parseCountry(d, countryCode, countryName))
         : Promise.resolve(null),
-      loc ? placeSummary(lat, lng, locationInfo.city, countryName) : Promise.resolve(null),
+      loc ? placeSummary(lat, lng, locationInfo.city, locationInfo.state, countryName) : Promise.resolve(null),
     ]);
 
     const countryData = facts?.country ?? null;
