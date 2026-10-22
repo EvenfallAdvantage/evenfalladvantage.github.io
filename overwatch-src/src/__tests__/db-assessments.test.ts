@@ -35,6 +35,9 @@ beforeEach(() => {
   vi.clearAllMocks();
   setMockResponse({ data: null, error: null });
   mockedEnsureInternalUser.mockResolvedValue("internal-user-1");
+  (mockClient as unknown as { auth: unknown }).auth = {
+    getUser: vi.fn().mockResolvedValue({ data: { user: { id: "auth-uid-1" } }, error: null }),
+  };
   queryBuilder.then = vi.fn((resolve: (v: unknown) => void) =>
     Promise.resolve({ data: null, error: null }).then(resolve)
   );
@@ -70,10 +73,11 @@ describe("saveSiteAssessment()", () => {
         company_id: "comp-1",
         client_name: "Client Corp",
         data: baseAssessment.data,
-        created_by: "internal-user-1",
         updated_at: expect.any(String),
       })
     );
+    // edits must not rewrite the original creator
+    expect(queryBuilder.update.mock.calls[0][0]).not.toHaveProperty("created_by");
     expect(queryBuilder.eq).toHaveBeenCalledWith("id", "assess-1");
     expect(queryBuilder.select).toHaveBeenCalled();
     expect(queryBuilder.single).toHaveBeenCalled();
@@ -93,7 +97,7 @@ describe("saveSiteAssessment()", () => {
     expect(queryBuilder.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         company_id: "comp-1",
-        created_by: "internal-user-1",
+        created_by: "auth-uid-1",
         data: baseAssessment.data,
       })
     );
@@ -112,7 +116,8 @@ describe("saveSiteAssessment()", () => {
 
     const insertArg = queryBuilder.insert.mock.calls[0][0] as Record<string, unknown>;
     expect(insertArg.company_id).toBe("comp-1");
-    expect(insertArg.created_by).toBe("internal-user-1");
+    // FK site_assessments_created_by_fkey -> auth.users(id): must be the auth uid
+    expect(insertArg.created_by).toBe("auth-uid-1");
   });
 
   it("sets null for optional fields when not provided", async () => {
