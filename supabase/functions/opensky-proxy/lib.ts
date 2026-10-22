@@ -34,6 +34,8 @@ export interface ReadsbAircraft {
   nic?: number;
   /** ICAO aircraft type designator. */
   t?: string;
+  /** ADS-B emitter category, e.g. "A3" (large), "A7" (rotorcraft). */
+  category?: string;
 }
 
 /** Emergency squawks: hijack, radio failure, general emergency. */
@@ -110,7 +112,8 @@ export function upstreamUrls(b: BBox): { name: string; url: string }[] {
  *  5 lon, 6 lat, 7 baro_alt_m, 8 on_ground, 9 velocity_ms, 10 true_track,
  *  11 vertical_rate_ms, 12 sensors, 13 geo_alt_m, 14 squawk, 15 spi, 16 position_source]
  * plus Overwatch extensions (ignored by OpenSky-only parsers):
- *  [17 flags (1 military, 2 emergency), 18 nac_p, 19 nic, 20 type designator, 21 emergency status]
+ *  [17 flags (1 military, 2 emergency), 18 nac_p, 19 nic, 20 type designator, 21 emergency status,
+ *   22 ADS-B emitter category]
  * Aircraft without a position, or outside the bbox, are dropped.
  */
 export function toOpenSkyStates(aircraft: ReadsbAircraft[], b: BBox, nowSec: number): StateVector[] {
@@ -150,6 +153,7 @@ export function toOpenSkyStates(aircraft: ReadsbAircraft[], b: BBox, nowSec: num
       typeof a.nic === "number" ? a.nic : null,
       a.t ?? null,
       a.emergency && a.emergency !== "none" ? a.emergency : null,
+      typeof a.category === "string" && /^[A-D][0-7]$/.test(a.category) ? a.category : null,
     ]);
   }
   return out;

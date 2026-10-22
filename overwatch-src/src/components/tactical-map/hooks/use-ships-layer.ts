@@ -27,7 +27,7 @@ import { nearSideDepthDistance } from "@/lib/map/near-side-depth";
 import { modelStyle } from "@/lib/map/contact-models";
 import { boxKey, type GeoBox } from "@/lib/map/aircraft-viewport";
 import {
-  CATEGORY_COLOR, CATEGORY_LABEL, SHIP_MODEL_URL, SHIP_POLL_MS, SHIP_POLL_MS_PHONE, SHIP_RPC_PAGE,
+  CATEGORY_COLOR, CATEGORY_LABEL, SHIP_CATEGORY_MODEL, SHIP_POLL_MS, SHIP_POLL_MS_PHONE, SHIP_RPC_PAGE,
   capShips, inShipBox, mergeShipPages, navStatusLabel, selectShipLabelIds, selectShipModelIds, shipCap, shipCategory,
   shipHeadingDeg, shipModelHeadingDeg, shipModelScale, shipPageRanges, shipQueryBox, type Ship,
 } from "@/lib/map/ships";
@@ -77,9 +77,9 @@ export function useShipsLayer(params: {
     contrastRef.current = highContrast;
     const viewer = viewerRef.current, C = cesiumRef.current;
     if (!viewer || !C || viewer.isDestroyed?.()) return;
-    const st = modelStyle(highContrast);
     for (const e of viewer.entities.values) {
       if (!e.model || !String(e.id).startsWith("ship-")) continue;
+      const st = modelStyle(highContrast, CATEGORY_COLOR[shipCategory(e._owShip?.ship_type)]);
       e.model.color = C.Color.fromCssColorString(st.color);
       e.model.colorBlendAmount = st.blend;
       e.model.silhouetteColor = C.Color.fromCssColorString(st.silhouette).withAlpha(st.silhouetteAlpha);
@@ -137,7 +137,11 @@ export function useShipsLayer(params: {
         const d = drawn.get(s.mmsi);
         if (d) {
           d.pos = pos; d.bb.position = pos; d.bb.rotation = rot; d.pick._owShip = s; d.pick.name = s.name || `MMSI ${s.mmsi}`;
-          if (d.color !== color) { d.bb.setImage(`ship-icon-${color}`, shipIcon(color)); d.color = color; }
+          if (d.color !== color) {
+            d.bb.setImage(`ship-icon-${color}`, shipIcon(color)); d.color = color;
+            // Type arrived (static data) after the model was drawn: rebuild it with the right model and colour.
+            if (modelled.has(s.mmsi)) { removeModel(s.mmsi); d.bb.show = true; }
+          }
           if (d.label) { d.label.position = pos; d.label.text = s.name || String(s.mmsi); }
         } else {
           const rec = { pos } as Drawn;
@@ -212,12 +216,14 @@ export function useShipsLayer(params: {
         const d = drawn.get(mmsi);
         if (!d) continue;
         const s = d.pick._owShip;
-        const st = modelStyle(contrastRef.current);
+        const cat = shipCategory(s.ship_type);
+        const mdl = SHIP_CATEGORY_MODEL[cat];
+        const st = modelStyle(contrastRef.current, CATEGORY_COLOR[cat]);
         viewer.entities.add({
           id: idOf(mmsi), name: d.pick.name, position: d.pos, description: shipDesc(s),
-          orientation: C.Transforms.headingPitchRollQuaternion(d.pos, new C.HeadingPitchRoll(C.Math.toRadians(shipModelHeadingDeg(shipHeadingDeg(s))), 0, 0)),
+          orientation: C.Transforms.headingPitchRollQuaternion(d.pos, new C.HeadingPitchRoll(C.Math.toRadians(shipModelHeadingDeg(shipHeadingDeg(s), mdl.headingOffsetDeg)), 0, 0)),
           model: new C.ModelGraphics({
-            uri: SHIP_MODEL_URL, scale: shipModelScale(s.length_m), minimumPixelSize: 40, maximumScale: 20, shadows: C.ShadowMode.DISABLED,
+            uri: mdl.url, scale: shipModelScale(s.length_m), minimumPixelSize: 40, maximumScale: 20, shadows: C.ShadowMode.DISABLED,
             // Origin = waterline (ship.glb re-rooted), so clamping puts the hull on the sea surface.
             heightReference: C.HeightReference.CLAMP_TO_GROUND,
             // Trim everything below the waterline: with 3D terrain off there is no depth test against the sea.
