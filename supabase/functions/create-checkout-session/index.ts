@@ -7,6 +7,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.0'
 import Stripe from 'https://esm.sh/stripe@14.5.0?target=deno'
 import { getCorsHeaders } from '../_shared/cors.ts'
 import { buildCheckoutRedirects } from './redirects.ts'
+import { internalErrorResponse } from '../_shared/safe-error.ts'
 
 const stripe = new Stripe(Deno.env.get('STRIPE_SECRET_KEY') || '', {
   apiVersion: '2023-10-16',
@@ -160,10 +161,8 @@ serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   } catch (error) {
-    console.error('Error creating checkout session:', error)
-    return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : String(error) }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    // Never echo error.message/stack to the caller (CodeQL js/stack-trace-exposure #99):
+    // Stripe/DB errors can carry internal details. Full error goes to the log with a ref id.
+    return internalErrorResponse('create-checkout-session', error, { ...corsHeaders, 'Content-Type': 'application/json' })
   }
 })

@@ -41,6 +41,16 @@ export function uptimeLevel(pct: number | null, target = 99.5, checks = MIN_CHEC
   return "red";
 }
 
+/**
+ * Checks behind a 7/30/90-day figure. 30 days uses the server count; 7 and 90
+ * days sum the most recent N entries of `daily` (oldest first), so each card
+ * gets the same "too little data -> grey" rule as the 30-day card.
+ */
+export function windowChecks(u: Pick<UptimeSummary, "daily" | "checks30d">, days: 7 | 30 | 90): number {
+  if (days === 30) return u.checks30d;
+  return u.daily.slice(-days).reduce((n, d) => n + (d.checks || 0), 0);
+}
+
 export function dayLevel(d: UptimeDay, target = 99.5): UptimeLevel {
   if (d.pct === null || d.checks === 0) return "none";
   return uptimeLevel(d.pct, target, MIN_CHECKS);
