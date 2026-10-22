@@ -3,10 +3,10 @@
 /**
  * Region dossier modal — shown when the user right-clicks a point on the
  * tactical map. Fetches /intel-region-dossier for the clicked coordinates
- * and renders a country brief (Nominatim/Photon reverse-geocode + Wikidata
+ * and renders a country brief (Photon reverse-geocode + Wikidata
  * country facts and leaders + Wikipedia summary).
  *
- * Attribution required: OpenStreetMap (Nominatim, Photon), Wikidata, Wikipedia.
+ * Attribution required: OpenStreetMap (Photon), Wikidata, Wikipedia.
  */
 
 import { useEffect, useState } from "react";
@@ -203,7 +203,7 @@ export function RegionDossierModal({ lat, lng, onClose }: RegionDossierModalProp
               )}
 
               <div className="border-t border-white/10 pt-2 text-[9px] text-white/30">
-                Sources: © OpenStreetMap contributors (Nominatim / Photon) · Wikidata · Wikipedia
+                Sources: © OpenStreetMap contributors (Photon) · Wikidata · Wikipedia
               </div>
             </>
           )}

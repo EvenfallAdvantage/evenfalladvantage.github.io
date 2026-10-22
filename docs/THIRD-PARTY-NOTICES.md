@@ -46,7 +46,7 @@ sources are currently enabled and any gating reasons.
 | Shodan InternetDB | IP sweep (RECON tab) | `internetdb.shodan.io` |
 | CISA KEV | Cyber threats status bar | `cisa.gov` |
 | Wikipedia / Wikidata | Region dossier | `*.wikipedia.org`, `query.wikidata.org` |
-| Nominatim / Photon (komoot) | Reverse geocoding, region dossier (Photon is the fallback) | `nominatim.openstreetmap.org`, `photon.komoot.io` |
+| Photon (komoot) | Reverse geocoding, region dossier (lang=en; Nominatim not used server-side) | `photon.komoot.io` |
 | flagcdn | Country flag image, region dossier | `flagcdn.com` |
 | RDAP via rdap.org | WHOIS lookups (RECON tab) | `rdap.org` |
 | Panoramax | Street-level photos (Operations map, Cameras) | `api.panoramax.xyz` STAC search (keyless; licence per photo, mostly CC BY-SA 4.0 / Licence Ouverte 2.0; faces and plates blurred on upload) |
