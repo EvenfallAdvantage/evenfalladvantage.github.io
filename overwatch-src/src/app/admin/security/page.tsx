@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { PrivacyControls } from "./components/privacy-controls";
 import { SyncIssuesPanel } from "./components/sync-issues-panel";
+import { MfaPolicy } from "./components/mfa-policy";
 
 interface AuditLog {
   id: string;
@@ -284,6 +285,8 @@ export default function SecurityDashboardPage() {
       {/* Privacy / GDPR controls — available to any authenticated user
           (self-service); admin actions are gated inside the component to
           owner role only. */}
+      {isCompanyAdmin && activeCompany && <MfaPolicy companyId={activeCompany.companyId} canEdit={isCompanyAdmin} />}
+
       <PrivacyControls />
 
       {/* Compliance Badge — super-admin only */}
