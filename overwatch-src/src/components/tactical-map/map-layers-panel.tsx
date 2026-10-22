@@ -1,4 +1,5 @@
 "use client";
+import type { ShipFilter } from "@/lib/map/ships";
 import { ionAssetsEnabled } from "@/lib/map/basemap-sources";
 import { SAR_AVAILABLE } from "./sentinel-layer";
 
@@ -88,6 +89,8 @@ export interface LayerVisibility {
   /** Panel v2: OSM infrastructure extract (data centres, dams, military areas, substations). */
   osmInfrastructure: boolean;
   aircraftFilter: AircraftFilter;
+  /** Panel v2: ships All / Military / Emergency (saved with the layers in user_map_prefs). */
+  shipFilter: ShipFilter;
   /** Panel v2: where hazards, news and cameras are shown. */
   scope: Scope;
   /** Panel v2: Site Watch (hazards near my sites, on the map only). */
@@ -156,6 +159,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   ships: false,
   osmInfrastructure: false,
   aircraftFilter: "all",
+  shipFilter: "all",
   scope: "sites",
   siteWatch: true,
   groups: { myOps: true, weather: true, security: true, airSea: true, cameras: true, infrastructure: true },

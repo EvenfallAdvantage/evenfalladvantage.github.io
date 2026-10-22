@@ -189,6 +189,37 @@ export const SHIP_CATEGORY_MODEL: Record<ShipCategory, ShipModel> = {
   pleasure: GEN("sailing"), highspeed: GEN("highspeed"), military: GEN("military"), other: GEN("generic"),
 };
 
+/**
+ * Ships layer filter (same selector as aircraft: All / Military / Emergency).
+ *
+ * What AIS can tell us:
+ *  - Military / law enforcement: ship type 35 / 55, but only if the vessel broadcasts a
+ *    type (many warships switch AIS off or send no type).
+ *  - Emergency: there is no "distress" flag in a position report. We use
+ *    • AIS-SART / MOB / EPIRB-AIS beacons, identified by MMSI prefix 970 / 972 / 974
+ *      (ITU-R M.585), and navigational status 14 "AIS-SART active";
+ *    • navigational status 2 "not under command" and 6 "aground";
+ *    • ship type 51 (search & rescue) and 58 (medical transport): units that
+ *      respond to emergencies, shown so a rescue scene can be picked out.
+ *  - Not available: DSC distress alerts and voice MAYDAY are not in AIS; status is
+ *    self-reported and often left stale; we don't receive safety text messages (types 12/14).
+ */
+export type ShipFilter = "all" | "military" | "emergency";
+export const SHIP_FILTER_LABELS: Record<ShipFilter, string> = { all: "All", military: "Military", emergency: "Emergency" };
+const BEACON_PREFIX = ["970", "972", "974"];
+export function shipIsMilitary(s: Pick<Ship, "ship_type">): boolean { return shipCategory(s.ship_type) === "military"; }
+export function shipIsBeacon(s: Pick<Ship, "mmsi" | "nav_status">): boolean {
+  return BEACON_PREFIX.includes(String(s.mmsi).slice(0, 3)) || s.nav_status === 14;
+}
+export function shipIsEmergency(s: Pick<Ship, "mmsi" | "nav_status" | "ship_type">): boolean {
+  return shipIsBeacon(s) || s.nav_status === 2 || s.nav_status === 6 || s.ship_type === 51 || s.ship_type === 58;
+}
+export function matchesShipFilter(s: Pick<Ship, "mmsi" | "nav_status" | "ship_type">, f: ShipFilter | undefined): boolean {
+  if (f === "military") return shipIsMilitary(s);
+  if (f === "emergency") return shipIsEmergency(s);
+  return true;
+}
+
 const NAV_STATUS: Record<number, string> = {
   0: "Under way (engine)", 1: "At anchor", 2: "Not under command", 3: "Restricted manoeuvrability", 4: "Constrained by draught",
   5: "Moored", 6: "Aground", 7: "Fishing", 8: "Under way (sail)", 14: "AIS-SART active",

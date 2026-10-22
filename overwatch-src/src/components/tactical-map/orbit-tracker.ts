@@ -31,6 +31,8 @@ async function loadSatelliteLib(): Promise<typeof satLib> {
 export interface SatelliteInfo {
   name: string;
   type: "sar" | "optical" | "military" | "comms";
+  /** CelesTrak group the TLE came from (drives the map category and model). */
+  group?: string;
   lat: number;
   lng: number;
   altitude: number;
@@ -46,12 +48,31 @@ const HIGHLIGHT_SATS = new Set([
   "GEOEYE-1", "PLEIADES-1A", "PLEIADES-1B",
 ]);
 
-let cachedTLEs: { name: string; tle1: string; tle2: string; type: SatelliteInfo["type"] }[] = [];
+type CachedTle = { name: string; tle1: string; tle2: string; type: SatelliteInfo["type"]; group?: string };
+let cachedTLEs: CachedTle[] = [];
 let lastFetch = 0;
+const TLE_CACHE_KEY = "tle-cache-v2";
+
+/**
+ * CelesTrak groups and how many of each the map draws (30 in total, the same
+ * propagation load as before). Each group file is small and cached 12 h.
+ */
+/** ISS / Tiangong modules and visiting vehicles listed in the CelesTrak stations group. */
+export const STATION_DUP_RE = /\b(ISS|ZARYA|POISK|NAUKA|PRICHAL|CSS|TIANHE|WENTIAN|MENGTIAN|PROGRESS|SOYUZ|DRAGON|CYGNUS|STARLINER|SHENZHOU|TIANZHOU|HTV|MODULE|SZ-\d+)\b/i;
+/** Stations group: the core ISS / Tiangong modules first, then other objects minus their modules and docked craft. */
+export function stationPool<T extends { name: string }>(all: T[]): T[] {
+  const core = all.filter((t) => STATION_CORE.has(t.name.trim()));
+  return [...core, ...all.filter((t) => !STATION_CORE.has(t.name.trim()) && !STATION_DUP_RE.test(t.name) && !/\bDEB\b|R\/B/.test(t.name))];
+}
+const STATION_CORE = new Set(["ISS (ZARYA)", "CSS (TIANHE)"]);
+export const TLE_GROUPS: ReadonlyArray<{ group: string; take: number }> = [
+  { group: "resource", take: 12 }, { group: "stations", take: 3 }, { group: "gps-ops", take: 4 },
+  { group: "weather", take: 4 }, { group: "military", take: 4 }, { group: "intelsat", take: 3 },
+];
 
 // Restore from localStorage on module load
 try {
-  const stored = typeof localStorage !== "undefined" ? localStorage.getItem("tle-cache") : null;
+  const stored = typeof localStorage !== "undefined" ? localStorage.getItem(TLE_CACHE_KEY) : null;
   if (stored) {
     const parsed = JSON.parse(stored);
     if (parsed.ts && Date.now() - parsed.ts < 43200000) {
@@ -63,36 +84,50 @@ try {
   // localStorage may be unavailable (private browsing)
 }
 
+function parseTle(text: string, group: string): CachedTle[] {
+  const out: CachedTle[] = [];
+  const lines = text.trim().split("\n");
+  for (let i = 0; i < lines.length - 2; i += 3) {
+    const name = lines[i].trim();
+    const tle1 = lines[i + 1]?.trim();
+    const tle2 = lines[i + 2]?.trim();
+    if (tle1?.startsWith("1 ") && tle2?.startsWith("2 ")) {
+      out.push({ name, tle1, tle2, group, type: group === "military" ? "military" : group === "intelsat" ? "comms" : HIGHLIGHT_SATS.has(name) ? "sar" : "optical" });
+    }
+  }
+  return out;
+}
+
 async function fetchTLEs() {
   // TLE data updates ~daily. Cache for 12 hours.
   if (cachedTLEs.length > 0 && Date.now() - lastFetch < 43200000) return cachedTLEs;
 
-  const results: typeof cachedTLEs = [];
-  try {
-    const res = await fetch(
-      "https://celestrak.org/NORAD/elements/gp.php?GROUP=resource&FORMAT=tle",
-      { signal: AbortSignal.timeout(10000) }
-    );
-    const text = await res.text();
-    const lines = text.trim().split("\n");
-    for (let i = 0; i < lines.length - 2; i += 3) {
-      const name = lines[i].trim();
-      const tle1 = lines[i + 1]?.trim();
-      const tle2 = lines[i + 2]?.trim();
-      if (tle1?.startsWith("1 ") && tle2?.startsWith("2 ")) {
-        results.push({ name, tle1, tle2, type: HIGHLIGHT_SATS.has(name) ? "sar" : "optical" });
-      }
+  const lists = await Promise.all(TLE_GROUPS.map(async ({ group, take }) => {
+    try {
+      const res = await fetch(
+        `https://celestrak.org/NORAD/elements/gp.php?GROUP=${group}&FORMAT=tle`,
+        { signal: AbortSignal.timeout(10000) }
+      );
+      if (!res.ok) return [];
+      const all = parseTle(await res.text(), group);
+      // Highlighted imaging satellites first in the resource group.
+      // ISS/CSS come from the catalog-number fetch; drop their modules and docked craft (same position).
+      const pool = group === "stations" ? stationPool(all) : all;
+      const sorted = group === "resource" ? [...pool].sort((a, b) => (HIGHLIGHT_SATS.has(a.name) ? 0 : 1) - (HIGHLIGHT_SATS.has(b.name) ? 0 : 1)) : pool;
+      return sorted.slice(0, take);
+    } catch (err) {
+      console.warn("[OrbitTracker] TLE fetch failed:", group, err);
+      return [];
     }
-  } catch (err) {
-    console.warn("[OrbitTracker] TLE fetch failed:", err);
-  }
+  }));
+  const results = lists.flat();
 
   cachedTLEs = results;
   lastFetch = Date.now();
 
   // Persist to localStorage for cross-reload caching
   try {
-    localStorage.setItem("tle-cache", JSON.stringify({ data: results, ts: lastFetch }));
+    localStorage.setItem(TLE_CACHE_KEY, JSON.stringify({ data: results, ts: lastFetch }));
   } catch (e) { logger.swallow("orbit-tracker:cache-write", e, "debug"); }
 
   return results;
@@ -137,7 +172,7 @@ export async function getSatellitePositions(
       const vel = posVel.velocity as any;
       const speed = Math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2);
 
-      positions.push({ name: tle.name, type: tle.type, lat, lng, altitude, velocity: speed, tle1: tle.tle1, tle2: tle.tle2 });
+      positions.push({ name: tle.name, type: tle.type, group: tle.group, lat, lng, altitude, velocity: speed, tle1: tle.tle1, tle2: tle.tle2 });
     } catch (e) { logger.swallow("orbit-tracker:propagate", e); }
   }
 
