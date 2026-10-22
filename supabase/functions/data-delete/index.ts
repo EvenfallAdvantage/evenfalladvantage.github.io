@@ -37,6 +37,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { internalErrorResponse } from "../_shared/safe-error.ts";
 import { getCallerIp, getCallerUserAgent, logAudit } from "../_shared/audit.ts";
+import { callerRpcClient, requireCompanyMfa } from "../_shared/mfa-guard.ts";
 
 interface DeleteRequest {
   subject_user_id: string;
@@ -166,6 +167,13 @@ Deno.serve(async (req) => {
           headers: jsonHeaders,
         });
       }
+      // Server-side 2FA for the owner path (self-service exports/deletes are user-level).
+      const mfaBlock = await requireCompanyMfa(
+        callerRpcClient(req),
+        ownerMems.map((m: { company_id: string }) => m.company_id),
+        jsonHeaders,
+      );
+      if (mfaBlock) return mfaBlock;
     }
 
     // ── Anonymize PII ────────────────────────────────────────

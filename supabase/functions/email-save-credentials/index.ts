@@ -40,6 +40,7 @@ import {
   logAudit,
 } from "../_shared/audit.ts";
 import { writeVaultSecret } from "../_shared/email/vault.ts";
+import { callerRpcClient, requireCompanyMfa } from "../_shared/mfa-guard.ts";
 
 interface SaveRequest {
   company_id: string;
@@ -203,6 +204,10 @@ Deno.serve(async (req) => {
         { status: 403, headers: jsonHeaders },
       );
     }
+
+    // Server-side 2FA: service-role writes bypass RLS, so check AAL here.
+    const mfaBlock = await requireCompanyMfa(callerRpcClient(req), body.company_id, jsonHeaders);
+    if (mfaBlock) return mfaBlock;
 
     // Load existing row so we know whether to update or create a vault
     // secret (and whether the integrations_config row even exists).

@@ -31,6 +31,7 @@ import {
 } from "../_shared/audit.ts";
 import { buildTestSendEmail } from "../_shared/email/templates.ts";
 import { resolveProviderForCompany } from "../_shared/email/factory.ts";
+import { callerRpcClient, requireCompanyMfa } from "../_shared/mfa-guard.ts";
 
 interface TestSendRequest {
   company_id: string;
@@ -143,6 +144,10 @@ Deno.serve(async (req) => {
         { status: 403, headers: jsonHeaders },
       );
     }
+
+    // Server-side 2FA: service-role writes bypass RLS, so check AAL here.
+    const mfaBlock = await requireCompanyMfa(callerRpcClient(req), body.company_id, jsonHeaders);
+    if (mfaBlock) return mfaBlock;
     const callerName =
       [
         callerMembership.users?.first_name,

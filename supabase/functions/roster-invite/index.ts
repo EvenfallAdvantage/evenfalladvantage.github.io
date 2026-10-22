@@ -45,6 +45,7 @@ import {
   buildCrossCompanyAddEmail,
   buildInvitationEmail,
 } from "../_shared/email/templates.ts";
+import { callerRpcClient, requireCompanyMfa } from "../_shared/mfa-guard.ts";
 
 interface InviteRequest {
   company_id: string;
@@ -170,6 +171,10 @@ Deno.serve(async (req) => {
         { status: 403, headers: jsonHeaders },
       );
     }
+
+    // Server-side 2FA: service-role writes bypass RLS, so check AAL here.
+    const mfaBlock = await requireCompanyMfa(callerRpcClient(req), body.company_id, jsonHeaders);
+    if (mfaBlock) return mfaBlock;
 
     // Look up internal users.id for the caller (used as roster_invitations.invited_by).
     const { data: callerRow } = await admin

@@ -33,3 +33,11 @@ bodies (verified by hash on the local copy).
 
 Not covered yet: Edge Functions called by admins run as `service_role` (roster-invite, email/sms settings);
 they need their own aal check on the caller's JWT.
+
+### Service-key admin Edge Functions
+
+Edge Functions that act with the service-role key bypass RLS, so each one checks 2FA itself through `supabase/functions/_shared/mfa-guard.ts`. After its role check, the function calls `public.mfa_ok(company_id)` **as the caller**, which is the same function the RLS policies use. If the company has `require_mfa_admins` on and the caller is an owner/admin with an `aal1` token, it returns **403 `{code:"mfa_required"}`**. If the check itself fails, it returns 503 (fail closed).
+
+Covered: email-save-credentials, email-test-send, sms-save-credentials, sms-test-send, roster-bulk-email, roster-invite, integration-save-credentials, integration-action, integration-oauth-start, data-export and data-delete. For data-export and data-delete, only the owner-acting-on-someone-else path is checked; self-service requests are user-level.
+Not covered: create-student and delete-student (legacy EADB instructor functions, not company-scoped).
+Tests: `deno test supabase/functions/_shared/mfa-guard_test.ts`.

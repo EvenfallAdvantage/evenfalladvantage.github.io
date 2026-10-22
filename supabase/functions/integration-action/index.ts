@@ -16,6 +16,7 @@ import { safeError } from "../_shared/integrations/redact.ts";
 import { getAdapter } from "../_shared/integrations/registry.ts";
 import { allowed, BUILTIN_ACCESS } from "../_shared/integrations/roles.ts";
 import { isProviderSlug } from "../_shared/integrations/urls.ts";
+import { callerRpcClient, requireCompanyMfa } from "../_shared/mfa-guard.ts";
 
 Deno.serve(async (req) => {
   const { cors, json } = jsonResponder(req);
@@ -43,6 +44,10 @@ Deno.serve(async (req) => {
       await audit("blocked", { role: caller.role });
       return json(403, { error: access === "manage" ? "Only owners and admins can change integrations" : "Not allowed" });
     }
+
+    // Server-side 2FA: service-role writes bypass RLS, so check AAL here.
+    const mfaBlock = await requireCompanyMfa(callerRpcClient(req), companyId, { ...cors, "Content-Type": "application/json" });
+    if (mfaBlock) return mfaBlock;
 
     const row = await getConnection(admin, companyId, provider);
     if (!row) return json(404, { error: "Not connected" });

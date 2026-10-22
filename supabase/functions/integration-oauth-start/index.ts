@@ -13,6 +13,7 @@ import { getAdapter } from "../_shared/integrations/registry.ts";
 import { canManage } from "../_shared/integrations/roles.ts";
 import { isProviderSlug, oauthCallbackUrl } from "../_shared/integrations/urls.ts";
 import { getConnection } from "../_shared/integrations/connections.ts";
+import { callerRpcClient, requireCompanyMfa } from "../_shared/mfa-guard.ts";
 
 Deno.serve(async (req) => {
   const { cors, json } = jsonResponder(req);
@@ -31,6 +32,10 @@ Deno.serve(async (req) => {
       await logAudit(admin, { event_type: `integration.${body.provider}.connect`, company_id: body.company_id, user_id: caller.userId, outcome: "blocked", entity_type: "integration", ip_address: getCallerIp(req) });
       return json(403, { error: "Only owners and admins can connect integrations" });
     }
+
+    // Server-side 2FA: service-role writes bypass RLS, so check AAL here.
+    const mfaBlock = await requireCompanyMfa(callerRpcClient(req), body.company_id, { ...cors, "Content-Type": "application/json" });
+    if (mfaBlock) return mfaBlock;
     if (adapter.isConfigured && !adapter.isConfigured(env)) {
       return json(503, { error: "This integration isn't configured on the platform yet" });
     }

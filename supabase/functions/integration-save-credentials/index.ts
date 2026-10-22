@@ -21,6 +21,7 @@ import { getCorsHeaders } from "../_shared/cors.ts";
 import { logAudit } from "../_shared/audit.ts";
 import { readVaultSecret, writeVaultSecret } from "../_shared/email/vault.ts";
 import { GENERIC_PROVIDERS, isSecretKey, redactConfig, splitConfig } from "../_shared/integration-secret-keys.ts";
+import { callerRpcClient, requireCompanyMfa } from "../_shared/mfa-guard.ts";
 
 Deno.serve(async (req) => {
   const cors = getCorsHeaders(req.headers.get("origin"));
@@ -58,6 +59,10 @@ Deno.serve(async (req) => {
       await logAudit(admin, { event_type: "integration.credentials.save", user_id: myId, company_id: body.company_id, outcome: "blocked", metadata: { provider: body.provider } });
       return json(403, { error: "Only owners and admins can change integrations" });
     }
+
+    // Server-side 2FA: service-role writes bypass RLS, so check AAL here.
+    const mfaBlock = await requireCompanyMfa(callerRpcClient(req), body.company_id, { ...cors, "Content-Type": "application/json" });
+    if (mfaBlock) return mfaBlock;
 
     const { data: existing } = await admin
       .from("integrations_config")
