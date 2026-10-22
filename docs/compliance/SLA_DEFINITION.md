@@ -13,8 +13,39 @@
 | Maximum planned downtime per month | 4 hours (maintenance windows) |
 | Maximum unplanned downtime per incident | 4 hours (P1 RTO) |
 
+> **Status:** 99.5% is an internal **target** we measure and publish, not a contractual SLA with service credits. It becomes a customer SLA only when a signed agreement says so.
+
+### What 99.5% allows
+
+| Period | Allowed downtime at 99.5% |
+|--------|---------------------------|
+| 30-day month (43,200 min) | 216 min ≈ **3.6 hours** |
+| 7 days | ≈ 50 minutes |
+| 90 days | ≈ 10.8 hours |
+| Year | ≈ 43.8 hours |
+
 ### Uptime Calculation
 Uptime % = (Total minutes in month - Downtime minutes) / Total minutes in month x 100
+
+In practice we measure with fixed-interval probes, so:
+
+Uptime % = successful checks / settled checks × 100 (each check = one 5-minute slice)
+
+### How it is measured
+
+| Layer | Monitor | Interval | What counts as "up" | Sees |
+|-------|---------|----------|---------------------|------|
+| Internal | `pg_cron` job `uptime-probe` → `pg_net` GET `/functions/v1/health`, stored in `public.uptime_checks` (migration `20261022010000_uptime_checks`) | 5 min | HTTP 200 **and** body `"status":"ok"` (database, sign-in and storage all OK) within 30 s. A 503/degraded answer, a timeout or no answer after 2 min counts as down. | Supabase Edge Functions, database, Auth, Storage |
+| External | UptimeRobot keyword monitor on `https://nneueuvyeohwnspbwfub.supabase.co/functions/v1/health` (keyword `"status":"ok"`) plus the website URL | 5 min | Keyword present / HTTP 2xx | Everything above **plus** DNS, Cloudflare, GitHub Pages and a full Supabase outage |
+
+- Published figures: `public.get_uptime_summary()` (anon-callable aggregate; raw rows are not public) returns 7/30/90-day uptime and a 90-day daily series. It feeds the landing-page badge and the 90-day bar on `/overwatch/status/`.
+- The landing badge shows a green dot at or above 99.5%, amber within 0.5 point below, red further below, and just "Live status" until at least one day (288 checks) of data exists.
+- History is kept 100 days.
+
+### Known limits of the internal monitor
+- It runs **inside** Supabase, so it cannot see Cloudflare, DNS or GitHub Pages outages (the website could be down while it reports "up").
+- If Postgres or pg_cron itself is down, no checks are recorded; missing slices are **not** counted as downtime in the internal figure. A full Supabase outage is therefore only visible to the external monitor.
+- When the two disagree, the **external (UptimeRobot) figure is authoritative** for reporting against the target; the internal figure is the public, self-hosted view.
 
 ### Exclusions
 - Scheduled maintenance (announced 24 hours in advance)
@@ -42,7 +73,8 @@ Uptime % = (Total minutes in month - Downtime minutes) / Total minutes in month 
 
 ## 4. Monitoring
 
-- **Uptime monitoring:** UptimeRobot (5-minute intervals)
+- **Uptime monitoring:** UptimeRobot (external, 5-minute intervals) and the internal `uptime-probe` cron job (5-minute intervals); see "How it is measured"
+- **Public status:** https://www.evenfalladvantage.com/overwatch/status/ (live checks + 90-day uptime)
 - **Health check:** https://www.evenfalladvantage.com/overwatch/health/
 - **Error tracking:** Built-in error_logs table (30-day retention)
 - **Security scanning:** Dependabot (weekly), CodeQL (weekly)

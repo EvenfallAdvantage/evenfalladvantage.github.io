@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CheckCircle2, AlertTriangle, XCircle, HelpCircle, RefreshCw } from "lucide-react";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import { fetchHealth, type HealthSnapshot } from "@/lib/status/health";
+import { UptimeHistory } from "@/components/uptime-history";
 
 const OVERALL: Record<HealthSnapshot["status"], { text: string; cls: string; Icon: typeof CheckCircle2 }> = {
   ok: { text: "All systems operational", cls: "bg-emerald-700 text-white", Icon: CheckCircle2 },
@@ -55,8 +56,9 @@ export default function StatusPage() {
             <RefreshCw className={`h-4 w-4 ${busy ? "animate-spin" : ""}`} aria-hidden="true" /> Refresh
           </button>
         </div>
+        <UptimeHistory />
         <p className="text-sm text-white/80">
-          Overwatch runs on GitHub Pages (website) and Supabase (database, sign-in, storage). Our uptime target is 99.5% per month; this is a target, not a contractual SLA.
+          Overwatch runs on GitHub Pages (website) and Supabase (database, sign-in, storage). Our uptime target is 99.5% per month (about 3.6 hours of downtime allowed); this is a target, not a contractual SLA.
           Report a problem: <a className="underline" href="mailto:contact@evenfalladvantage.com">contact@evenfalladvantage.com</a>
         </p>
       </div>
