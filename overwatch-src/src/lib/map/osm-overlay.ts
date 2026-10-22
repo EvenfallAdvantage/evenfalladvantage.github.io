@@ -9,6 +9,8 @@
  */
 
 /** OSM Carto area fills keyed out over satellite imagery. */
+import { toTileImage } from "./basemap-sources";
+
 export const OSM_AREA_FILLS: ReadonlyArray<readonly [number, number, number]> = [
   [0xf2, 0xef, 0xe9], // land
   [0xe0, 0xdf, 0xdf], // residential
@@ -90,7 +92,7 @@ export function withOverlayFilter<P extends { requestImage?: (...a: any[]) => an
         const data = ctx.getImageData(0, 0, c.width, c.height);
         processOverlayPixels(data.data, style);
         ctx.putImageData(data, 0, 0);
-        return c;
+        return toTileImage(c, img);
       } catch {
         return img;
       }

@@ -172,6 +172,20 @@ export function clearNoDataPixels(rgba: Uint8ClampedArray, min = NO_DATA_WHITE_M
   return n;
 }
 
+/**
+ * Hand a processed tile back to Cesium in the same kind of object it gave us.
+ * Cesium (1.128) fetches imagery as ImageBitmaps created with flipY and
+ * uploads ImageBitmaps without flipping, but flips canvases on upload. A
+ * canvas drawn from a pre-flipped bitmap would be flipped twice (labels
+ * upside down and mirrored), so re-wrap it as an ImageBitmap.
+ */
+export function toTileImage(canvas: HTMLCanvasElement, source: unknown): HTMLCanvasElement | Promise<ImageBitmap> {
+  if (typeof ImageBitmap !== "undefined" && source instanceof ImageBitmap && typeof createImageBitmap === "function") {
+    return createImageBitmap(canvas);
+  }
+  return canvas;
+}
+
 /** Wrap a Cesium imagery provider so each tile's white no-data fill becomes transparent. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function withNoDataMask<P extends { requestImage?: (...a: any[]) => any }>(provider: P): P {
@@ -191,7 +205,7 @@ export function withNoDataMask<P extends { requestImage?: (...a: any[]) => any }
         const data = ctx.getImageData(0, 0, c.width, c.height);
         if (clearNoDataPixels(data.data) === 0) return img;
         ctx.putImageData(data, 0, 0);
-        return c;
+        return toTileImage(c, img);
       } catch {
         return img;
       }
