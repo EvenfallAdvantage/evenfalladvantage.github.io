@@ -62,3 +62,26 @@ describe("S2 timestamps", () => {
     expect(html2).toContain("source gave no date");
   });
 });
+
+describe("S2 popup date fields", () => {
+  it("renders tipline DateOfEvent as a date, not a number, and merges it into When", () => {
+    const html = buildS2Description({ lat: 0, lng: 0, layerId: tipline.id, properties: {
+      OBJECTID: 5, EventType: "SMARMSAttack", DateOfEvent: 1745625600000, DateOfReport: 1746576000000, TimeOfEvent: null,
+    } }, tipline);
+    expect(html).not.toMatch(/1,745,625,600,000|1745625600000|1,746,576,000,000/);
+    expect(html).toContain("When:");
+    expect(html).not.toContain("date not reported");
+    expect(html).not.toContain("Date Of Event:");
+    expect(html).toMatch(/Date Of Report: .*2025/);
+    expect(html).toMatch(/26/);
+  });
+
+  it("detects date-named epoch fields not in the known list", () => {
+    const html = buildS2Description({ lat: 0, lng: 0, layerId: kinetic.id, properties: {
+      OBJECTID: 9, Date: 1792281600000, LastUpdateDate: 1792300000123, FriendlyKilled: 4,
+    } }, kinetic);
+    expect(html).not.toMatch(/1,792,300,000,123/);
+    expect(html).toMatch(/Last Update Date: .*\d{4}/);
+    expect(html).toContain("<b>4</b>");
+  });
+});

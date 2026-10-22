@@ -382,6 +382,19 @@ const DATE_FIELDS = new Set<string>([
 ]);
 
 /**
+ * Whether a popup property should be rendered as a date: a known date field,
+ * or a name that looks like a date (ArcGIS esriFieldTypeDate fields are
+ * delivered as epoch-ms numbers in GeoJSON, with no type info) holding an
+ * epoch-ms number or date string.
+ */
+export function isDateLikeField(key: string, val: unknown): boolean {
+  if (DATE_FIELDS.has(key)) return true;
+  if (!/date|timestamp|_at$/i.test(key)) return false;
+  if (typeof val === "number") return val > 1e11 && val < 1e14;
+  return typeof val === "string" && !Number.isNaN(Date.parse(val));
+}
+
+/**
  * Format a timestamp (ms) as "N minutes/hours/days ago" for popup display.
  * Falls back to a compact locale date for older entries.
  */
@@ -466,8 +479,10 @@ export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
     if (strVal.length > 500) continue; // skip huge blobs
 
     // Format dates nicely
-    if (DATE_FIELDS.has(key)) {
+    if (isDateLikeField(key, val)) {
       const ms = parseFeatureDate(val);
+      // Merge: skip a line that just repeats the "When" value.
+      if (ms !== null && t && t.source === "event" && ms === t.ms) continue;
       if (ms !== null) {
         const dateOnly = typeof val === "number" && isDateOnlyMs(ms);
         parts.push(`<br/><small style="opacity:0.7">${formatFieldName(key)}: ${formatResolvedTime({ ms, dateOnly })}</small>`);
