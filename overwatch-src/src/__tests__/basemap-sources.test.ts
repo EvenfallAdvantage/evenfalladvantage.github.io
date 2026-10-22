@@ -4,7 +4,7 @@ import {
   clearNoDataPixels, isNoDataTile, lightningCacheKey, USGS_IMAGERY_EXTENTS,
 } from "@/lib/map/basemap-sources";
 import { lightningWmsTime } from "@/components/tactical-map/hooks/use-lightning-layer";
-import { applyGrade, NIGHT_GRADE } from "@/components/tactical-map/hooks/use-night-vision";
+import { applyGrade, NIGHT_GRADE, NIGHT_REFERENCE, nightModeLighting } from "@/components/tactical-map/hooks/use-night-vision";
 
 describe("ionAssetsEnabled (Phase 0 licensing)", () => {
   it("ignores a leftover Cesium token without the explicit commercial opt-in", () => {
@@ -88,8 +88,18 @@ describe("night mode", () => {
   it("re-grades existing imagery instead of loading CARTO tiles", () => {
     const layer = { brightness: 1, contrast: 1, saturation: 1, gamma: 1, hue: 0 };
     applyGrade(layer, NIGHT_GRADE);
-    expect(layer.brightness).toBeLessThan(0.5);
+    expect(layer.brightness).toBeLessThan(0.75);
+    expect(layer.brightness).toBeGreaterThanOrEqual(0.5); // readable, not near-black
+    expect(layer.gamma).toBeLessThan(1);                  // lifts shadows
     expect(layer.saturation).toBeLessThan(0.5);
+  });
+  it("does not black out the night side unless City Lights is on", () => {
+    expect(nightModeLighting({ nightVision: true })).toBe(false);
+    expect(nightModeLighting({ nightVision: true, cityLights: true })).toBe(true);
+  });
+  it("keys out the OSM land fill for the roads/labels overlay", () => {
+    expect(NIGHT_REFERENCE.landColor).toBe("#f2efe9");
+    expect(NIGHT_REFERENCE.alpha).toBeGreaterThan(0.3);
   });
 });
 
