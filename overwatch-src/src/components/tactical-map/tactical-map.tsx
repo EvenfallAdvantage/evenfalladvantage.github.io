@@ -325,7 +325,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   useEffect(() => { entityGroupsRef.current.highContrastLook = highContrastLook; }, [highContrastLook]);
   const modelsShown = useContactModels({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.aircraft, highContrast: highContrastLook });
   // Live AIS ships (Air & Sea), desktop 3D models near the camera.
-  const shipsLayer = useShipsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.ships, highContrast: highContrastLook });
+  const shipsLayer = useShipsLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.ships, highContrast: highContrastLook, filter: layers.shipFilter });
   useInfraLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: !!activeLayers.osmInfrastructure, highContrast: highContrastLook });
   useSiteImagery({ viewerRef, cesiumRef, loading, selection: siteImagery });
   const osmBuildingsStatus = useOsmBuildingsLayer({

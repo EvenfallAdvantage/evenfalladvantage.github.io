@@ -37,6 +37,7 @@ export type RegistryState = Record<FlatKey, boolean> & {
   groups: Record<GroupId, boolean>;
   preset: PresetId | "custom";
   aircraftFilter?: "all" | "military" | "emergency";
+  shipFilter?: "all" | "military" | "emergency";
 };
 
 export interface SubOption {
@@ -373,6 +374,7 @@ export function migrateLayers<T extends RegistryState>(defaults: T, saved: Parti
   // Launches joined the Space sub later: anyone who had orbits on gets the full sub.
   if (saved.rocketLaunches === undefined) merged.rocketLaunches = !!saved.satelliteOrbits;
   if (!["all", "military", "emergency"].includes(merged.aircraftFilter as string)) merged.aircraftFilter = "all";
+  if (!["all", "military", "emergency"].includes(merged.shipFilter as string)) merged.shipFilter = "all";
   const m = merged as RegistryState & { scope?: string; siteWatch?: unknown };
   if (!["sites", "view", "everywhere"].includes(m.scope as string)) m.scope = "sites";
   if (typeof m.siteWatch !== "boolean") m.siteWatch = true;

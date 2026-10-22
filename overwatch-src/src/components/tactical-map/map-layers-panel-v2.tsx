@@ -9,7 +9,8 @@
  */
 
 import { AIRCRAFT_CATEGORIES, AIRCRAFT_CATEGORY_COLOR, AIRCRAFT_CATEGORY_LABEL, AIRCRAFT_EMERGENCY_COLOR } from "@/lib/map/aircraft-category";
-import { CATEGORY_COLOR, CATEGORY_LABEL, SHIP_CATEGORIES } from "@/lib/map/ships";
+import { SAT_CATEGORIES, SAT_CATEGORY_COLOR, SAT_CATEGORY_LABEL } from "@/lib/map/sat-category";
+import { CATEGORY_COLOR, CATEGORY_LABEL, SHIP_CATEGORIES, SHIP_FILTER_LABELS } from "@/lib/map/ships";
 import { useState, type ReactNode } from "react";
 import {
   Layers, ChevronRight, ChevronDown, X, MapPin, CloudLightning, Shield, Plane, Camera, Factory, Eye, Maximize2, Minimize2,
@@ -253,8 +254,14 @@ function PanelBody(props: MapLayersPanelV2Props) {
                             <ColorLegend testId="legend-aircraft" items={[...AIRCRAFT_CATEGORIES.map((c) => ({ color: AIRCRAFT_CATEGORY_COLOR[c], label: AIRCRAFT_CATEGORY_LABEL[c] })), { color: AIRCRAFT_EMERGENCY_COLOR, label: "Emergency" }]} />
                           </div>
                         )}
+                        {g.id === "infrastructure" && s.id === "space" && !!layers.satelliteOrbits && (
+                          <div className="ml-6 mb-1">
+                            <ColorLegend testId="legend-sats" items={SAT_CATEGORIES.map((c) => ({ color: SAT_CATEGORY_COLOR[c], label: SAT_CATEGORY_LABEL[c] }))} />
+                          </div>
+                        )}
                         {g.id === "airSea" && s.id === "ships" && checked && (
                           <div className="ml-6 mb-1">
+                            <Segmented value={layers.shipFilter ?? "all"} options={["all", "military", "emergency"] as const} labels={SHIP_FILTER_LABELS} onPick={(f) => onChange({ ...layers, shipFilter: f })} />
                             <ColorLegend testId="legend-ships" items={SHIP_CATEGORIES.map((c) => ({ color: CATEGORY_COLOR[c], label: CATEGORY_LABEL[c] }))} />
                           </div>
                         )}

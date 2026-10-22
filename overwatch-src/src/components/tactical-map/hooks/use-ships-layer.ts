@@ -28,7 +28,7 @@ import { modelStyle } from "@/lib/map/contact-models";
 import { boxKey, type GeoBox } from "@/lib/map/aircraft-viewport";
 import {
   CATEGORY_COLOR, CATEGORY_LABEL, SHIP_CATEGORY_MODEL, SHIP_POLL_MS, SHIP_POLL_MS_PHONE, SHIP_RPC_PAGE,
-  capShips, inShipBox, mergeShipPages, navStatusLabel, selectShipLabelIds, selectShipModelIds, shipCap, shipCategory,
+  capShips, inShipBox, matchesShipFilter, shipIsBeacon, type ShipFilter, mergeShipPages, navStatusLabel, selectShipLabelIds, selectShipModelIds, shipCap, shipCategory,
   shipHeadingDeg, shipModelHeadingDeg, shipModelScale, shipPageRanges, shipQueryBox, type Ship,
 } from "@/lib/map/ships";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -63,6 +63,8 @@ interface Drawn { bb: Any; label: Any | null; pick: ShipPick; color: string; pos
 export function useShipsLayer(params: {
   viewerRef: CesiumRef; cesiumRef: CesiumRef; entityGroupsRef: EntityGroupsRef;
   loading: boolean; enabled: boolean; highContrast?: boolean; fallback?: { lat: number; lng: number };
+  /** All / Military / Emergency (panel v2), same behaviour as the aircraft filter. */
+  filter?: ShipFilter;
 }): { modelsShown: boolean; count: number } {
   const { viewerRef, cesiumRef, entityGroupsRef, loading, enabled, highContrast = false } = params;
   const fallbackRef = useRef(params.fallback ?? { lat: 39.83, lng: -98.58 });
@@ -71,6 +73,10 @@ export function useShipsLayer(params: {
   const [count, setCount] = useState(0);
 
   useEffect(() => { if (params.fallback) fallbackRef.current = params.fallback; }, [params.fallback]);
+  const filterRef = useRef<ShipFilter>(params.filter ?? "all");
+  const rerenderRef = useRef<(() => void) | null>(null);
+  // Filter changed: redraw from the ships already loaded (no refetch).
+  useEffect(() => { filterRef.current = params.filter ?? "all"; rerenderRef.current?.(); }, [params.filter]);
 
   // Restyle models already on screen when NVG/thermal toggles.
   useEffect(() => {
@@ -127,7 +133,8 @@ export function useShipsLayer(params: {
 
     const render = () => {
       if (disposed || viewer.isDestroyed?.()) return;
-      const list = capShips([...ships.values()].filter((s) => inShipBox(box, s.lat, s.lon)), cap);
+      const f = filterRef.current;
+      const list = capShips([...ships.values()].filter((s) => inShipBox(box, s.lat, s.lon) && matchesShipFilter(s, f)), cap);
       const want = new Set<number>();
       for (const s of list) {
         want.add(s.mmsi);
@@ -278,9 +285,11 @@ export function useShipsLayer(params: {
       }, 600);
     });
     const groups = entityGroupsRef.current;
+    rerenderRef.current = () => { render(); updateModels(); viewer.scene.requestRender(); };
 
     return () => {
       disposed = true;
+      rerenderRef.current = null;
       stopPoll(); stopTick();
       if (moveTimer) clearTimeout(moveTimer);
       try { removeMoveEnd(); removePreRender(); } catch (err) { logger.swallow("ships-layer:listeners", err, "debug"); }
@@ -305,6 +314,7 @@ function shipDesc(s: Ship): string {
   const ago = Math.max(0, Math.round((Date.now() - Date.parse(s.updated_at)) / 60_000));
   return `<div style="font-family:monospace;font-size:11px;line-height:1.7">
     <b>${escapeHtml(s.name || "Unknown vessel")}</b> <span style="color:${CATEGORY_COLOR[cat]}">${CATEGORY_LABEL[cat]}</span>
+    ${shipIsBeacon(s) ? `<div style="color:#ff1f4b"><b>DISTRESS BEACON</b> (AIS-SART / MOB / EPIRB). Not verified: report to the coast guard if relevant.</div>` : ""}
     <div>MMSI: ${s.mmsi}${s.callsign ? ` · ${escapeHtml(s.callsign)}` : ""}</div>
     ${s.sog != null ? `<div>Speed: ${s.sog.toFixed(1)} kn${s.cog != null ? ` · Course ${Math.round(s.cog)}&deg;` : ""}</div>` : ""}
     ${nav ? `<div>Status: ${escapeHtml(nav)}</div>` : ""}
