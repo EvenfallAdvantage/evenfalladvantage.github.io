@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/client";
-import { ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
 
 export interface SiteAssessment {
@@ -72,7 +71,10 @@ export async function saveSiteAssessment(
   }
 ): Promise<SiteAssessment> {
   const supabase = createClient();
-  const userId = await ensureInternalUser();
+  // site_assessments.created_by references auth.users(id), NOT public.users(id),
+  // so it must be the auth uid (sending the internal id fails with FK 23503).
+  const { data: authData } = await supabase.auth.getUser();
+  const authUid = authData?.user?.id ?? null;
 
   const record = {
     company_id: companyId,
@@ -85,7 +87,6 @@ export async function saveSiteAssessment(
     risk_score: assessment.risk_score ?? null,
     risk_level: toDbRiskLevel(assessment.risk_level),
     pdf_url: assessment.pdf_url ?? null,
-    created_by: userId,
     updated_at: new Date().toISOString(),
   };
 
@@ -93,7 +94,7 @@ export async function saveSiteAssessment(
     // Update existing
     const { data, error } = await supabase
       .from("site_assessments")
-      .update(record)
+      .update(record) // keep original created_by on edits
       .eq("id", assessment.id)
       .select()
       .single();
@@ -103,7 +104,7 @@ export async function saveSiteAssessment(
     // Insert new
     const { data, error } = await supabase
       .from("site_assessments")
-      .insert(record)
+      .insert({ ...record, created_by: authUid })
       .select()
       .single();
     if (error) throw error;
