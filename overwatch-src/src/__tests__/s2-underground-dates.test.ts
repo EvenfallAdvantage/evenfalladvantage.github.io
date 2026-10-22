@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from "vitest";
 import {
   S2_LAYERS, parseLinkedPostDate, resolveSourceTime, resolveFeatureTime,
-  formatResolvedTime, isDateOnlyMs, buildS2Description, recordFirstSeen,
+  formatResolvedTime, isDateOnlyMs, buildS2Description,
 } from "@/components/tactical-map/s2-underground";
 
 const kinetic = S2_LAYERS.find(l => l.id === "s2-kinetic-30d")!;
@@ -42,24 +42,22 @@ describe("S2 timestamps", () => {
     expect(formatResolvedTime({ ms: 1792281600000, dateOnly: true })).toMatch(/18/);
   });
 
-  it("falls back to the earliest linked post, then first seen", () => {
+  it("falls back to the earliest linked post, else no time", () => {
     const linked = resolveSourceTime({ Date: null, Research: "https://x.com/a/status/2012639414334480600", Research2: "https://x.com/b/status/2008964151910314356" }, kinetic);
     expect(linked?.source).toBe("linked-post");
     expect(linked?.field).toBe("Research2");
 
     const feat = { lat: 0, lng: 0, layerId: kinetic.id, properties: { OBJECTID: 428, Date: null } };
-    const first = resolveFeatureTime(feat, kinetic, 1000);
-    expect(first).toEqual({ ms: 1000, source: "first-seen", dateOnly: false });
-    expect(resolveFeatureTime(feat, kinetic, 5000)?.ms).toBe(1000); // stable
-    expect(recordFirstSeen("x:1", 7)).toBe(7);
+    expect(resolveFeatureTime(feat, kinetic)).toBeNull();
+    expect(localStorage.getItem("ow:s2-first-seen:v1")).toBeNull();
   });
 
   it("labels fallbacks clearly in the popup", () => {
     const html = buildS2Description({ lat: 0, lng: 0, layerId: kinetic.id, properties: { OBJECTID: 1, Date: null, Research: "https://x.com/a/status/2012639414334480600" } }, kinetic);
     expect(html).toContain("Linked post dated:");
     const html2 = buildS2Description({ lat: 0, lng: 0, layerId: kinetic.id, properties: { OBJECTID: 2, Date: null } }, kinetic);
-    expect(html2).toContain("First seen:");
-    expect(html2).toContain("source gave no date");
+    expect(html2).toContain("Date unknown");
+    expect(html2).not.toContain("First seen");
   });
 });
 
@@ -101,7 +99,7 @@ describe("S2 tipline age limit", () => {
     expect(out.map(f => f.properties.OBJECTID)).toEqual([1]);
     const k = await fetchS2LayerFeatures(kinetic);
     expect(k).toHaveLength(3); // kinetic (field "Date") sees all as undated and keeps them
-    expect(k[2].time?.source).toBe("first-seen");
+    expect(k[2].time).toBeNull();
   });
 });
 

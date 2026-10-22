@@ -50,7 +50,7 @@ export interface S2Layer {
   timeOfDayField?: string;
   /**
    * Whether features with no source/linked-post date survive the age
-   * filter. Defaults to true. "First seen" is never used for filtering.
+   * filter. Defaults to true. 
    */
   keepUndated?: boolean;
 }
@@ -109,7 +109,7 @@ export const S2_LAYERS: S2Layer[] = [
     timeOfDayField: "TimeOfEvent",
     // 30-day window on the (now correctly parsed) event date. Undated
     // tipline items are dropped rather than kept, so they can't bypass the
-    // window via the "first seen" display fallback.
+    // window.
     defaultAgeHours: 30 * 24,
     keepUndated: false,
   },
@@ -167,7 +167,7 @@ export function getFeatureTimestamp(
   return null;
 }
 
-// ─── Timestamp resolution (event date → linked post → first seen) ──
+// ─── Timestamp resolution (event date → linked post) ──
 
 const DAY_MS = 86_400_000;
 /** X/Twitter snowflake epoch (2010-11-04T01:42:54.657Z). */
@@ -205,7 +205,7 @@ export function parseLinkedPostDate(url: unknown): { ms: number; dateOnly: boole
   return null;
 }
 
-export type S2TimeSource = "event" | "linked-post" | "first-seen";
+export type S2TimeSource = "event" | "linked-post";
 
 export interface S2ResolvedTime {
   ms: number;
@@ -242,43 +242,12 @@ export function resolveSourceTime(
   return best;
 }
 
-const FIRST_SEEN_KEY = "ow:s2-first-seen:v1";
-const FIRST_SEEN_MAX = 3000;
-
 /**
- * Record (once) and return when this device first saw an undated feature.
- * Stored in localStorage; returns null if storage is unavailable.
+ * Display time: source date, else linked-post date. Undated features show
+ * "Date unknown" (we never substitute a client-side time).
  */
-export function recordFirstSeen(key: string, now: number = Date.now()): number | null {
-  try {
-    if (typeof localStorage === "undefined") return null;
-    const raw = localStorage.getItem(FIRST_SEEN_KEY);
-    const map: Record<string, number> = raw ? JSON.parse(raw) : {};
-    if (typeof map[key] === "number") return map[key];
-    map[key] = now;
-    const keys = Object.keys(map);
-    if (keys.length > FIRST_SEEN_MAX) {
-      keys.sort((a, b) => map[a] - map[b]).slice(0, keys.length - FIRST_SEEN_MAX).forEach(k => delete map[k]);
-    }
-    localStorage.setItem(FIRST_SEEN_KEY, JSON.stringify(map));
-    return now;
-  } catch {
-    return null;
-  }
-}
-
-function featureKey(layerId: string, properties: Record<string, unknown>): string | null {
-  const oid = properties.OBJECTID ?? properties.ObjectId ?? properties.objectid ?? properties.FID;
-  return oid == null ? null : `${layerId}:${String(oid)}`;
-}
-
-/** Full resolution chain for display: source date → linked post → first seen. */
-export function resolveFeatureTime(feature: S2Feature, layer: S2Layer, now: number = Date.now()): S2ResolvedTime | null {
-  const src = resolveSourceTime(feature.properties, layer);
-  if (src || !layer.dateFields) return src;
-  const key = featureKey(layer.id, feature.properties);
-  const seen = key ? recordFirstSeen(key, now) : null;
-  return seen === null ? null : { ms: seen, source: "first-seen", dateOnly: false };
+export function resolveFeatureTime(feature: S2Feature, layer: S2Layer): S2ResolvedTime | null {
+  return resolveSourceTime(feature.properties, layer);
 }
 
 /** Format a resolved time for display, without shifting date-only values. */
@@ -361,7 +330,7 @@ export async function fetchS2LayerFeatures(
       .filter((feat: S2Feature) => {
         if (cutoff === null) return true;
         // Age-filter on the source date, else the linked-post date. Items
-        // with neither are kept (first-seen is never used for filtering).
+        // with neither are kept .
         const t = resolveSourceTime(feat.properties, layer)?.ms ?? null;
         if (t === null) return layer.keepUndated !== false;
         return t >= cutoff;
@@ -453,12 +422,8 @@ export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
   if (layer.dateFields) {
     if (t) {
       const rel = formatRelativeAge(t.ms, t.dateOnly);
-      const label = t.source === "event" ? "When" : t.source === "linked-post" ? "Linked post dated" : "First seen";
-      const note = t.source === "linked-post"
-        ? "event date not reported; taken from the linked post"
-        : t.source === "first-seen"
-          ? "source gave no date; first seen by this device"
-          : "";
+      const label = t.source === "event" ? "When" : "Linked post dated";
+      const note = t.source === "linked-post" ? "event date not reported; taken from the linked post" : "";
       parts.push(
         `<br/><b style="opacity:0.9">${label}:</b> <span style="color:${layer.color};opacity:0.85">` +
         `${formatResolvedTime(t)}${rel ? ` <span style="opacity:0.5">(${rel})</span>` : ""}</span>` +
@@ -469,7 +434,7 @@ export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
         if (t.timeOfDay && layer.timeOfDayField) dateFieldShown.add(layer.timeOfDayField);
       }
     } else {
-      parts.push(`<br/><b style="opacity:0.7">When:</b> <span style="opacity:0.4">date not reported by source</span>`);
+      parts.push(`<br/><b style="opacity:0.7">When:</b> <span style="opacity:0.6">Date unknown</span>`);
     }
   }
 
