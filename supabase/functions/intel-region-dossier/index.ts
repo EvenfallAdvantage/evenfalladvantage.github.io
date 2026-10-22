@@ -1,7 +1,7 @@
 /**
  * Intel — Region dossier (right-click on map → country brief).
- * Reverse-geocode (Nominatim → Photon fallback) + parallel Wikidata country facts
- * and Wikipedia summary. All sources are free and keyless; see lib.ts.
+ * Reverse-geocode (Photon, lang=en) + parallel Wikidata country facts and the
+ * Wikipedia summary for the place clicked (Wikidata nearby lookup). All sources are free and keyless; see lib.ts.
  * Adapted from Osiris (github.com/simplifaisoul/osiris, MIT).
  */
 
@@ -9,8 +9,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { requireIntelUser } from "../_shared/intel-auth.ts";
 import {
-  countrySparql, type LocationInfo, type NominatimResponse, parseCountry, parseNominatim,
-  parsePhoton, type PhotonResponse, UA, type WikidataResponse,
+  countrySparql, type LocationInfo, nearbyPlacesSparql, parseCountry, parseNearby,
+  parsePhoton, type PhotonResponse, pickPlace, trimExtract, UA, type WikidataResponse,
 } from "./lib.ts";
 
 interface WikiSummary { title?: string; extract?: string; thumbnail?: { source?: string }; }
@@ -32,18 +32,35 @@ async function getJson<T>(label: string, url: string, ms: number): Promise<T | n
   }
 }
 
+// Nominatim intentionally not used: it 403s from Supabase egress (see lib.ts).
 async function reverseGeocode(lat: number, lng: number): Promise<LocationInfo | null> {
-  const nom = parseNominatim(await getJson<NominatimResponse>(
-    "nominatim",
-    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10&addressdetails=1&accept-language=en`,
-    6_000,
-  ));
-  if (nom) return nom;
   return parsePhoton(await getJson<PhotonResponse>(
     "photon",
     `https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&limit=1&lang=en`,
     6_000,
   ));
+}
+
+const wikiSummary = (title: string) => getJson<WikiSummary>(
+  "wikipedia",
+  `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.replace(/ /g, "_"))}?redirect=true`,
+  5_000,
+);
+
+/** Exact article for the clicked place via Wikidata; falls back to the country article. */
+async function placeSummary(lat: number, lng: number, city: string | undefined, country: string): Promise<WikiSummary | null> {
+  const hits = parseNearby(await getJson<WikidataResponse>(
+    "wikidata-nearby",
+    `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(nearbyPlacesSparql(lat, lng))}`,
+    6_000,
+  ));
+  const place = pickPlace(hits, city);
+  for (const t of [place?.title, country]) {
+    if (!t) continue;
+    const w = await wikiSummary(t);
+    if (w?.extract) return w;
+  }
+  return null;
 }
 
 Deno.serve(async (req) => {
@@ -68,7 +85,7 @@ Deno.serve(async (req) => {
     const countryCode = loc?.country_code ?? "";
     const countryName = loc?.country ?? "";
 
-    const [facts, wikiSummary] = await Promise.all([
+    const [facts, wiki] = await Promise.all([
       /^[A-Z]{2}$/.test(countryCode)
         ? getJson<WikidataResponse>(
             "wikidata",
@@ -76,18 +93,7 @@ Deno.serve(async (req) => {
             7_000,
           ).then((d) => parseCountry(d, countryCode, countryName))
         : Promise.resolve(null),
-      (async (): Promise<WikiSummary | null> => {
-        for (const q of [locationInfo.city, countryName]) {
-          if (!q) continue;
-          const w = await getJson<WikiSummary>(
-            "wikipedia",
-            `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}?redirect=true`,
-            5_000,
-          );
-          if (w?.extract) return w;
-        }
-        return null;
-      })(),
+      loc ? placeSummary(lat, lng, locationInfo.city, countryName) : Promise.resolve(null),
     ]);
 
     const countryData = facts?.country ?? null;
@@ -100,11 +106,11 @@ Deno.serve(async (req) => {
         location: locationInfo,
         country: countryData,
         head_of_state: headOfState,
-        wikipedia: wikiSummary
+        wikipedia: wiki
           ? {
-              title: wikiSummary.title,
-              extract: wikiSummary.extract?.substring(0, 500),
-              thumbnail: wikiSummary.thumbnail?.source,
+              title: wiki.title,
+              extract: trimExtract(wiki.extract),
+              thumbnail: wiki.thumbnail?.source,
             }
           : null,
         timestamp: new Date().toISOString(),
