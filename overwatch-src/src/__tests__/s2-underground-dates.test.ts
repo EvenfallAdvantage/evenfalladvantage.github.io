@@ -104,3 +104,23 @@ describe("S2 tipline age limit", () => {
     expect(k[2].time?.source).toBe("first-seen");
   });
 });
+
+describe("S2 epoch parsing", () => {
+  it("reads pre-2001 epoch-ms values as ms, not seconds", async () => {
+    const { parseFeatureDate } = await import("@/components/tactical-map/s2-underground");
+    expect(parseFeatureDate(737510400000)).toBe(Date.UTC(1993, 4, 16));
+    expect(parseFeatureDate(989798400000)).toBe(Date.UTC(2001, 4, 14));
+    expect(parseFeatureDate(1681084800)).toBe(1681084800000); // real seconds
+    expect(parseFeatureDate(Date.now() + 30 * 86_400_000)).toBeNull(); // implausible future
+  });
+
+  it("drops old tipline items (1993/2001) from the 30-day window", async () => {
+    const fc = { features: [
+      { geometry: { type: "Point", coordinates: [1, 2] }, properties: { OBJECTID: 12, DateOfEvent: 737510400000, DateOfReport: 1746576000000 } },
+      { geometry: { type: "Point", coordinates: [1, 2] }, properties: { OBJECTID: 13, DateOfEvent: 989798400000, DateOfReport: 1746576000000 } },
+    ] };
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => fc })));
+    const { fetchS2LayerFeatures } = await import("@/components/tactical-map/s2-underground");
+    expect(await fetchS2LayerFeatures(tipline)).toHaveLength(0);
+  });
+});

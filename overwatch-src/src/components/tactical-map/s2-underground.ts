@@ -124,20 +124,28 @@ export const S2_LAYERS: S2Layer[] = [
  *
  * Returns timestamp in ms, or null if unparseable.
  */
+/** Dates further than this in the future are treated as invalid. */
+const FUTURE_TOLERANCE_MS = 2 * 86_400_000;
+
 export function parseFeatureDate(value: unknown): number | null {
   if (value == null) return null;
   if (typeof value === "number") {
     if (!Number.isFinite(value)) return null;
-    // Heuristic: values > 1e12 are ms; values > 1e9 are seconds (post-2001).
-    if (value > 1e12) return value;
-    if (value > 1e9) return value * 1000;
-    return null;
+    // ArcGIS dates are epoch ms. Anything above 1e11 is ms (1e11 ms is
+    // 1973; as seconds it would be the year 5138). This keeps pre-2001
+    // dates such as 737510400000 (1993-05-16) from being read as seconds
+    // and pushed tens of thousands of years into the future.
+    let ms: number;
+    if (value > 1e11) ms = value;
+    else if (value > 1e9) ms = value * 1000;
+    else return null;
+    return ms > Date.now() + FUTURE_TOLERANCE_MS ? null : ms;
   }
   if (typeof value === "string") {
     const s = value.trim();
     if (!s) return null;
     const t = Date.parse(s);
-    return Number.isNaN(t) ? null : t;
+    return Number.isNaN(t) || t > Date.now() + FUTURE_TOLERANCE_MS ? null : t;
   }
   return null;
 }
