@@ -197,7 +197,7 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   },
   region_dossier: {
     enabled: true,
-    attribution: "Nominatim, RestCountries, Wikipedia, Wikidata",
+    attribution: "OpenStreetMap (Nominatim, Photon), Wikidata, Wikipedia",
     attributionRequired: true,
   },
 

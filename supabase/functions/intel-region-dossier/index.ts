@@ -1,43 +1,50 @@
 /**
  * Intel — Region dossier (right-click on map → country brief).
- * Reverse-geocode + parallel fetch of RestCountries, Wikipedia, Wikidata HoS.
+ * Reverse-geocode (Nominatim → Photon fallback) + parallel Wikidata country facts
+ * and Wikipedia summary. All sources are free and keyless; see lib.ts.
  * Adapted from Osiris (github.com/simplifaisoul/osiris, MIT).
  */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { requireIntelUser } from "../_shared/intel-auth.ts";
+import {
+  countrySparql, type LocationInfo, type NominatimResponse, parseCountry, parseNominatim,
+  parsePhoton, type PhotonResponse, UA, type WikidataResponse,
+} from "./lib.ts";
 
-interface NominatimAddress {
-  country?: string;
-  country_code?: string;
-  city?: string;
-  town?: string;
-  village?: string;
-  state?: string;
-  region?: string;
-}
-interface NominatimResponse { address?: NominatimAddress; display_name?: string; }
-interface RestCountry {
-  name?: { common?: string; official?: string };
-  capital?: string[];
-  population?: number;
-  area?: number;
-  region?: string;
-  subregion?: string;
-  languages?: Record<string, string>;
-  currencies?: Record<string, { name?: string; symbol?: string }>;
-  flag?: string;
-  flags?: { svg?: string };
-  timezones?: string[];
-}
 interface WikiSummary { title?: string; extract?: string; thumbnail?: { source?: string }; }
-interface WikidataBinding {
-  leader?: { value?: string };
-  leaderLabel?: { value?: string };
-  positionLabel?: { value?: string };
+
+async function getJson<T>(label: string, url: string, ms: number): Promise<T | null> {
+  try {
+    const res = await fetch(url, {
+      signal: AbortSignal.timeout(ms),
+      headers: { "User-Agent": UA, Accept: "application/json" },
+    });
+    if (!res.ok) {
+      console.warn(`[intel-region-dossier] ${label} HTTP ${res.status}`);
+      return null;
+    }
+    return (await res.json()) as T;
+  } catch (e) {
+    console.warn(`[intel-region-dossier] ${label} error:`, e instanceof Error ? e.message : e);
+    return null;
+  }
 }
-interface WikidataResponse { results?: { bindings?: WikidataBinding[] }; }
+
+async function reverseGeocode(lat: number, lng: number): Promise<LocationInfo | null> {
+  const nom = parseNominatim(await getJson<NominatimResponse>(
+    "nominatim",
+    `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=10&addressdetails=1&accept-language=en`,
+    6_000,
+  ));
+  if (nom) return nom;
+  return parsePhoton(await getJson<PhotonResponse>(
+    "photon",
+    `https://photon.komoot.io/reverse?lat=${lat}&lon=${lng}&limit=1&lang=en`,
+    6_000,
+  ));
+}
 
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
@@ -56,126 +63,42 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const geoRes = await fetch(
-      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json&zoom=5&addressdetails=1`,
-      {
-        signal: AbortSignal.timeout(8_000),
-        headers: { "User-Agent": "OverwatchIntel/1.0 (+evenfalladvantage.com)" },
-      },
-    );
+    const loc = await reverseGeocode(lat, lng);
+    const locationInfo: LocationInfo = loc ?? {};
+    const countryCode = loc?.country_code ?? "";
+    const countryName = loc?.country ?? "";
 
-    let countryName = "";
-    let countryCode = "";
-    let locationInfo: {
-      city?: string; state?: string; country?: string;
-      country_code?: string; display_name?: string;
-    } = {};
-
-    if (geoRes.ok) {
-      const geoData = (await geoRes.json()) as NominatimResponse;
-      const addr = geoData.address ?? {};
-      countryName = addr.country ?? "";
-      countryCode = (addr.country_code ?? "").toUpperCase();
-      locationInfo = {
-        city: addr.city ?? addr.town ?? addr.village ?? "",
-        state: addr.state ?? addr.region ?? "",
-        country: countryName,
-        country_code: countryCode,
-        display_name: geoData.display_name,
-      };
-    }
-
-    const [countryResult, wikiResult, hosResult] = await Promise.allSettled([
-      (async (): Promise<RestCountry | null> => {
-        if (!countryCode) return null;
-        try {
-          const res = await fetch(
-            `https://restcountries.com/v3.1/alpha/${countryCode}?fields=name,capital,population,area,region,subregion,languages,currencies,flag,flags,timezones`,
-            { signal: AbortSignal.timeout(5_000) },
-          );
-          if (res.ok) return (await res.json()) as RestCountry;
-        } catch (e) {
-          console.warn("[intel-region-dossier] restcountries error:", e);
-        }
-        return null;
-      })(),
+    const [facts, wikiSummary] = await Promise.all([
+      /^[A-Z]{2}$/.test(countryCode)
+        ? getJson<WikidataResponse>(
+            "wikidata",
+            `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(countrySparql(countryCode))}`,
+            7_000,
+          ).then((d) => parseCountry(d, countryCode, countryName))
+        : Promise.resolve(null),
       (async (): Promise<WikiSummary | null> => {
-        const wikiQuery = locationInfo.city || countryName;
-        if (!wikiQuery) return null;
-        try {
-          const res = await fetch(
-            `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(wikiQuery)}`,
-            { signal: AbortSignal.timeout(5_000) },
+        for (const q of [locationInfo.city, countryName]) {
+          if (!q) continue;
+          const w = await getJson<WikiSummary>(
+            "wikipedia",
+            `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(q)}?redirect=true`,
+            5_000,
           );
-          if (res.ok) return (await res.json()) as WikiSummary;
-        } catch (e) {
-          console.warn("[intel-region-dossier] wikipedia error:", e);
-        }
-        return null;
-      })(),
-      (async (): Promise<{ name?: string; position?: string } | null> => {
-        if (!countryName) return null;
-        try {
-          const safe = countryName.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-          const sparql = `SELECT ?leader ?leaderLabel ?positionLabel WHERE {
-            ?country wdt:P31 wd:Q6256;
-                     rdfs:label "${safe}"@en;
-                     wdt:P6 ?leader.
-            OPTIONAL { ?leader wdt:P39 ?position. }
-            SERVICE wikibase:label { bd:serviceParam wikibase:language "en". }
-          } LIMIT 1`;
-          const res = await fetch(
-            `https://query.wikidata.org/sparql?format=json&query=${encodeURIComponent(sparql)}`,
-            {
-              signal: AbortSignal.timeout(5_000),
-              headers: { "User-Agent": "OverwatchIntel/1.0 (+evenfalladvantage.com)" },
-            },
-          );
-          if (res.ok) {
-            const wd = (await res.json()) as WikidataResponse;
-            const binding = wd.results?.bindings?.[0];
-            if (binding) {
-              return {
-                name: binding.leaderLabel?.value,
-                position: binding.positionLabel?.value ?? "Head of State",
-              };
-            }
-          }
-        } catch (e) {
-          console.warn("[intel-region-dossier] wikidata error:", e);
+          if (w?.extract) return w;
         }
         return null;
       })(),
     ]);
 
-    const countryData = countryResult.status === "fulfilled" ? countryResult.value : null;
-    const wikiSummary = wikiResult.status === "fulfilled" ? wikiResult.value : null;
-    const headOfState = hosResult.status === "fulfilled" ? hosResult.value : null;
+    const countryData = facts?.country ?? null;
+    const headOfState = facts?.head_of_state ?? null;
+    const empty = !loc;
 
     return new Response(
       JSON.stringify({
         coordinates: { lat, lng },
         location: locationInfo,
-        country: countryData
-          ? {
-              name: countryData.name?.common ?? "",
-              official_name: countryData.name?.official ?? "",
-              capital: countryData.capital?.[0] ?? "",
-              population: countryData.population ?? 0,
-              area: countryData.area ?? 0,
-              region: countryData.region ?? "",
-              subregion: countryData.subregion ?? "",
-              languages: countryData.languages ? Object.values(countryData.languages) : [],
-              currencies: countryData.currencies
-                ? Object.entries(countryData.currencies).map(
-                    ([code, info]) => `${info.name ?? code} (${info.symbol ?? code})`,
-                  )
-                : [],
-              flag: countryData.flag ?? "",
-              flag_url: countryData.flags?.svg ?? "",
-              timezones: countryData.timezones ?? [],
-            }
-          : null,
+        country: countryData,
         head_of_state: headOfState,
         wikipedia: wikiSummary
           ? {
@@ -190,7 +113,8 @@ Deno.serve(async (req) => {
         headers: {
           ...corsHeaders,
           "Content-Type": "application/json",
-          "Cache-Control": "public, s-maxage=3600, stale-while-revalidate=7200",
+          // Don't let a CDN pin an empty answer (e.g. geocoder outage) for an hour.
+          "Cache-Control": empty ? "no-store" : "public, s-maxage=3600, stale-while-revalidate=7200",
         },
       },
     );

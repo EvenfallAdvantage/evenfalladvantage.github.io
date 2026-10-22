@@ -3,10 +3,10 @@
 /**
  * Region dossier modal — shown when the user right-clicks a point on the
  * tactical map. Fetches /intel-region-dossier for the clicked coordinates
- * and renders a country brief (Nominatim reverse-geocode + RestCountries
- * facts + Wikipedia summary + Wikidata head of state).
+ * and renders a country brief (Nominatim/Photon reverse-geocode + Wikidata
+ * country facts and leaders + Wikipedia summary).
  *
- * Attribution required: Nominatim, RestCountries, Wikipedia, Wikidata.
+ * Attribution required: OpenStreetMap (Nominatim, Photon), Wikidata, Wikipedia.
  */
 
 import { useEffect, useState } from "react";
@@ -88,6 +88,13 @@ export function RegionDossierModal({ lat, lng, onClose }: RegionDossierModalProp
             <div className="text-red-300 text-[11px]">{error}</div>
           )}
 
+          {data && !data.location?.country_code && !data.country && !data.wikipedia && (
+            <div className="text-white/60 text-[11px] py-4 text-center">
+              No country or place found here (open water or a remote area). Try
+              right-clicking on land.
+            </div>
+          )}
+
           {data && (
             <>
               {data.location?.display_name && (
@@ -105,9 +112,12 @@ export function RegionDossierModal({ lat, lng, onClose }: RegionDossierModalProp
                     <span className="text-white font-bold">
                       {data.country.name}
                     </span>
-                    <span className="text-white/40 text-[10px]">
-                      ({data.country.official_name})
-                    </span>
+                    {data.country.official_name &&
+                      data.country.official_name !== data.country.name && (
+                        <span className="text-white/40 text-[10px]">
+                          ({data.country.official_name})
+                        </span>
+                      )}
                   </div>
                   <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[11px]">
                     {data.country.capital && (
@@ -193,7 +203,7 @@ export function RegionDossierModal({ lat, lng, onClose }: RegionDossierModalProp
               )}
 
               <div className="border-t border-white/10 pt-2 text-[9px] text-white/30">
-                Sources: Nominatim · RestCountries · Wikipedia · Wikidata
+                Sources: © OpenStreetMap contributors (Nominatim / Photon) · Wikidata · Wikipedia
               </div>
             </>
           )}
