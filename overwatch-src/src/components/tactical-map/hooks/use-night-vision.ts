@@ -79,9 +79,14 @@ export function useNightVision(params: {
       applyGrade(ref, NIGHT_REFERENCE);
       entityGroupsRef.current.nightRefLayer = [ref];
     }
-    if (ref) ref.show = wantRef;
+    if (ref) setLayerShow(ref, wantRef);
     viewer.scene.globe.enableLighting = nightModeLighting({ nightVision: layers.nightVision, cityLights: layers.cityLights });
     viewer.scene.requestRender();
     // layers.satellite: re-grade when the streets layer is created/swapped.
   }, [layers.nightVision, layers.cityLights, layers.satellite, loading, viewerRef, cesiumRef, entityGroupsRef]);
+}
+
+/** Toggle an imagery layer's visibility outside the hook body (keeps react-hooks/immutability happy). */
+function setLayerShow(layer: { show: boolean }, show: boolean): void {
+  layer.show = show;
 }
