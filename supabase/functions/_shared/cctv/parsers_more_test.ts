@@ -92,10 +92,11 @@ Deno.test("registry: unique ids, attribution on all, terms-pending gated", () =>
   assertEquals(new Set(ids).size, ids.length);
   assert(CCTV_SOURCES.every((s) => s.attribution.length > 0));
   const def = enabledSources(undefined).map((s) => s.id);
-  assert(!def.includes("Iowa DOT") && !def.includes("Travel Midwest (IL)") && !def.includes("ODOT TripCheck"));
+  // IL / IA / OR terms approved: on by default.
+  assert(def.includes("Iowa DOT") && def.includes("Travel Midwest (IL)") && def.includes("ODOT TripCheck"));
   assert(def.includes("TfL JamCams"));
-  assertEquals(enabledSources("all").length, CCTV_SOURCES.length - 1); // all but NYC DOT
-  assert(enabledSources("Iowa DOT").some((s) => s.id === "Iowa DOT"));
+  const keyed = CCTV_SOURCES.filter((s) => s.secret).length;
+  assertEquals(enabledSources("all").length, CCTV_SOURCES.length - 1 - keyed); // all but NYC DOT and unkeyed
 });
 
 Deno.test("registry: NYC DOT needs an explicit opt-in (agreement required)", () => {

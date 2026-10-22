@@ -8,6 +8,7 @@ import {
 import {
   fetchArcgisAll, parseAustin, parseDriveBC, parseHongKong, parseIllinois, parseIowa, parseNzta, parseTfl, parseTripCheck,
 } from "./parsers_more.ts";
+import { FIVE11, five11Url, parse511, parseDigitraffic, parseNps } from "./parsers_keyed.ts";
 
 export type GetJson = (url: string, timeoutMs: number) => Promise<unknown | null>;
 export type GetText = (url: string, timeoutMs: number) => Promise<string | null>;
@@ -26,7 +27,12 @@ export interface CctvSource {
    * id in CCTV_ENABLE_PENDING_SOURCES ("all" does NOT include it).
    */
   agreementRequired?: boolean;
-  fetch: (f: Fetchers) => Promise<CctvCamera[]>;
+  /**
+   * Name of a function secret holding a free API key. The source runs only
+   * when that secret is set; the key is passed to fetch and never logged.
+   */
+  secret?: string;
+  fetch: (f: Fetchers, key?: string) => Promise<CctvCamera[]>;
 }
 
 export const CCTV_SOURCES: CctvSource[] = [
@@ -50,21 +56,21 @@ export const CCTV_SOURCES: CctvSource[] = [
     attribution: "NYC DOT traffic cameras (webcams.nyctmc.org)",
     fetch: async ({ json }) => parseNyc(await json("https://webcams.nyctmc.org/api/cameras", 10_000)),
   },
-  // ── PR B: no-key sources ──────────────────────────────────────────────
+  // ── PR B: no-key sources (IL / IA / OR terms approved 2026-10-22) ──────────────────────────────────────────────
   {
-    id: "Travel Midwest (IL)", termsPending: true,
+    id: "Travel Midwest (IL)",
     attribution: "Illinois cameras: Travel Midwest / IDOT",
     fetch: async ({ json }) => parseIllinois(await fetchArcgisAll(json,
       "https://services2.arcgis.com/aIrBD8yn1TDTEXoz/arcgis/rest/services/TrafficCamerasTM_Public/FeatureServer/0")),
   },
   {
-    id: "Iowa DOT", termsPending: true,
+    id: "Iowa DOT",
     attribution: "Iowa DOT traffic cameras",
     fetch: async ({ json }) => parseIowa(await fetchArcgisAll(json,
       "https://services.arcgis.com/8lRhdTsQyJpO52F1/arcgis/rest/services/Traffic_Cameras_View/FeatureServer/0")),
   },
   {
-    id: "ODOT TripCheck", termsPending: true,
+    id: "ODOT TripCheck",
     attribution: "Oregon DOT TripCheck",
     fetch: async ({ json }) => parseTripCheck(await json("https://tripcheck.com/Scripts/map/data/cctvinventory.js", 15_000)),
   },
@@ -94,11 +100,29 @@ export const CCTV_SOURCES: CctvSource[] = [
     attribution: "Waka Kotahi NZ Transport Agency (CC BY 4.0)",
     fetch: async ({ json }) => parseNzta(await json("https://www.journeys.nzta.govt.nz/assets/map-data-cache/cameras.json", 15_000)),
   },
+  // ── No-key / free-key additions ──────────────────────────────────────
+  {
+    id: "Digitraffic (FI)",
+    attribution: "Fintraffic / digitraffic.fi, CC BY 4.0",
+    fetch: async ({ json }) => parseDigitraffic(await json("https://tie.digitraffic.fi/api/weathercam/v1/stations", 20_000)),
+  },
+  {
+    id: "NPS Webcams", secret: "NPS_API_KEY",
+    attribution: "U.S. National Park Service (NPS Data API)",
+    fetch: async ({ json }, key) => parseNps(await json(
+      `https://developer.nps.gov/api/v1/webcams?limit=1000&api_key=${encodeURIComponent(key ?? "")}`, 20_000)),
+  },
+  // One request per host per ingest run (every 15 min): well under the ~10 calls/min limit.
+  ...FIVE11.map((h): CctvSource => ({
+    id: h.id, secret: h.secret, attribution: h.attribution,
+    fetch: async ({ json }, key) => parse511(await json(five11Url(h.host, key ?? ""), 20_000), h.id, h.prefix, h.region, h.country),
+  })),
 ];
 
 /**
- * Key-gated sources (NOT implemented): each would be enabled only when its
- * optional function secret is set. Listed so go-live can pick them up:
+ * Key-gated sources. Implemented above (secret-gated): NPS_API_KEY, GA511_API_KEY,
+ * WI511_API_KEY, ID511_API_KEY, ONTARIO511_API_KEY, ALBERTA511_API_KEY.
+ * Not implemented yet (listed so go-live can pick them up):
  * ONTARIO511_API_KEY, ALBERTA511_API_KEY, GA511_API_KEY, AZ511_API_KEY,
  * NVROADS_API_KEY, UDOT_API_KEY, PA511_API_KEY, WI511_API_KEY, FL511_API_KEY,
  * NY511_API_KEY, WSDOT_ACCESS_CODE, OHGO_API_KEY, COTRIP_API_KEY, TFNSW_API_KEY.
@@ -114,16 +138,20 @@ export const KEY_GATED_SOURCE_SECRETS = [
  * CCTV_ENABLE_PENDING_SOURCES lists them (comma ids) or is "all";
  * agreement-required sources must be listed by id explicitly.
  */
-export function enabledSources(pendingEnv: string | undefined): CctvSource[] {
+export type GetEnv = (name: string) => string | undefined;
+const noEnv: GetEnv = () => undefined;
+
+export function enabledSources(pendingEnv: string | undefined, getEnv: GetEnv = noEnv): CctvSource[] {
   const allow = new Set((pendingEnv ?? "").split(",").map((s) => s.trim()).filter(Boolean));
   return CCTV_SOURCES.filter((s) =>
-    !s.termsPending || allow.has(s.id) || (allow.has("all") && !s.agreementRequired)
+    (!s.secret || !!getEnv(s.secret)?.trim()) &&
+    (!s.termsPending || allow.has(s.id) || (allow.has("all") && !s.agreementRequired))
   );
 }
 
 /** Source ids that must not be served (so stale DB rows are hidden too). */
-export function disabledSourceIds(pendingEnv: string | undefined): Set<string> {
-  const on = new Set(enabledSources(pendingEnv).map((s) => s.id));
+export function disabledSourceIds(pendingEnv: string | undefined, getEnv: GetEnv = noEnv): Set<string> {
+  const on = new Set(enabledSources(pendingEnv, getEnv).map((s) => s.id));
   return new Set(CCTV_SOURCES.filter((s) => !on.has(s.id)).map((s) => s.id));
 }
 
@@ -131,10 +159,13 @@ export const CCTV_ATTRIBUTION: Record<string, string> = Object.fromEntries(CCTV_
 
 const UA = "EvenfallOverwatch/1.0 (+https://www.evenfalladvantage.com)";
 
+/** Hide API keys in logged URLs. */
+export const redactUrl = (url: string) => url.replace(/([?&](?:key|api_key)=)[^&]*/gi, "$1***");
+
 export function makeFetchers(userAgent = UA): Fetchers {
   const go = async (url: string, timeoutMs: number, accept: string) => {
     const res = await fetch(url, { headers: { "User-Agent": userAgent, Accept: accept }, signal: AbortSignal.timeout(timeoutMs) });
-    if (!res.ok) { console.warn("[cctv]", url, res.status); await res.body?.cancel(); return null; }
+    if (!res.ok) { console.warn("[cctv]", redactUrl(url), res.status); await res.body?.cancel(); return null; }
     return res;
   };
   return {

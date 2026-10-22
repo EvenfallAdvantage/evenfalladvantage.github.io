@@ -13,7 +13,8 @@
  * only). No env-var fallback: Vault is the single source of truth, shared
  * with the pg_cron job. Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (platform),
  *   optional CCTV_ENABLE_PENDING_SOURCES ("all" or comma ids) to enable the
- *   terms-pending sources (Illinois / Iowa / Oregon).
+ *   terms-pending sources. Optional free-key secrets (source off until set):
+ *   NPS_API_KEY, GA511_API_KEY, WI511_API_KEY, ID511_API_KEY, ONTARIO511_API_KEY, ALBERTA511_API_KEY.
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { enabledSources, makeFetchers } from "../_shared/cctv/sources.ts";
@@ -57,7 +58,7 @@ Deno.serve(async (req) => {
   const params = new URL(req.url).searchParams;
   const only = params.get("source")?.split(",").map((s) => s.trim()).filter(Boolean);
   const dryRun = params.get("dry_run") === "1";
-  const pool = enabledSources(Deno.env.get("CCTV_ENABLE_PENDING_SOURCES"));
+  const pool = enabledSources(Deno.env.get("CCTV_ENABLE_PENDING_SOURCES"), (k) => Deno.env.get(k));
   const sources = only?.length ? pool.filter((s) => only.includes(s.id)) : pool;
   const fetchers = makeFetchers();
 
@@ -65,7 +66,7 @@ Deno.serve(async (req) => {
     const now = new Date();
     const nowIso = now.toISOString();
     try {
-      const rows = toRows(await src.fetch(fetchers), src.attribution, nowIso);
+      const rows = toRows(await src.fetch(fetchers, src.secret ? Deno.env.get(src.secret) : undefined), src.attribution, nowIso);
       if (rows.length === 0) throw new Error("source returned 0 cameras (not marking stale)");
       let stale = 0;
       if (!dryRun) {

@@ -151,7 +151,7 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   cctv: {
     enabled: true,
     attribution:
-      "Caltrans, LTA Singapore (data.gov.sg, SODL 1.0), DriveBC (OGL-BC), HK Transport Dept (DATA.GOV.HK), City of Austin, Powered by TfL Open Data, NZ Transport Agency Waka Kotahi",
+      "Caltrans, LTA Singapore (data.gov.sg, SODL 1.0), DriveBC (OGL-BC), HK Transport Dept (DATA.GOV.HK), City of Austin, Powered by TfL Open Data, NZ Transport Agency Waka Kotahi (CC BY 4.0), Travel Midwest / IDOT, Iowa DOT, Oregon DOT TripCheck, Fintraffic / digitraffic.fi (CC BY 4.0), U.S. National Park Service, 511 Georgia / Wisconsin / Idaho, Ontario 511 (OGL-Ontario), 511 Alberta (OGL-Alberta) — sources shown only when enabled",
     attributionRequired: true,
   },
 
