@@ -48,6 +48,11 @@ export interface S2Layer {
    * merge it into a timestamp.
    */
   timeOfDayField?: string;
+  /**
+   * Whether features with no source/linked-post date survive the age
+   * filter. Defaults to true. "First seen" is never used for filtering.
+   */
+  keepUndated?: boolean;
 }
 
 /** Fallback age window used when a feed doesn't declare its own. */
@@ -102,10 +107,11 @@ export const S2_LAYERS: S2Layer[] = [
     defaultOn: false,
     dateFields: TIPLINE_DATE_FIELDS,
     timeOfDayField: "TimeOfEvent",
-    // The tipline is a small archive (14 reports, newest filed May 2025).
-    // Before its date fields were recognised every pin was "undated" and
-    // so always shown; a 7-day window would now hide all of them.
-    defaultAgeHours: Infinity,
+    // 30-day window on the (now correctly parsed) event date. Undated
+    // tipline items are dropped rather than kept, so they can't bypass the
+    // window via the "first seen" display fallback.
+    defaultAgeHours: 30 * 24,
+    keepUndated: false,
   },
 ];
 
@@ -349,7 +355,8 @@ export async function fetchS2LayerFeatures(
         // Age-filter on the source date, else the linked-post date. Items
         // with neither are kept (first-seen is never used for filtering).
         const t = resolveSourceTime(feat.properties, layer)?.ms ?? null;
-        return t === null || t >= cutoff;
+        if (t === null) return layer.keepUndated !== false;
+        return t >= cutoff;
       })
       .map((feat: S2Feature) => ({ ...feat, time: resolveFeatureTime(feat, layer) }));
   } catch (err) {

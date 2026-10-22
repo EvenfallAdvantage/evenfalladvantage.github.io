@@ -85,3 +85,22 @@ describe("S2 popup date fields", () => {
     expect(html).toContain("<b>4</b>");
   });
 });
+
+describe("S2 tipline age limit", () => {
+  it("applies a 30-day window on the event date and drops undated items", async () => {
+    expect(tipline.defaultAgeHours).toBe(30 * 24);
+    const now = Date.now();
+    const fc = { features: [
+      { geometry: { type: "Point", coordinates: [1, 2] }, properties: { OBJECTID: 1, DateOfEvent: now - 2 * 86_400_000 } },
+      { geometry: { type: "Point", coordinates: [1, 2] }, properties: { OBJECTID: 2, DateOfEvent: 1745625600000 } },
+      { geometry: { type: "Point", coordinates: [1, 2] }, properties: { OBJECTID: 3, DateOfEvent: null } },
+    ] };
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, json: async () => fc })));
+    const { fetchS2LayerFeatures } = await import("@/components/tactical-map/s2-underground");
+    const out = await fetchS2LayerFeatures(tipline);
+    expect(out.map(f => f.properties.OBJECTID)).toEqual([1]);
+    const k = await fetchS2LayerFeatures(kinetic);
+    expect(k).toHaveLength(3); // kinetic (field "Date") sees all as undated and keeps them
+    expect(k[2].time?.source).toBe("first-seen");
+  });
+});
