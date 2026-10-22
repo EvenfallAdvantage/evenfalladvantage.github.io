@@ -56,10 +56,29 @@ export function invertLightness(r: number, g: number, b: number): [number, numbe
 
 /** Max channel spread (max - min) for a pixel to count as neutral grey. */
 export const HYBRID_NEUTRAL_SPREAD = 24;
-/** Text core: neutral pixels darker than this (OSM label text is dark grey). */
-export const HYBRID_TEXT_MAX = 80;
-/** Halo radius (px) around label text. */
-export const HYBRID_HALO_RADIUS = 2;
+/** Text core: neutral pixels darker than this (OSM label text is dark/mid grey). */
+export const HYBRID_TEXT_MAX = 110;
+/** Halo radius (px) around label text: 1 px when the tile level is unknown, 2 px once labels are big enough (>= HYBRID_CLOSE_LEVEL). */
+export const HYBRID_HALO_RADIUS = 1;
+export const HYBRID_HALO_RADIUS_CLOSE = 2;
+export const HYBRID_CLOSE_LEVEL = 16;
+/**
+ * Below this tile level OSM text is too small to read, so the halo would only
+ * show up as dark dashes along roads: wide views keep plain labels.
+ */
+export const HYBRID_MIN_LEVEL = 16;
+
+/** Blue OSM labels (tourism/hotel/transport text, #0092da family); excludes navy one-way arrows. */
+export function isBlueText(r: number, g: number, b: number): boolean {
+  return b >= 190 && r < 70 && g >= 120 && g <= 175;
+}
+
+/** Halo radius for a tile level, or 0 when labels should be left alone. */
+export function hybridHaloRadius(level: number | undefined): number {
+  if (level === undefined) return HYBRID_HALO_RADIUS;
+  if (level < HYBRID_MIN_LEVEL) return 0;
+  return level >= HYBRID_CLOSE_LEVEL ? HYBRID_HALO_RADIUS_CLOSE : HYBRID_HALO_RADIUS;
+}
 /** Inside the halo, pixels darker than this luminance are glyph (made light). */
 export const HYBRID_GLYPH_LUMA = 170;
 /** Halo colour behind Hybrid labels. */
@@ -67,16 +86,34 @@ export const HYBRID_HALO: readonly [number, number, number] = [20, 20, 20];
 
 const luma = (r: number, g: number, b: number) => (r * 3 + g * 6 + b) / 10;
 
-/** Mask of Hybrid label pixels: dark neutral text cores dilated by the halo radius. */
-export function hybridLabelMask(rgba: Uint8ClampedArray, width: number): Uint8Array {
-  const n = rgba.length / 4, h = Math.floor(n / width), R = HYBRID_HALO_RADIUS;
+/** Mask of Hybrid label pixels: grey or blue text cores dilated by the halo radius. */
+export function hybridLabelMask(rgba: Uint8ClampedArray, width: number, R = HYBRID_HALO_RADIUS): Uint8Array {
+  const n = rgba.length / 4, h = Math.floor(n / width);
   const mask = new Uint8Array(n);
+  // Blue: thin strokes only. Solid blue blobs (bus-stop / parking icons) and
+  // pixels next to them are left alone so icons keep their colour.
+  const blue = new Uint8Array(n);
+  for (let p = 0; p < n; p++) {
+    const i = p * 4;
+    if (rgba[i + 3] !== 0 && isBlueText(rgba[i], rgba[i + 1], rgba[i + 2])) blue[p] = 1;
+  }
+  const nearSolid = new Uint8Array(n);
+  for (let y = 1; y < h - 1; y++) for (let x = 1; x < width - 1; x++) {
+    const p = y * width + x;
+    if (!blue[p]) continue;
+    let solid = true;
+    for (let dy = -1; dy <= 1 && solid; dy++) for (let dx = -1; dx <= 1; dx++) if (!blue[p + dy * width + dx]) { solid = false; break; }
+    if (!solid) continue;
+    for (let yy = Math.max(0, y - 2); yy <= Math.min(h - 1, y + 2); yy++)
+      for (let xx = Math.max(0, x - 2); xx <= Math.min(width - 1, x + 2); xx++) nearSolid[yy * width + xx] = 1;
+  }
   for (let p = 0; p < n; p++) {
     const i = p * 4;
     if (rgba[i + 3] === 0) continue;
     const r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
     const mx = Math.max(r, g, b);
-    if (mx >= HYBRID_TEXT_MAX || mx - Math.min(r, g, b) > HYBRID_NEUTRAL_SPREAD) continue;
+    const grey = mx < HYBRID_TEXT_MAX && mx - Math.min(r, g, b) <= HYBRID_NEUTRAL_SPREAD;
+    if (!grey && !(blue[p] && !nearSolid[p])) continue;
     const x = p % width, y = (p - x) / width;
     for (let yy = Math.max(0, y - R); yy <= Math.min(h - 1, y + R); yy++)
       for (let xx = Math.max(0, x - R); xx <= Math.min(width - 1, x + R); xx++) mask[yy * width + xx] = 1;
@@ -87,15 +124,16 @@ export function hybridLabelMask(rgba: Uint8ClampedArray, width: number): Uint8Ar
 /**
  * Process an RGBA tile in place. Returns the number of pixels keyed out.
  * Hybrid label restyling needs `width` (tile width in px); without it only
- * area fills are keyed out.
+ * area fills are keyed out. `level` is the tile zoom level (see hybridHaloRadius).
  */
-export function processOverlayPixels(rgba: Uint8ClampedArray, style: OverlayStyle, width?: number): number {
-  const mask = style === "hybrid" && width ? hybridLabelMask(rgba, width) : null;
+export function processOverlayPixels(rgba: Uint8ClampedArray, style: OverlayStyle, width?: number, level?: number): number {
+  const radius = style === "hybrid" && width ? hybridHaloRadius(level) : 0;
+  const mask = radius > 0 && width ? hybridLabelMask(rgba, width, radius) : null;
   let keyed = 0;
   for (let i = 0; i < rgba.length; i += 4) {
     if (rgba[i + 3] === 0) continue;
     const r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
-    if (mask && mask[i / 4]) {
+    if (mask && mask[i / 4] === 1) {
       const l = luma(r, g, b);
       if (l < HYBRID_GLYPH_LUMA) { const v = 255 - l; rgba[i] = v; rgba[i + 1] = v; rgba[i + 2] = v; }
       else { rgba[i] = HYBRID_HALO[0]; rgba[i + 1] = HYBRID_HALO[1]; rgba[i + 2] = HYBRID_HALO[2]; }
@@ -134,7 +172,7 @@ export function withOverlayFilter<P extends { requestImage?: (...a: any[]) => an
         if (!ctx) return img;
         ctx.drawImage(img, 0, 0);
         const data = ctx.getImageData(0, 0, c.width, c.height);
-        processOverlayPixels(data.data, style, c.width);
+        processOverlayPixels(data.data, style, c.width, typeof args[2] === "number" ? args[2] : undefined);
         ctx.putImageData(data, 0, 0);
         return toTileImage(c, img);
       } catch {

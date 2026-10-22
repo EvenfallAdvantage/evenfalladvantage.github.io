@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HYBRID_HALO, invertLightness, isAreaFill, processOverlayPixels } from "@/lib/map/osm-overlay";
+import { HYBRID_HALO, HYBRID_MIN_LEVEL, hybridHaloRadius, isBlueText, invertLightness, isAreaFill, processOverlayPixels } from "@/lib/map/osm-overlay";
 import { BASEMAP_LABELS, basemapOf, setBasemap, type RegistryState } from "@/lib/map/layer-registry";
 import { applyDarkLabels, DARK_LABEL } from "@/components/tactical-map/hooks/use-dark-labels";
 
@@ -37,6 +37,25 @@ describe("osm overlay pixels", () => {
     expect([row[4], row[5], row[6]]).toEqual([...HYBRID_HALO]);
     expect(row[27]).toBe(0);
     expect([row[28], row[29], row[30], row[31]]).toEqual([255, 255, 255, 255]);
+    // wide views (low tile level) leave labels alone
+    const wide = new Uint8ClampedArray([30, 30, 30, 255, 255, 255, 255, 255]);
+    processOverlayPixels(wide, "hybrid", 2, HYBRID_MIN_LEVEL - 1);
+    expect(Array.from(wide)).toEqual([30, 30, 30, 255, 255, 255, 255, 255]);
+    expect(hybridHaloRadius(HYBRID_MIN_LEVEL - 1)).toBe(0);
+    expect(hybridHaloRadius(undefined)).toBe(1);
+    expect(hybridHaloRadius(HYBRID_MIN_LEVEL)).toBe(2);
+    // blue labels restyled too; navy one-way arrows are not text
+    expect(isBlueText(0, 146, 218)).toBe(true);
+    expect(isBlueText(0, 0, 128)).toBe(false);
+    const blue = new Uint8ClampedArray([0, 146, 218, 255, 255, 255, 255, 255]);
+    processOverlayPixels(blue, "hybrid", 2, 17);
+    expect(blue[0]).toBeGreaterThan(130);
+    expect([blue[4], blue[5], blue[6]]).toEqual([...HYBRID_HALO]);
+    // a solid 4x4 blue icon keeps its colour
+    const icon = new Uint8ClampedArray(16 * 4);
+    for (let i = 0; i < 16; i++) icon.set([0, 146, 218, 255], i * 4);
+    processOverlayPixels(icon, "hybrid", 4, 17);
+    expect([icon[20], icon[21], icon[22]]).toEqual([0, 146, 218]);
     // coloured road pixel away from text is untouched
     const road = new Uint8ClampedArray([0xe8, 0x92, 0xa2, 255]); processOverlayPixels(road, "hybrid", 1);
     expect(Array.from(road)).toEqual([0xe8, 0x92, 0xa2, 255]);
