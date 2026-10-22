@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { ErrorBoundary } from "@/components/error-boundary";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import Image from "next/image";
 import {
   Shield, Radio, GraduationCap, MapPin,
@@ -76,6 +77,8 @@ function otpErrorMessage(err: unknown): string {
 }
 
 function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { open: boolean; onClose: () => void; onSwitchToRegister: () => void; onSwitchToJoin: () => void }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open, onClose);
   const router = useRouter();
   // Email is the default: no current users have a phone identity, so phone
   // OTP is kept as a secondary option only.
@@ -139,7 +142,7 @@ function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { ope
   }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+    <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Sign in to Overwatch" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 outline-none" onClick={onClose}>
       <div className="relative w-full max-w-sm rounded-2xl border border-[#dd8c33]/30 bg-[#0f1a2e] p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <button
           type="button"
@@ -220,6 +223,8 @@ function LoginModal({ open, onClose, onSwitchToRegister, onSwitchToJoin }: { ope
 }
 
 function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open: boolean; onClose: () => void; onSwitchToLogin: () => void; joinCode?: string }) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open, onClose);
   const { clearSession } = useAuthStore();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
@@ -308,7 +313,7 @@ function RegisterModal({ open, onClose, onSwitchToLogin, joinCode = "" }: { open
   const infoValid = firstName && lastName && email && password && confirmPassword && password === confirmPassword && (pwCheck?.valid ?? false);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+    <div ref={dialogRef} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Create an Overwatch account" className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 outline-none" onClick={onClose}>
       <div className="relative w-full max-w-sm rounded-2xl border border-[#dd8c33]/30 bg-[#0f1a2e] p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <button
           type="button"
@@ -568,6 +573,7 @@ function HomePageInner() {
   return (
     <div className="min-h-screen bg-[#0b1422] text-white overflow-x-hidden">
       <link rel="canonical" href="https://www.evenfalladvantage.com/overwatch/" />
+      <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-[999] focus:rounded-lg focus:bg-[#dd8c33] focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-[#0b1422]">Skip to main content</a>
       {/* Nav */}
       <nav className="fixed top-0 z-50 w-full border-b border-white/5 bg-[#0b1422]/80 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
@@ -585,6 +591,7 @@ function HomePageInner() {
           </div>
         </div>
       </nav>
+      <main id="main-content" tabIndex={-1} className="outline-none">
 
       {/* Hero */}
       <section className="relative pt-44 pb-24">
@@ -729,6 +736,8 @@ function HomePageInner() {
           </div>
         </div>
       </section>
+
+      </main>
 
       {/* Footer */}
       <footer className="relative border-t border-white/5 bg-[#070d18]">

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { createPortal } from "react-dom";
 import { Camera, Loader2, MapPin, Send, X, Clock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -36,6 +37,7 @@ export function QuickIncidentSheet({ companyId, eventId, onClose, onCreated }: P
   const [sending, setSending] = useState(false);
   const [mounted, setMounted] = useState(false);
   const camRef = useRef<HTMLInputElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const restored = useRef(!!loadDraft(companyId));
 
   useEffect(() => { setMounted(true); }, []);
@@ -73,9 +75,11 @@ export function QuickIncidentSheet({ companyId, eventId, onClose, onCreated }: P
 
   function discard() { clearDraft(companyId); setD(newDraft()); setPhotos([]); restored.current = false; }
 
+  useFocusTrap(dialogRef, mounted, onClose);
+
   if (!mounted) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[90] flex flex-col bg-background" role="dialog" aria-modal="true" aria-label="Quick incident report" data-testid="quick-incident">
+    <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[90] flex flex-col bg-background outline-none" role="dialog" aria-modal="true" aria-label="Quick incident report" data-testid="quick-incident">
       <div className="flex items-center justify-between border-b border-border/50 px-4 pt-[max(env(safe-area-inset-top),12px)] pb-3">
         <h2 className="text-lg font-bold">Quick Report</h2>
         <button type="button" onClick={onClose} aria-label="Close (draft is kept)" className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-muted"><X className="h-5 w-5" /></button>

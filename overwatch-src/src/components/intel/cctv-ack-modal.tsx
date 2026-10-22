@@ -1,6 +1,8 @@
 "use client";
 
+import { useRef } from "react";
 import { Camera } from "lucide-react";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { DATA_SOURCES_URL, TERMS_OVERWATCH_URL } from "@/lib/legal/links";
 
 interface CctvAckModalProps {
@@ -10,8 +12,12 @@ interface CctvAckModalProps {
 
 /** One-time notice shown before the traffic-camera layer is first enabled. */
 export function CctvAckModal({ onAccept, onCancel }: CctvAckModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, true, onCancel);
   return (
     <div
+      ref={dialogRef}
+      tabIndex={-1}
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
       onClick={onCancel}

@@ -24,8 +24,15 @@ export function SubTabList({ children, className, hostAction = true }: { childre
     return () => add(-1);
   }, [add, hostAction]);
   useEffect(() => {
-    const el = ref.current?.querySelector<HTMLElement>('[aria-selected="true"]');
-    el?.scrollIntoView?.({ block: "nearest", inline: "nearest" });
+    // Scroll the strip itself, not scrollIntoView(): in Chrome scrollIntoView moves the
+    // sequential-focus starting point, so the first Tab skipped the skip link + nav (WCAG 2.4.3).
+    const strip = ref.current;
+    const el = strip?.querySelector<HTMLElement>('[aria-selected="true"]');
+    if (strip && el) {
+      const l = el.offsetLeft, r = l + el.offsetWidth;
+      if (l < strip.scrollLeft) strip.scrollLeft = l;
+      else if (r > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = r - strip.clientWidth;
+    }
   });
   return (
     <div className={cn("flex items-center gap-2", className)}>
