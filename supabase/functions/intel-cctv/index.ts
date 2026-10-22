@@ -30,7 +30,7 @@ import { CALTRANS_DISTRICTS, caltransUrl, parseCaltrans, parseNyc, parseSingapor
 import { CCTV_ATTRIBUTION, CCTV_SOURCES, disabledSourceIds } from "../_shared/cctv/sources.ts";
 
 /** Sources hidden on this deployment (NYC DOT until its agreement is signed). */
-const DISABLED = disabledSourceIds(Deno.env.get("CCTV_ENABLE_PENDING_SOURCES"));
+const DISABLED = disabledSourceIds(Deno.env.get("CCTV_ENABLE_PENDING_SOURCES"), (k) => Deno.env.get(k));
 
 const BBOX_TTL_MS = 60_000;
 const bboxCache = new Map<string, { at: number; body: string }>();
