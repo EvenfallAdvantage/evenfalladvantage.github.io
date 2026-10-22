@@ -20,6 +20,7 @@ import {
   getCallerUserAgent,
   logAudit,
 } from "../_shared/audit.ts";
+import { callerRpcClient, requireCompanyMfa } from "../_shared/mfa-guard.ts";
 
 interface TestRequest {
   company_id: string;
@@ -89,6 +90,10 @@ Deno.serve(async (req) => {
         headers: jsonHeaders,
       });
     }
+
+    // Server-side 2FA: service-role writes bypass RLS, so check AAL here.
+    const mfaBlock = await requireCompanyMfa(callerRpcClient(req), body.company_id, jsonHeaders);
+    if (mfaBlock) return mfaBlock;
 
     // Dispatch a test SMS via sms-send.
     const smsSendUrl = `${supabaseUrl}/functions/v1/sms-send`;
