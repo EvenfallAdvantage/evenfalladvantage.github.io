@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { createPortal } from "react-dom";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "sonner";
 import { QrCode, Nfc, Loader2, CheckCircle2, AlertTriangle, MapPin, X, Printer, Circle, ShieldCheck, ShieldAlert } from "lucide-react";
@@ -143,6 +144,8 @@ function ScanConfirmSheet({ companyId, cp, method, routeId, onClose, onLogged }:
   companyId: string; cp: Any; method: ScanMethod; routeId: string | null; onClose: () => void; onLogged: () => void;
 }) {
   const [fix, setFix] = useState<Fix | null | undefined>(undefined);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, true, onClose);
   const [note, setNote] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   useEffect(() => { let live = true; getFix().then((f) => { if (live) setFix(f); }); return () => { live = false; }; }, []);
@@ -164,7 +167,7 @@ function ScanConfirmSheet({ companyId, cp, method, routeId, onClose, onLogged }:
   }
 
   return createPortal(
-    <div className="fixed inset-0 z-[90] flex items-end bg-black/60" role="dialog" aria-modal="true" aria-label="Confirm checkpoint" data-testid="scan-confirm">
+    <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[90] flex items-end bg-black/60 outline-none" role="dialog" aria-modal="true" aria-label="Confirm checkpoint" data-testid="scan-confirm">
       <div className="w-full rounded-t-2xl border-t border-border bg-background p-4 pb-[max(env(safe-area-inset-bottom),16px)]">
         <div className="flex items-start justify-between">
           <div>

@@ -21,7 +21,7 @@ export function IncidentFilters({ search, onSearchChange, filter, onFilterChange
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
         <div className="relative w-full sm:flex-1 sm:max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input className="pl-9" placeholder="Search incidents..." value={search} onChange={e => onSearchChange(e.target.value)} />
+          <Input className="pl-9" placeholder="Search incidents..." aria-label="Search incidents" value={search} onChange={e => onSearchChange(e.target.value)} />
         </div>
         <div className="flex gap-1 overflow-x-auto scrollbar-hide -mx-1 px-1">
           {[{ value: "all", label: "All", color: "" }, ...STATUS].map(s => (

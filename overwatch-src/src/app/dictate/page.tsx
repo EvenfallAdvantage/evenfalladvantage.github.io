@@ -226,7 +226,7 @@ export default function DictatePage() {
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Person Name</label>
-                <Input className="mt-1" placeholder="Name of person (optional)" value={personName} onChange={e => setPersonName(e.target.value)} />
+                <Input className="mt-1" aria-label="Person name" placeholder="Name of person (optional)" value={personName} onChange={e => setPersonName(e.target.value)} />
               </div>
               <div>
                 <label className="text-xs font-medium text-muted-foreground">Link to Incident</label>
@@ -287,7 +287,7 @@ export default function DictatePage() {
               ) : (
                 /* Plain-text textarea */
                 <>
-                  <textarea ref={transcriptRef} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[120px] max-h-[300px] resize-y"
+                  <textarea ref={transcriptRef} aria-label="Transcript" className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm min-h-[120px] max-h-[300px] resize-y"
                     placeholder="Transcript will appear here as you speak... You can also type or edit manually."
                     value={transcript + (interimText ? (transcript ? " " : "") + interimText : "")}
                     onChange={e => { setTranscript(e.target.value); setInterimText(""); }} />

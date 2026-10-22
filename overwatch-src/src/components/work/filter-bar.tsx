@@ -192,6 +192,7 @@ export function FilterBar({
               value={value.search}
               onChange={(e) => setField("search", e.target.value)}
               placeholder="Search..."
+              aria-label="Search"
               className="pl-8 h-9 text-sm"
             />
           </div>

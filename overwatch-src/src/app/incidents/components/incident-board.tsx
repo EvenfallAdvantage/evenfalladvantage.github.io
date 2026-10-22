@@ -290,6 +290,7 @@ export function IncidentBoard({ activeCompanyId, initialTeamFilter, onTeamFilter
           <div className="flex items-center gap-2 ml-auto">
             <Input
               placeholder="Search incidents..."
+              aria-label="Search incidents"
               className="w-64 h-8 text-xs"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}

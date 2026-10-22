@@ -51,8 +51,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Main content */}
         <main
           id="main-content"
+          tabIndex={-1}
           className={cn(
-            "min-h-screen pb-20 transition-all duration-300 md:pb-0",
+            "min-h-screen pb-20 transition-all duration-300 md:pb-0 outline-none",
             collapsed ? "md:pl-[68px]" : "md:pl-[260px]"
           )}
         >

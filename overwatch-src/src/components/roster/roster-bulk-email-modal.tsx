@@ -17,7 +17,8 @@
  * shouldn't.)
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import {
@@ -73,6 +74,8 @@ export default function RosterBulkEmailModal({
   open,
   onClose,
 }: RosterBulkEmailModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open, onClose);
   const [subject, setSubject] = useState("");
   const [bodyMd, setBodyMd] = useState<string | undefined>("");
   const [onlyLinked, setOnlyLinked] = useState(false);
@@ -221,7 +224,9 @@ export default function RosterBulkEmailModal({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      ref={dialogRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 outline-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import {
   Loader2, Send, Copy, ExternalLink, X, Check, QrCode, Trash2, Clock, AlertCircle, Plug, Globe,
 } from "lucide-react";
@@ -61,6 +62,8 @@ function relativeTime(iso: string): string {
 }
 
 export function ClientIntakeShareModal({ companyId, userId, open, onClose, eventId, eventName }: ClientIntakeShareModalProps) {
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, open, onClose);
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const [tokens, setTokens] = useState<IntakeTokenRow[]>([]);
   const [loading, setLoading] = useState(false);
@@ -172,7 +175,9 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose, event
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      ref={dialogRef}
+      tabIndex={-1}
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 outline-none"
       onClick={onClose}
       role="dialog"
       aria-modal="true"

@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useFocusTrap } from "@/hooks/use-focus-trap";
 import { toast } from "sonner";
 import { X, Loader2, ChevronLeft, PenLine, Eraser, UserX } from "lucide-react";
 import { DictationRecorder } from "@/components/dictation-recorder";
@@ -26,6 +27,8 @@ export function StatementSheet({ incidentId, companyId, onClose, onSaved }: { in
   const [sigEmpty, setSigEmpty] = useState(true);
   const [saving, setSaving] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, mounted, onClose);
   const pad = useRef<SignaturePadHandle>(null);
   const fix = useRef<{ lat: number; lng: number } | null>(null);
 
@@ -61,7 +64,7 @@ export function StatementSheet({ incidentId, companyId, onClose, onSaved }: { in
   if (!mounted) return null;
   const field = "h-12 w-full rounded-xl border border-input bg-background px-3 text-base";
   return createPortal(
-    <div className="fixed inset-0 z-[90] flex flex-col bg-background" role="dialog" aria-modal="true" aria-label="Take statement" data-testid="statement-sheet">
+    <div ref={dialogRef} tabIndex={-1} className="fixed inset-0 z-[90] flex flex-col bg-background outline-none" role="dialog" aria-modal="true" aria-label="Take statement" data-testid="statement-sheet">
       <div className="flex items-center justify-between border-b border-border/50 px-2 pt-[max(env(safe-area-inset-top),8px)] pb-2">
         {step === 2 ? (
           <button type="button" onClick={() => setStep(1)} className="flex h-11 items-center gap-1 px-2 text-sm"><ChevronLeft className="h-5 w-5" />Back</button>
