@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toUptime, uptimeLevel, dayLevel, formatPct, MIN_CHECKS } from "@/lib/status/uptime";
+import { toUptime, uptimeLevel, dayLevel, formatPct, windowChecks, MIN_CHECKS } from "@/lib/status/uptime";
 
 describe("uptime summary", () => {
   it("parses the RPC payload", () => {
@@ -26,5 +26,18 @@ describe("uptime summary", () => {
     expect(formatPct(100)).toBe("100%");
     expect(formatPct(99.4999)).toBe("99.49%");
     expect(formatPct(null)).toBe("—");
+  });
+  it("7/90-day cards use their own check counts (grey when too little data)", () => {
+    const daily = Array.from({ length: 90 }, (_, i) => ({ day: `d${i}`, pct: i >= 89 ? 100 : null, checks: i >= 89 ? 100 : 0 }));
+    const u = { daily, checks30d: 100 };
+    expect(windowChecks(u, 7)).toBe(100);
+    expect(windowChecks(u, 90)).toBe(100);
+    expect(windowChecks(u, 30)).toBe(100);
+    expect(uptimeLevel(100, 99.5, windowChecks(u, 7))).toBe("none");
+    expect(uptimeLevel(100, 99.5, windowChecks(u, 90))).toBe("none");
+    const full = { daily: daily.map((d) => ({ ...d, pct: 100, checks: 288 })), checks30d: 8640 };
+    expect(windowChecks(full, 7)).toBe(7 * 288);
+    expect(uptimeLevel(100, 99.5, windowChecks(full, 7))).toBe("green");
+    expect(uptimeLevel(100, 99.5, windowChecks(full, 90))).toBe("green");
   });
 });

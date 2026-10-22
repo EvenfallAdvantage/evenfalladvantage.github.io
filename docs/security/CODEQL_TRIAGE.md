@@ -5,7 +5,7 @@
 | Alerts | Rule | Location | Decision |
 |---|---|---|---|
 | #66–#76 (11) | js/stack-trace-exposure | 11 Edge Functions (data-export, data-delete, email-*, sms-*, roster-*) | **Fixed.** New `_shared/safe-error.ts`: logs the error with a ref id, returns a generic message + ref. Needs function redeploy to take effect. |
-| #99 | js/stack-trace-exposure | create-checkout-session | **Deferred** to held PR #70 (Stripe on hold; avoid conflicts). |
+| #99 | js/stack-trace-exposure | create-checkout-session | **Fixed** (Oct 2026): catch-all now returns the generic `internalErrorResponse` (ref id only); the full error goes to the function log. Held PRs #70/#102 do not touch this catch block. |
 | #42 | incomplete-multi-character-sanitization | careers/page.tsx JSON-LD | **Fixed (real XSS).** `JSON.stringify` inside `<script>` did not escape `</script>` in posting text; now `jsonForScript()` escapes `<`, and descriptions use `stripTags()`. |
 | #39, #55 | incomplete-multi-character-sanitization | db-postings.ts, job-feed | **Fixed.** Robust strip + CDATA `]]>` escaping (a description with `]]>` broke the Indeed XML). |
 | #51, #96 | incomplete-multi-character-sanitization | modules-tab.tsx, security/index.ts | **Fixed.** `stripTags()` now also removes stray `<`/`>`. |
