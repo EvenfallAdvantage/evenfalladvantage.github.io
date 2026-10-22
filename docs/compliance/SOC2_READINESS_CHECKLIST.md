@@ -222,7 +222,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 9.1.2 | Supabase SOC 2 report reviewed | `[ ]` | — | Request from Supabase |
 | 9.1.3 | Stripe SOC 2 / PCI-DSS compliance verified | `[~]` | Stripe public docs | Stripe is PCI Level 1; need to document |
 | 9.1.4 | GitHub SOC 2 report reviewed | `[ ]` | — | Request from GitHub |
-| 9.1.5 | Vendor agreements / DPAs in place | `[~]` | `/DPAs` | Signed DPAs on file for Supabase, Stripe, GitHub only. Resend, OneSignal, Twilio, Airtable, Cloudflare and Google are not on file |
+| 9.1.5 | Vendor agreements / DPAs in place | `[~]` | `EvenfallAdvantage/compliance-private` (private repo, `DPAs/`) | Signed DPAs on file for Supabase, Stripe, GitHub only. Resend, OneSignal, Twilio, Airtable, Cloudflare and Google are not on file |
 
 ### CC9.2 — Data Retention and Disposal
 

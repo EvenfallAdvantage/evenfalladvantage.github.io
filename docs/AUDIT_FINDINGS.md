@@ -32,7 +32,7 @@
 - [ ] Formal Prisma migration system (replace 102 ad-hoc SQL files)
 - [ ] Legacy portal sunset (admin/, student-portal/, instructor-portal/)
 - [ ] Expand test coverage (currently 51 tests for 49 pages)
-- [ ] Missing Resend DPA in DPAs/ directory
+- [ ] Missing Resend DPA in the private repo (EvenfallAdvantage/compliance-private, DPAs/)
 
 ---
 
