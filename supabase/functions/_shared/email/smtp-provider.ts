@@ -171,15 +171,37 @@ function formatAddress(a: { email: string; name?: string }): { mail: string; nam
   return { mail: a.email, name: a.name };
 }
 
+function dropBlocks(html: string, tag: string): string {
+  // Remove <tag ...>...</tag> blocks by index (no regex), case-insensitive.
+  const lower = html.toLowerCase();
+  let out = "";
+  let i = 0;
+  while (i < html.length) {
+    const start = lower.indexOf("<" + tag, i);
+    if (start === -1) { out += html.slice(i); break; }
+    out += html.slice(i, start);
+    const end = lower.indexOf("</" + tag, start);
+    if (end === -1) break; // unterminated: drop the rest
+    const close = lower.indexOf(">", end);
+    i = close === -1 ? html.length : close + 1;
+  }
+  return out;
+}
+
 function stripHtml(html: string): string {
-  return html
-    .replace(/<style[\s\S]*?<\/style>/gi, "")
-    .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<[^>]+>/g, " ")
+  // Plain-text alternative body only (never rendered as HTML).
+  let text = dropBlocks(dropBlocks(html, "script"), "style");
+  let prev: string;
+  do {
+    prev = text;
+    text = text.replace(/<[^>]*>/g, " ");
+  } while (text !== prev);
+  return text
+    .replace(/[<>]/g, "")
     .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
     .replace(/&lt;/g, "<")
     .replace(/&gt;/g, ">")
+    .replace(/&amp;/g, "&") // last, so "&amp;lt;" decodes to "&lt;" not "<"
     .replace(/\s+/g, " ")
     .trim();
 }

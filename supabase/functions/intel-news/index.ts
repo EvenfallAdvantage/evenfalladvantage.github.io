@@ -7,6 +7,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
 import { requireIntelUser } from "../_shared/intel-auth.ts";
+import { stripTagsToText } from "../_shared/html.ts";
 
 const FEEDS: Record<string, string> = {
   BBC: "https://feeds.bbci.co.uk/news/world/rss.xml",
@@ -80,10 +81,10 @@ function parseRssItems(xml: string): RssItem[] {
       return (m?.[1] || m?.[2] || "").trim();
     };
     items.push({
-      title: getTag("title").replace(/<[^>]+>/g, ""),
+      title: stripTagsToText(getTag("title")),
       link: getTag("link"),
       pubDate: getTag("pubDate"),
-      description: getTag("description").replace(/<[^>]+>/g, "").substring(0, 200),
+      description: stripTagsToText(getTag("description")).substring(0, 200),
     });
   }
   return items;

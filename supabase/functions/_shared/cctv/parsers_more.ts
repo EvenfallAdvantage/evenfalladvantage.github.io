@@ -88,7 +88,7 @@ export function parseDriveBC(body: unknown): CctvCamera[] {
 
 const xmlTag = (block: string, tag: string) => {
   const m = block.match(new RegExp(`<${tag}>([\\s\\S]*?)</${tag}>`));
-  return m ? m[1].trim().replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'") : "";
+  return m ? m[1].trim().replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&") : "";
 };
 
 /** Hong Kong Transport Department — Traffic_Camera_Locations_En.xml. */

@@ -7,6 +7,7 @@
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
+import { cdataSafe, stripTagsToText } from "../_shared/html.ts"
 
 const BASE_URL = "https://evenfalladvantage.github.io"
 
@@ -128,7 +129,7 @@ function generateJobFeedXML(
       ${p.location ? `<city><![CDATA[${p.location}]]></city>` : ""}
       ${p.employment_type ? `<jobtype>${p.employment_type}</jobtype>` : ""}
       ${p.compensation_range && p.show_compensation ? `<salary><![CDATA[${p.compensation_range}]]></salary>` : ""}
-      <description><![CDATA[${p.description_html.replace(/<[^>]*>/g, "")}]]></description>
+      <description><![CDATA[${cdataSafe(stripTagsToText(p.description_html))}]]></description>
     </job>`
     )
     .join("\n")

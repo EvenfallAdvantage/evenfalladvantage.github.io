@@ -128,7 +128,7 @@ export function tileTemplateFromTileJson(json: unknown): string | null {
   if (typeof t !== "string") return null;
   try {
     const u = new URL(t.replace("{z}", "0").replace("{x}", "0").replace("{y}", "0"));
-    if (u.protocol !== "https:" || !u.hostname.endsWith("openfreemap.org")) return null;
+    if (u.protocol !== "https:" || !(u.hostname === "openfreemap.org" || u.hostname.endsWith(".openfreemap.org"))) return null;
   } catch {
     return null;
   }

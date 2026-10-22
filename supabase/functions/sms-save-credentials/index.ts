@@ -26,6 +26,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { getCorsHeaders } from "../_shared/cors.ts";
+import { internalErrorResponse } from "../_shared/safe-error.ts";
 import {
   getCallerIp,
   getCallerUserAgent,
@@ -250,11 +251,6 @@ Deno.serve(async (req) => {
       { headers: jsonHeaders },
     );
   } catch (err) {
-    // eslint-disable-next-line no-console -- top-level error path
-    console.error("[sms-save-credentials] error:", err);
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : String(err) }),
-      { status: 500, headers: jsonHeaders },
-    );
+    return internalErrorResponse("sms-save-credentials", err, jsonHeaders);
   }
 });

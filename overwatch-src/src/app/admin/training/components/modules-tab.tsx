@@ -15,6 +15,7 @@ import {
 } from "@/lib/supabase/db";
 import type { TrainingModule, ModuleSlide } from "@/types";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { stripTags } from "@/lib/security";
 
 const DIFFICULTY_OPTIONS = ["Beginner", "Intermediate", "Advanced", "Critical", "Essential"];
 
@@ -367,7 +368,7 @@ export function ModulesTab({ activeCompanyId, showNewModule, setShowNewModule, m
                               <p className="text-sm font-medium truncate">{slide.title}</p>
                               {slide.content_html && (
                                 <p className="text-[10px] text-muted-foreground truncate mt-0.5">
-                                  {slide.content_html.replace(/<[^>]*>/g, "").slice(0, 80)}
+                                  {stripTags(slide.content_html).slice(0, 80)}
                                 </p>
                               )}
                             </div>
