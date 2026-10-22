@@ -16,7 +16,11 @@ const DashboardShell = dynamic(
 
 const PUBLIC_ROUTES = ["/login", "/register", "/verify", "/join", "/auth/callback", "/apply", "/health", "/careers", "/intake", "/client-intake", "/report", "/auth/reset", "/auth/update-password", "/status"];
 
-function isPublicRoute(pathname: string): boolean {
+export function isPublicRoute(rawPathname: string | null): boolean {
+  // Collapse repeated slashes ("//status//" from a hand-typed or doubled link)
+  // so the client agrees with the statically exported page. Otherwise the
+  // client renders the signed-in shell over a public page -> React #418.
+  const pathname = (rawPathname || "/").replace(/\/{2,}/g, "/");
   if (pathname === "/") return true;
   return PUBLIC_ROUTES.some((route) => pathname.startsWith(route));
 }
