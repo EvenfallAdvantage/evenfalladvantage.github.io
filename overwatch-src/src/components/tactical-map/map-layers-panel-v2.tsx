@@ -143,7 +143,7 @@ function PanelBody(props: MapLayersPanelV2Props) {
   const [expanded, setExpanded] = useState<Partial<Record<GroupId, boolean>>>({});
   const [viewOpen, setViewOpen] = useState(false);
 
-  const basemaps: BasemapId[] = ["satellite", "streets", "dark", "daily", ...(SAR_AVAILABLE ? (["sar"] as BasemapId[]) : [])];
+  const basemaps: BasemapId[] = ["satellite", "hybrid", "streets", "dark", "daily", ...(SAR_AVAILABLE ? (["sar"] as BasemapId[]) : [])];
   const looks: readonly LookId[] = constrained ? MOBILE_LOOKS : ["normal", "nvg", "thermal", "noir", "crt"];
   const overlays: readonly OverlayId[] = constrained ? MOBILE_OVERLAYS : ["none", "scope", "sonar"];
 

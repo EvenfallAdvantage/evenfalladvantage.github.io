@@ -19,7 +19,7 @@ export const GROUP_IDS: readonly GroupId[] = ["myOps", "weather", "security", "a
 export type PresetId = "clean" | "securityOps" | "weatherWatch" | "airWatch";
 export const PRESET_IDS: readonly PresetId[] = ["clean", "securityOps", "weatherWatch", "airWatch"];
 
-export type BasemapId = "satellite" | "streets" | "dark" | "daily" | "sar";
+export type BasemapId = "satellite" | "hybrid" | "streets" | "dark" | "daily" | "sar";
 export type LookId = "normal" | "nvg" | "thermal" | "noir" | "crt";
 
 /** The flat boolean keys the registry manipulates (subset of LayerVisibility). */
@@ -28,7 +28,7 @@ export type FlatKey =
   | "weather" | "raws" | "eonetWeather" | "fires" | "earthquakes" | "lightning"
   | "conflictZones" | "gdelt" | "sigintNews" | "news" | "nuclearInfrastructure" | "cctv" | "liveNews"
   | "aircraft" | "satelliteOrbits" | "maritime" | "s2Intel"
-  | "satellite" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
+  | "satellite" | "hybrid" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
   | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud" | "sonarSweep" | "scopeMask" | "cityLights" | "streetPhotos" | "rocketLaunches"
   | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss" | "osmInfrastructure" | "ships";
 
@@ -132,6 +132,7 @@ export const PRESET_LABELS: Record<PresetId, string> = {
 
 export const BASEMAP_LABELS: Record<BasemapId, string> = {
   satellite: "Satellite",
+  hybrid: "Hybrid",
   streets: "Streets",
   dark: "Dark",
   daily: "Daily",
@@ -221,6 +222,7 @@ export function basemapOf(s: RegistryState): BasemapId {
   if (s.sentinel2) return "daily";
   if (!s.satellite) return "streets";
   if (s.nightVision) return "dark";
+  if (s.hybrid) return "hybrid";
   return "satellite";
 }
 
@@ -229,6 +231,7 @@ export function setBasemap<T extends RegistryState>(s: T, b: BasemapId): T {
     ...s,
     satellite: b !== "streets",
     nightVision: b === "dark",
+    hybrid: b === "hybrid",
     sentinel1: b === "sar",
     sentinel2: b === "daily",
   };

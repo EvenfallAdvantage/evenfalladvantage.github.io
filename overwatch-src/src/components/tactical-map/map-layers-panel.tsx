@@ -31,6 +31,8 @@ export interface LayerVisibility {
   geofences: boolean;
   nightVision: boolean;
   satellite: boolean;
+  /** Hybrid basemap: satellite with a free OSM streets/labels overlay. */
+  hybrid: boolean;
   breadcrumbs: boolean;
   nearbyPOIs: boolean;
   radioFrequencies: boolean;
@@ -115,6 +117,7 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   geofences: false,
   nightVision: false,
   satellite: true,
+  hybrid: false,
   breadcrumbs: false,
   nearbyPOIs: false,
   radioFrequencies: false,
