@@ -61,7 +61,7 @@
   --secondary: oklch(0.95 0.005 240);
   --secondary-foreground: oklch(0.25 0.03 240);
   --muted: oklch(0.95 0.003 240);
-  --muted-foreground: oklch(0.50 0.02 240);
+  --muted-foreground: oklch(0.45 0.02 240); /* WCAG 1.4.3: >=4.5:1 on background/card */
   --accent: oklch(0.72 0.14 70);
   --accent-foreground: oklch(0.18 0.03 240);
   --destructive: oklch(0.577 0.245 27.325);
@@ -96,7 +96,7 @@
   --secondary: oklch(0.22 0.025 240);
   --secondary-foreground: oklch(0.92 0.01 240);
   --muted: oklch(0.22 0.025 240);
-  --muted-foreground: oklch(0.60 0.02 240);
+  --muted-foreground: oklch(0.82 0.02 240); /* WCAG 1.4.3: >=4.5:1 on background/card */
   --accent: oklch(0.72 0.14 70);
   --accent-foreground: oklch(0.14 0.02 240);
   --destructive: oklch(0.704 0.191 22.216);
@@ -254,8 +254,26 @@ html.ow-field-mode .text-\[8px\], html.ow-field-mode .text-\[9px\],
 html.ow-field-mode .text-\[10px\], html.ow-field-mode .text-\[11px\],
 html.ow-field-mode .text-\[12px\] { font-size: 13px !important; line-height: 1.35; }
 html.ow-field-mode { --muted-foreground: oklch(0.40 0.02 240); }
-html.ow-field-mode.dark, html.ow-field-mode .dark { --muted-foreground: oklch(0.78 0.02 240); }
+html.ow-field-mode.dark, html.ow-field-mode .dark { --muted-foreground: oklch(0.86 0.02 240); }
 html.ow-field-mode [class*="text-muted-foreground/"] { color: var(--muted-foreground) !important; }
+
+/* WCAG 2.2 AA 1.4.3 contrast floor (always on; field mode goes further).
+   Faded text utilities (muted/NN, white/NN below 70%) were below 4.5:1 on our
+   dark and light surfaces. Text using them is real content, so lift it to the
+   full token colour. Placeholders and disabled controls are exempt (1.4.3). */
+[class*="text-muted-foreground/"]:not(:disabled) { color: var(--muted-foreground) !important; }
+.text-white\/20, .text-white\/25, .text-white\/30, .text-white\/35, .text-white\/40,
+.text-white\/45, .text-white\/50, .text-white\/60 { color: rgb(255 255 255 / 0.72) !important; }
+.text-foreground\/40, .text-foreground\/50, .text-foreground\/60 { color: var(--muted-foreground) !important; }
+/* Dark surfaces: brand orange and 500-weight status colours as TEXT fall
+   below 4.5:1 on cards; use lighter tints for text only (fills unchanged). */
+.dark .text-primary, .dark.text-primary { color: oklch(0.82 0.12 75); }
+.dark .text-red-500, .dark .text-destructive { color: var(--color-red-300); }
+.dark .text-emerald-500, .dark .text-green-500 { color: var(--color-emerald-300); }
+.dark .text-amber-500, .dark .text-amber-600, .dark .text-orange-500, .dark .text-orange-600 { color: var(--color-amber-300); }
+
+/* White text on emerald-600 is 3.7:1; use emerald-700 (5.5:1) for filled buttons. */
+.bg-emerald-600.text-white, .bg-emerald-600:has(> .text-white) { background-color: var(--color-emerald-700); }
 
 /* Reduced motion: respect user preference for vestibular disorders */
 @media (prefers-reduced-motion: reduce) {

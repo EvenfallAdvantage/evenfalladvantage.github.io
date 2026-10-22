@@ -35,7 +35,7 @@ jobs:
         working-directory: overwatch-src/e2e
         run: |
           npm init -y >/dev/null
-          npm install --no-audit --no-fund playwright@1.64.1
+          npm install --no-audit --no-fund playwright@1.64.1 @axe-core/playwright@4
           npx playwright install --with-deps chromium
       - name: Run smoke
         working-directory: overwatch-src/e2e
@@ -46,6 +46,15 @@ jobs:
           SMOKE_ROUTES: ${{ github.event.inputs.routes }}
           SMOKE_OUT: smoke-out
         run: node smoke.mjs
+      - name: Accessibility (axe, WCAG 2.2 AA; fails on serious)
+        if: always()
+        working-directory: overwatch-src/e2e
+        env:
+          ZZTEST_EMAIL: ${{ secrets.ZZTEST_EMAIL }}
+          ZZTEST_PASSWORD: ${{ secrets.ZZTEST_PASSWORD }}
+          SMOKE_CF_HEADER: ${{ secrets.SMOKE_CF_HEADER }}
+          A11Y_OUT: smoke-out/a11y
+        run: node a11y.mjs
       - name: Upload screenshots + results
         if: always()
         uses: actions/upload-artifact@v4

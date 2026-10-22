@@ -25,3 +25,11 @@ export function getLuminance(hex: string): number {
     .map(c => c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4));
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
+
+/** Text colour (white or near-black) with the higher WCAG contrast on `bg`. */
+export function readableOn(bg: string): string {
+  const L = getLuminance(bg);
+  const onWhite = 1.05 / (L + 0.05);
+  const onDark = (L + 0.05) / (getLuminance("#0b1422") + 0.05);
+  return onWhite >= onDark ? "#ffffff" : "#0b1422";
+}

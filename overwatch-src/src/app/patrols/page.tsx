@@ -399,7 +399,7 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
                     <Button
                       onClick={handleScan}
                       disabled={!selectedCheckpoint || scanning}
-                      className="w-full gap-2 bg-emerald-600 hover:bg-emerald-700"
+                      className="w-full gap-2 bg-emerald-700 text-white hover:bg-emerald-800"
                       size="lg"
                     >
                       {scanning ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-5 w-5" />}
