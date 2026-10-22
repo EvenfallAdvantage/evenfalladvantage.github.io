@@ -35,7 +35,7 @@ Uptime % = successful checks / settled checks × 100 (each check = one 5-minute 
 
 | Layer | Monitor | Interval | What counts as "up" | Sees |
 |-------|---------|----------|---------------------|------|
-| Internal | `pg_cron` job `uptime-probe` → `pg_net` GET `/functions/v1/health`, stored in `public.uptime_checks` (migration `20261022010000_uptime_checks`) | 5 min | HTTP 200 **and** body `"status":"ok"` (database, sign-in and storage all OK) within 30 s. A 503/degraded answer, a timeout or no answer after 2 min counts as down. | Supabase Edge Functions, database, Auth, Storage |
+| Internal | `pg_cron` job `uptime-probe` → `pg_net` GET `/functions/v1/health`, stored in `public.uptime_checks` (migration `20261022012210_uptime_checks`) | 5 min | HTTP 200 **and** body `"status":"ok"` (database, sign-in and storage all OK) within 30 s. A 503/degraded answer, a timeout or no answer after 2 min counts as down. | Supabase Edge Functions, database, Auth, Storage |
 | External | UptimeRobot keyword monitor on `https://nneueuvyeohwnspbwfub.supabase.co/functions/v1/health` (keyword `"status":"ok"`) plus the website URL | 5 min | Keyword present / HTTP 2xx | Everything above **plus** DNS, Cloudflare, GitHub Pages and a full Supabase outage |
 
 - Published figures: `public.get_uptime_summary()` (anon-callable aggregate; raw rows are not public) returns 7/30/90-day uptime and a 90-day daily series. It feeds the landing-page badge and the 90-day bar on `/overwatch/status/`.

@@ -167,7 +167,7 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/intel-cctv/index.ts"
 
-# Scheduled by pg_cron (migration 20261016210500). verify_jwt=false; auth is
+# Scheduled by pg_cron (migration 20261016224147). verify_jwt=false; auth is
 # the x-ingest-secret header, verified against Vault cctv_ingest_secret (rpc).
 [functions.intel-cctv-ingest]
 enabled = true

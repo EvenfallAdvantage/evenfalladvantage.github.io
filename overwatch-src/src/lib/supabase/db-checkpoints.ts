@@ -121,7 +121,7 @@ export async function logPatrolScan(companyId: string, checkpointId: string, par
   };
   const extra = params?.method ? { scan_method: params.method, scan_accuracy_m: params.accuracy ?? null, scan_distance_m: params.distanceM ?? null } : {};
   let { data, error } = await supabase.from("patrol_logs").insert({ ...row, ...extra }).select().maybeSingle();
-  // Before migration 20261020034000 the scan_method columns don't exist: retry without them.
+  // Before migration 20261020054501 the scan_method columns don't exist: retry without them.
   if (error && params?.method && (error.code === "PGRST204" || error.code === "42703")) {
     ({ data, error } = await supabase.from("patrol_logs").insert(row).select().maybeSingle());
   }

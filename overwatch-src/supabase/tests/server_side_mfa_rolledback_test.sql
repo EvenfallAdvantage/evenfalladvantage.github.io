@@ -1,4 +1,4 @@
--- Rolled-back dry run of 20261022000000 (migration body + assertions). Never commits.
+-- Rolled-back dry run of 20261022033151 (migration body + assertions). Never commits.
 BEGIN;
 -- Server-side 2FA enforcement (DRAFT: not applied).
 -- When companies.settings->>'require_mfa_admins' is true, owners/admins of that
@@ -7,7 +7,7 @@ BEGIN;
 --   * insert/update/delete companies, company_memberships, timesheets
 --   * call the admin RPCs patched below
 -- Everyone else (staff, other companies, service_role) is unaffected.
--- Rollback: migrations/rollback/20261022000000_server_side_mfa_enforcement.rollback.sql
+-- Rollback: migrations/rollback/20261022033151_server_side_mfa_enforcement.rollback.sql
 
 CREATE OR REPLACE FUNCTION public.mfa_enforced_for_me(p_company_id uuid)
 RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path TO '' AS $$
@@ -72,7 +72,7 @@ DECLARE
   v_target public.company_memberships%ROWTYPE;
   v_caller_role text;
 BEGIN
-  PERFORM public.assert_mfa_for_company((SELECT cm.company_id FROM public.company_memberships cm WHERE cm.id = p_membership_id)); -- server-side 2FA (20261022000000)
+  PERFORM public.assert_mfa_for_company((SELECT cm.company_id FROM public.company_memberships cm WHERE cm.id = p_membership_id)); -- server-side 2FA (20261022033151)
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
   END IF;
@@ -116,7 +116,7 @@ DECLARE
   v_user_updated BOOLEAN := false;
   v_membership_updated BOOLEAN := false;
 BEGIN
-  PERFORM public.assert_mfa_for_company((SELECT cm.company_id FROM public.company_memberships cm WHERE cm.id = p_membership_id)); -- server-side 2FA (20261022000000)
+  PERFORM public.assert_mfa_for_company((SELECT cm.company_id FROM public.company_memberships cm WHERE cm.id = p_membership_id)); -- server-side 2FA (20261022033151)
   -- Load target membership + its users row
   SELECT cm.*, u.supabase_id AS user_supabase_id
     INTO v_target
@@ -256,7 +256,7 @@ DECLARE
   v_caller RECORD;
   v_caller_rank int;
 BEGIN
-  PERFORM public.assert_mfa_for_company((SELECT cm.company_id FROM public.company_memberships cm WHERE cm.id = p_membership_id)); -- server-side 2FA (20261022000000)
+  PERFORM public.assert_mfa_for_company((SELECT cm.company_id FROM public.company_memberships cm WHERE cm.id = p_membership_id)); -- server-side 2FA (20261022033151)
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
   END IF;
@@ -323,7 +323,7 @@ DECLARE
   v_target RECORD;
   v_caller RECORD;
 BEGIN
-  PERFORM public.assert_mfa_for_company((SELECT cm.company_id FROM public.company_memberships cm WHERE cm.id = p_membership_id)); -- server-side 2FA (20261022000000)
+  PERFORM public.assert_mfa_for_company((SELECT cm.company_id FROM public.company_memberships cm WHERE cm.id = p_membership_id)); -- server-side 2FA (20261022033151)
   -- Get target membership
   SELECT * INTO v_target FROM company_memberships WHERE id = p_membership_id;
   IF NOT FOUND THEN
@@ -384,7 +384,7 @@ DECLARE
   v_resolved_first     text;
   v_resolved_last      text;
 BEGIN
-  PERFORM public.assert_mfa_for_company(p_company_id); -- server-side 2FA (20261022000000)
+  PERFORM public.assert_mfa_for_company(p_company_id); -- server-side 2FA (20261022033151)
   v_caller_supabase_id := auth.uid()::text;
   IF v_caller_supabase_id IS NULL OR v_caller_supabase_id = '' THEN
     RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
@@ -477,7 +477,7 @@ DECLARE
   v_user_id uuid;
   v_existing text;
 BEGIN
-  PERFORM public.assert_mfa_for_company(p_company_id); -- server-side 2FA (20261022000000)
+  PERFORM public.assert_mfa_for_company(p_company_id); -- server-side 2FA (20261022033151)
   IF auth.uid() IS NULL THEN
     RAISE EXCEPTION 'Not authenticated' USING ERRCODE = '42501';
   END IF;
@@ -517,7 +517,7 @@ DECLARE
   v_user_id uuid;
   v_is_manager boolean;
 BEGIN
-  PERFORM public.assert_mfa_for_company(p_company_id); -- server-side 2FA (20261022000000)
+  PERFORM public.assert_mfa_for_company(p_company_id); -- server-side 2FA (20261022033151)
   SELECT EXISTS (
     SELECT 1 FROM public.company_memberships cm
     JOIN public.users u ON u.id = cm.user_id
@@ -579,7 +579,7 @@ CREATE OR REPLACE FUNCTION public.get_company_join_code(p_company_id uuid)
  SET search_path TO ''
 AS $function$
 BEGIN
-  PERFORM public.assert_mfa_for_company(p_company_id); -- server-side 2FA (20261022000000)
+  PERFORM public.assert_mfa_for_company(p_company_id); -- server-side 2FA (20261022033151)
   IF COALESCE(public.my_company_role(p_company_id), '') NOT IN ('owner', 'admin', 'manager') THEN
     RAISE EXCEPTION 'Forbidden' USING ERRCODE = '42501';
   END IF;

@@ -1,6 +1,6 @@
 -- =============================================================================
--- 20261020032000_verified_clock (OverwatchDB nneueuvyeohwnspbwfub ONLY).
--- NOT APPLIED. Rollback: rollback/20261020032000_verified_clock.rollback.sql
+-- 20261020053103_verified_clock (OverwatchDB nneueuvyeohwnspbwfub ONLY).
+-- NOT APPLIED. Rollback: rollback/20261020053103_verified_clock.rollback.sql
 -- Verified clock-in/out: GPS + geofence check, server time.
 --   * timesheets: clock-in/out GPS, accuracy, distance to post and a geofence
 --     verdict ('inside' | 'outside' | 'no_fence' | 'no_gps'), plus the client's

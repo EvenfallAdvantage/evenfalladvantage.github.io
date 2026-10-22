@@ -106,7 +106,7 @@ export async function uploadIncidentMedia(
     capture_source: capture.source,
   } : {};
   let { data, error: insertErr } = await supabase.from("incident_media").insert({ ...base, ...captureCols }).select().maybeSingle();
-  // Before migration 20261020033000 the capture columns don't exist yet: retry without them.
+  // Before migration 20261020055651 the capture columns don't exist yet: retry without them.
   if (insertErr && capture && (insertErr.code === "PGRST204" || insertErr.code === "42703")) {
     ({ data, error: insertErr } = await supabase.from("incident_media").insert(base).select().maybeSingle());
   }

@@ -1,5 +1,5 @@
 -- =============================================================================
--- ROLLBACK for 20261007190500_integrations_config_lockdown.sql
+-- ROLLBACK for 20261009165232_integrations_config_lockdown.sql
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY. Run by hand.
 -- Restores the policies and grants as read on 2026-10-07.
 -- NOTE: re-opens manager writes and direct verified_at / vault_secret_id edits.

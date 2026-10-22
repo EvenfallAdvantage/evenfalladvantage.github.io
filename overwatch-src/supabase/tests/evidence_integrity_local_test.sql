@@ -1,4 +1,4 @@
--- Local test for 20261020033000_evidence_integrity (scratch Postgres + stub only).
+-- Local test for 20261020055651_evidence_integrity (scratch Postgres + stub only).
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','11111111-1111-1111-1111-111111111111',false); -- guard A
 INSERT INTO public.incident_media(id,incident_id,file_url,file_type,file_name,uploaded_by,hash,captured_at,capture_lat,capture_lng,capture_source)

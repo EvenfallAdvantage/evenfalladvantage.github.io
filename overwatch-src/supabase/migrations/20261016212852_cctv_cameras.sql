@@ -1,7 +1,7 @@
 -- CCTV camera cache for the Operations map (intel-cctv bbox mode).
 --
 -- Filled by the intel-cctv-ingest edge function (service role) on a schedule
--- (see 20261016210500_cctv_ingest_schedule.sql). intel-cctv reads it by
+-- (see 20261016224147_cctv_ingest_schedule.sql). intel-cctv reads it by
 -- bounding box through cctv_cameras_bbox(). Core `point` + GiST, no PostGIS.
 --
 -- RLS: authenticated users may SELECT. No INSERT/UPDATE/DELETE policies, so

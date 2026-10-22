@@ -1,5 +1,5 @@
 -- Field decisions (#143 / #144 / #145). NOT APPLIED: needs owner approval.
--- OverwatchDB nneueuvyeohwnspbwfub ONLY. Rollback: rollback/20261021150000_alert_delivery_mutes_escalation.rollback.sql
+-- OverwatchDB nneueuvyeohwnspbwfub ONLY. Rollback: rollback/20261021195742_alert_delivery_mutes_escalation.rollback.sql
 --
 -- 1. notification_mutes: per-officer list of muted alert categories
 --    (dm, swap, task, schedule, guard_card). Mutes only stop phone push /

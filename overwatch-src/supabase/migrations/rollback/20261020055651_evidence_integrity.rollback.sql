@@ -1,4 +1,4 @@
--- Rollback for 20261020033000_evidence_integrity. Drops the custody log (its rows are lost).
+-- Rollback for 20261020055651_evidence_integrity. Drops the custody log (its rows are lost).
 DROP FUNCTION IF EXISTS public.log_evidence_event(uuid, text, text, text);
 DROP TRIGGER IF EXISTS incident_media_custody ON public.incident_media;
 DROP TRIGGER IF EXISTS incident_media_hash_lock ON public.incident_media;

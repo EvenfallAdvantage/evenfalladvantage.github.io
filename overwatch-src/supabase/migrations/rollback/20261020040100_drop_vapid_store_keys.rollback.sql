@@ -1,1 +1,0 @@
--- Re-create vapid_store_keys: re-run the first block of 20261020040000_vapid_vault.sql.

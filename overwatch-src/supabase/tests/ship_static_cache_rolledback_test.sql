@@ -1,4 +1,4 @@
--- Rolled-back test for 20261022030000_ship_static_cache (run with the migration body inlined, then ROLLBACK).
+-- Rolled-back test for 20261022030537_ship_static_cache (run with the migration body inlined, then ROLLBACK).
 -- Checks: static for an unknown ship is kept; a later new ship row gets its type; RLS on; no anon/auth grants.
 DO $t$
 DECLARE v smallint; g int;

@@ -1,4 +1,4 @@
--- Local RLS test for 20261020031000_push_subscriptions (scratch Postgres + stub only).
+-- Local RLS test for 20261020055029_push_subscriptions (scratch Postgres + stub only).
 SET ROLE authenticated;
 SELECT set_config('request.jwt.claim.sub','11111111-1111-1111-1111-111111111111',false);
 INSERT INTO public.push_subscriptions(user_id,endpoint,p256dh,auth) VALUES ('a0000000-0000-0000-0000-00000000000a','https://push.example/1','BNcRdreALRFXTkOOUHK1EtK2wtaz5Ry4YfYCA_0QTpQtUbVlUls0VJXg7A8u-Ts1XbjhazAkj7I99e8QcYP7DkM','tBHItJI5svbpez7KI4CCXg');

@@ -1,4 +1,4 @@
--- Rolled-back check for 20261021200000 (statements inlined; nothing is committed).
+-- Rolled-back check for 20261022005147 (statements inlined; nothing is committed).
 BEGIN;
 REVOKE EXECUTE ON FUNCTION public.get_vapid_public_key() FROM PUBLIC, anon, authenticated;
 REVOKE EXECUTE ON FUNCTION public.is_team_member(uuid) FROM PUBLIC, anon, authenticated;

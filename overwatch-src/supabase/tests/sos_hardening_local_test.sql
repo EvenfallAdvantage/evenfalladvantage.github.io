@@ -1,4 +1,4 @@
--- Local RLS test for 20261020030000_sos_hardening (run against a scratch Postgres with
+-- Local RLS test for 20261020052536_sos_hardening (run against a scratch Postgres with
 -- /workspace stub, never against OverwatchDB). Fails loudly on any wrong outcome.
 INSERT INTO public.panic_alerts(id,user_id,company_id,status,escalated) VALUES
  ('e0000000-0000-0000-0000-000000000001','a0000000-0000-0000-0000-00000000000a','c0000000-0000-0000-0000-000000000001','active',false);

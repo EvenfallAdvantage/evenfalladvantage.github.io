@@ -1,4 +1,4 @@
--- Local test for 20261020032000_verified_clock (scratch Postgres + stub only).
+-- Local test for 20261020053103_verified_clock (scratch Postgres + stub only).
 DO $$ BEGIN
   IF NOT public.point_in_geojson('{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]],[[4,4],[6,4],[6,6],[4,6],[4,4]]]}', 2, 2) THEN RAISE EXCEPTION 'pip inside'; END IF;
   IF public.point_in_geojson('{"type":"Polygon","coordinates":[[[0,0],[10,0],[10,10],[0,10],[0,0]],[[4,4],[6,4],[6,6],[4,6],[4,4]]]}', 5, 5) THEN RAISE EXCEPTION 'pip hole'; END IF;

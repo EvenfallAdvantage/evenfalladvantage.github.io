@@ -1,4 +1,4 @@
--- Rollback for 20261021140000_saved_signatures.
+-- Rollback for 20261021083138_saved_signatures.
 -- Drops the snapshot column (signatures on past Shift Notes are lost) and the
 -- bucket policies. The bucket and its files are left in place on purpose; to
 -- remove them, empty the bucket via the Storage API, then:

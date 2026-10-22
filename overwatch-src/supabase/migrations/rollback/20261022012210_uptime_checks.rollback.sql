@@ -1,4 +1,4 @@
--- Rollback for 20261022010000_uptime_checks.sql (drops collected uptime history).
+-- Rollback for 20261022012210_uptime_checks.sql (drops collected uptime history).
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'uptime-probe') THEN

@@ -199,7 +199,7 @@ export default function SchedulePage() {
   }, [tab, loadMapData]);
 
   // Staff positions: realtime (staff_locations is in supabase_realtime after
-  // migration 20261015190000) plus a 30s poll as a fallback. The poll also
+  // migration 20261015210709) plus a 30s poll as a fallback. The poll also
   // re-classifies freshness so pins grey out / disappear without new rows.
   useEffect(() => {
     if (tab !== "map" || !isUuid(activeCompanyId)) return;

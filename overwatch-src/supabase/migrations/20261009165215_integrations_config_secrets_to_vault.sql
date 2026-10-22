@@ -1,10 +1,10 @@
 -- =============================================================================
--- 20261007190000_integrations_config_secrets_to_vault.sql   (DATA migration)
+-- 20261009165215_integrations_config_secrets_to_vault.sql   (DATA migration)
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY.
 -- Status: NOT APPLIED (draft, PR "HQ Config E"). Run by hand, in the order
 --         given in the PR body (AFTER integration-save-credentials and
 --         airtable-proxy are deployed and the E frontend is live).
--- Rollback: rollback/20261007190000_integrations_config_secrets_to_vault.rollback.sql
+-- Rollback: rollback/20261009165215_integrations_config_secrets_to_vault.rollback.sql
 --
 -- Moves plaintext secrets out of integrations_config.config into Supabase
 -- Vault for the generic providers (not email/sms, which already use Vault).
@@ -67,7 +67,7 @@ BEGIN
       CONTINUE;
     END IF;
 
-    new_id := vault.create_secret(secrets::text, 'integration:' || r.company_id || ':' || r.provider, 'Moved from integrations_config.config by 20261007190000');
+    new_id := vault.create_secret(secrets::text, 'integration:' || r.company_id || ':' || r.provider, 'Moved from integrations_config.config by 20261009165215');
 
     UPDATE public.integrations_config
        SET vault_secret_id = new_id,
