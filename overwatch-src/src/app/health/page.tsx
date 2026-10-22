@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import { createClient } from "@/lib/supabase/client";
+import { fetchHealth } from "@/lib/status/health";
 
 /**
  * Health check page for uptime monitoring.
@@ -27,12 +28,17 @@ export default function HealthPage() {
       setTimestamp(ts);
 
       try {
-        const supabase = createClient();
-        const { error: dbError } = await supabase
-          .from("companies")
-          .select("id")
-          .limit(1)
-          .maybeSingle();
+        // Backend check via the public health Edge Function (database, auth,
+        // storage). Falls back to a direct REST read if the function is absent.
+        const snap = await fetchHealth();
+        let dbError: { message: string } | null = null;
+        if (snap.status === "unknown") {
+          const supabase = createClient();
+          const r = await supabase.from("companies").select("id").limit(1).maybeSingle();
+          dbError = r.error;
+        } else if (snap.status !== "ok") {
+          dbError = { message: `backend ${snap.status}: ` + snap.components.filter((c) => c.ok === false).map((c) => c.label).join(", ") };
+        }
 
         const latency = Math.round(performance.now() - start);
         setDbLatency(latency);
