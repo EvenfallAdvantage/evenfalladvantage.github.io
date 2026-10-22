@@ -16,6 +16,7 @@ import {
 import dynamic from "next/dynamic";
 import { TOSModal, TOS_VERSION } from "@/components/terms-of-service";
 import { PrivacyPolicyModal } from "@/components/privacy-policy-modal";
+import { ComplianceBadges } from "@/components/compliance-badges";
 import { JoinCompanyModal } from "@/components/join-company-modal";
 
 const MobileHeroRadar = dynamic(() => import("@/components/mobile-hero-radar"), { ssr: false });
@@ -760,29 +761,9 @@ function HomePageInner() {
             </div>
           </div>
 
-          {/* Trust facts: only claims we can back with evidence (see docs/compliance). */}
+          {/* Compliance badges: only claims we can evidence (see docs/compliance). */}
           <div className="border-t border-white/5 pt-6 pb-4">
-            <ul aria-label="Security practices" className="flex flex-wrap items-center justify-center gap-3 sm:gap-4">
-              {[
-                { label: "Encrypted", sub: "in transit (TLS)" },
-                { label: "Encrypted", sub: "at rest" },
-                { label: "Row-level", sub: "data isolation" },
-                { label: "Built toward", sub: "SOC 2" },
-                { label: "Export & delete", sub: "your data" },
-                { label: "On-device", sub: "dictation" },
-              ].map((badge) => (
-                <li
-                  key={badge.label + badge.sub}
-                  className="flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.02] px-3 py-1.5 text-white/80"
-                >
-                  <Lock className="h-4 w-4 text-[#dd8c33]" aria-hidden="true" />
-                  <span className="flex flex-col leading-none">
-                    <span className="text-[10px] font-bold font-mono tracking-wider">{badge.label}</span>
-                    <span className="text-[10px] text-white/70">{badge.sub}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
+            <ComplianceBadges onOpenPrivacy={() => setPrivacyOpen(true)} />
           </div>
 
           {/* Bottom bar */}
