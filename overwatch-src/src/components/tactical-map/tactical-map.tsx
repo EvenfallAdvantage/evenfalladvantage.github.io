@@ -60,6 +60,7 @@ import { MapSearch } from "./map-search";
 import { usePerfGovernor } from "./hooks/use-perf-governor";
 import { useContactModels } from "./hooks/use-contact-models";
 import { useNvgContacts } from "./hooks/use-nvg-contacts";
+import { useDarkLabels } from "./hooks/use-dark-labels";
 import { useShipsLayer } from "./hooks/use-ships-layer";
 import { isHighContrastLook } from "@/lib/map/contact-models";
 import { escapeHtml } from "@/lib/security";
@@ -331,6 +332,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   useSiteImagery({ viewerRef, cesiumRef, loading, selection: siteImagery });
   // NVG: saturated category colour + white halo + larger icons on aircraft, ships, satellites.
   useNvgContacts({ viewerRef, cesiumRef, loading, enabled: !!activeLayers.nvgGoggles });
+  useDarkLabels({ viewerRef, cesiumRef, loading, enabled: !!activeLayers.nightVision && !activeLayers.nvgGoggles });
   const osmBuildingsStatus = useOsmBuildingsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading,
     enabled: !!activeLayers.osmBuildings,
