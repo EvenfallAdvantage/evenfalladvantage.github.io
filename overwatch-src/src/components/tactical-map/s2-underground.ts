@@ -41,6 +41,13 @@ export interface S2Layer {
    * when omitted.
    */
   defaultAgeHours?: number;
+  /**
+   * Optional field holding a separate time-of-day string (e.g. Tipline
+   * `TimeOfEvent` = "09:00:00"). Shown verbatim next to a date-only value;
+   * the upstream feed doesn't say which timezone it is in, so we never
+   * merge it into a timestamp.
+   */
+  timeOfDayField?: string;
 }
 
 /** Fallback age window used when a feed doesn't declare its own. */
@@ -49,6 +56,12 @@ export const S2_DEFAULT_MAX_AGE_HOURS = 168; // 7 days
 // Date-field candidate sets, ordered by likelihood per upstream feed.
 const KINETIC_DATE_FIELDS = ["Date", "date", "EventDate", "event_date", "ReportDate", "report_date", "time", "Time"] as const;
 const REPORT_DATE_FIELDS = ["ReportDate", "report_date", "Date", "date", "CreationDate", "EditDate"] as const;
+// Tipline schema (verified against the live FeatureServer): DateOfEvent,
+// TimeOfEvent (time-only string), DateOfReport. None of these were in the
+// old candidate list, so every tipline pin showed "date not reported".
+const TIPLINE_DATE_FIELDS = ["DateOfEvent", "DateOfReport", ...REPORT_DATE_FIELDS] as const;
+/** Fields that carry links to the source post / article. */
+const LINK_FIELDS = ["Research", "Research2", "Research3", "Research4", "Media"] as const;
 
 export const S2_LAYERS: S2Layer[] = [
   // Kinetic Events — feed name says "30 Days"; cadence is ~1 event per few days
@@ -87,8 +100,12 @@ export const S2_LAYERS: S2Layer[] = [
     icon: "I",
     refreshMinutes: 30,
     defaultOn: false,
-    dateFields: REPORT_DATE_FIELDS,
-    defaultAgeHours: 7 * 24,
+    dateFields: TIPLINE_DATE_FIELDS,
+    timeOfDayField: "TimeOfEvent",
+    // The tipline is a small archive (14 reports, newest filed May 2025).
+    // Before its date fields were recognised every pin was "undated" and
+    // so always shown; a 7-day window would now hide all of them.
+    defaultAgeHours: Infinity,
   },
 ];
 
@@ -136,6 +153,132 @@ export function getFeatureTimestamp(
   return null;
 }
 
+// ─── Timestamp resolution (event date → linked post → first seen) ──
+
+const DAY_MS = 86_400_000;
+/** X/Twitter snowflake epoch (2010-11-04T01:42:54.657Z). */
+const TWITTER_EPOCH = BigInt("1288834974657");
+
+/**
+ * ArcGIS `esriFieldTypeDate` values entered as a calendar date (no time)
+ * are stored as midnight UTC. Rendering them in local time shifts them to
+ * the previous evening in US timezones, so we treat them as date-only.
+ */
+export function isDateOnlyMs(ms: number): boolean {
+  return ms % DAY_MS === 0;
+}
+
+/**
+ * Derive the publish time of a linked post from its URL, without fetching:
+ *  - x.com / twitter.com status IDs encode the exact post time (snowflake)
+ *  - news URLs with a /YYYY/MM/DD/ path segment give the publish date
+ */
+export function parseLinkedPostDate(url: unknown): { ms: number; dateOnly: boolean } | null {
+  if (typeof url !== "string") return null;
+  const u = url.trim();
+  const tw = u.match(/^https?:\/\/(?:www\.|mobile\.)?(?:x|twitter)\.com\/[^/]+\/status(?:es)?\/(\d{15,20})/i);
+  if (tw) {
+    const ms = Number((BigInt(tw[1]) >> BigInt(22)) + TWITTER_EPOCH);
+    // Sanity: snowflakes started in late 2010; reject anything implausible.
+    if (ms > Date.UTC(2010, 10, 4) && ms < Date.now() + DAY_MS) return { ms, dateOnly: false };
+    return null;
+  }
+  const path = u.match(/^https?:\/\/[^/]+\/(?:.*\/)?(20\d{2})\/(0?[1-9]|1[0-2])\/(0?[1-9]|[12]\d|3[01])(?:\/|$)/);
+  if (path) {
+    const ms = Date.UTC(Number(path[1]), Number(path[2]) - 1, Number(path[3]));
+    if (ms < Date.now() + DAY_MS) return { ms, dateOnly: true };
+  }
+  return null;
+}
+
+export type S2TimeSource = "event" | "linked-post" | "first-seen";
+
+export interface S2ResolvedTime {
+  ms: number;
+  source: S2TimeSource;
+  /** True when only a calendar date is known (render in UTC, no clock time). */
+  dateOnly: boolean;
+  /** Property the value came from (date field or link field). */
+  field?: string;
+  /** Verbatim time-of-day string from the feed, if any (timezone unknown). */
+  timeOfDay?: string;
+}
+
+/** Authoritative source date, falling back to the earliest linked-post date. */
+export function resolveSourceTime(
+  properties: Record<string, unknown>,
+  layer: Pick<S2Layer, "dateFields" | "timeOfDayField">,
+): S2ResolvedTime | null {
+  if (!layer.dateFields) return null;
+  for (const field of layer.dateFields) {
+    const t = parseFeatureDate(properties[field]);
+    if (t === null) continue;
+    const dateOnly = typeof properties[field] === "number" && isDateOnlyMs(t);
+    const tod = layer.timeOfDayField ? properties[layer.timeOfDayField] : undefined;
+    return {
+      ms: t, source: "event", dateOnly, field,
+      timeOfDay: dateOnly && typeof tod === "string" && tod.trim() ? tod.trim() : undefined,
+    };
+  }
+  let best: S2ResolvedTime | null = null;
+  for (const field of LINK_FIELDS) {
+    const d = parseLinkedPostDate(properties[field]);
+    if (d && (!best || d.ms < best.ms)) best = { ms: d.ms, source: "linked-post", dateOnly: d.dateOnly, field };
+  }
+  return best;
+}
+
+const FIRST_SEEN_KEY = "ow:s2-first-seen:v1";
+const FIRST_SEEN_MAX = 3000;
+
+/**
+ * Record (once) and return when this device first saw an undated feature.
+ * Stored in localStorage; returns null if storage is unavailable.
+ */
+export function recordFirstSeen(key: string, now: number = Date.now()): number | null {
+  try {
+    if (typeof localStorage === "undefined") return null;
+    const raw = localStorage.getItem(FIRST_SEEN_KEY);
+    const map: Record<string, number> = raw ? JSON.parse(raw) : {};
+    if (typeof map[key] === "number") return map[key];
+    map[key] = now;
+    const keys = Object.keys(map);
+    if (keys.length > FIRST_SEEN_MAX) {
+      keys.sort((a, b) => map[a] - map[b]).slice(0, keys.length - FIRST_SEEN_MAX).forEach(k => delete map[k]);
+    }
+    localStorage.setItem(FIRST_SEEN_KEY, JSON.stringify(map));
+    return now;
+  } catch {
+    return null;
+  }
+}
+
+function featureKey(layerId: string, properties: Record<string, unknown>): string | null {
+  const oid = properties.OBJECTID ?? properties.ObjectId ?? properties.objectid ?? properties.FID;
+  return oid == null ? null : `${layerId}:${String(oid)}`;
+}
+
+/** Full resolution chain for display: source date → linked post → first seen. */
+export function resolveFeatureTime(feature: S2Feature, layer: S2Layer, now: number = Date.now()): S2ResolvedTime | null {
+  const src = resolveSourceTime(feature.properties, layer);
+  if (src || !layer.dateFields) return src;
+  const key = featureKey(layer.id, feature.properties);
+  const seen = key ? recordFirstSeen(key, now) : null;
+  return seen === null ? null : { ms: seen, source: "first-seen", dateOnly: false };
+}
+
+/** Format a resolved time for display, without shifting date-only values. */
+export function formatResolvedTime(t: Pick<S2ResolvedTime, "ms" | "dateOnly" | "timeOfDay">): string {
+  const d = new Date(t.ms);
+  if (t.dateOnly) {
+    const date = d.toLocaleDateString(undefined, { timeZone: "UTC", year: "numeric", month: "short", day: "numeric" });
+    return t.timeOfDay ? `${date}, ${t.timeOfDay} (local time at event)` : date;
+  }
+  return d.toLocaleString(undefined, {
+    year: "numeric", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short",
+  });
+}
+
 // ─── GeoJSON Fetcher ──────────────────────────────────────
 
 export interface S2Feature {
@@ -143,6 +286,8 @@ export interface S2Feature {
   lng: number;
   properties: Record<string, unknown>;
   layerId: string;
+  /** Resolved display time (set by fetchS2LayerFeatures). */
+  time?: S2ResolvedTime | null;
 }
 
 /**
@@ -201,10 +346,12 @@ export async function fetchS2LayerFeatures(
       }))
       .filter((feat: S2Feature) => {
         if (cutoff === null) return true;
-        const t = getFeatureTimestamp(feat.properties, layer.dateFields);
-        // Kept if no parseable date OR within window
+        // Age-filter on the source date, else the linked-post date. Items
+        // with neither are kept (first-seen is never used for filtering).
+        const t = resolveSourceTime(feat.properties, layer)?.ms ?? null;
         return t === null || t >= cutoff;
-      });
+      })
+      .map((feat: S2Feature) => ({ ...feat, time: resolveFeatureTime(feat, layer) }));
   } catch (err) {
     logger.swallow("s2-underground:fetch", err, "warn");
     return [];
@@ -230,6 +377,7 @@ const TITLE_FIELDS = [
 // Derived from the union of all per-layer dateFields plus a few common extras.
 const DATE_FIELDS = new Set<string>([
   ...KINETIC_DATE_FIELDS, ...REPORT_DATE_FIELDS,
+  ...TIPLINE_DATE_FIELDS,
   "StartDate", "start_date", "EndDate", "end_date",
 ]);
 
@@ -237,8 +385,15 @@ const DATE_FIELDS = new Set<string>([
  * Format a timestamp (ms) as "N minutes/hours/days ago" for popup display.
  * Falls back to a compact locale date for older entries.
  */
-function formatRelativeAge(ms: number): string {
+function formatRelativeAge(ms: number, dateOnly = false): string {
   const diffMs = Date.now() - ms;
+  if (dateOnly) {
+    const days = Math.floor(diffMs / DAY_MS);
+    if (days < 0) return "in the future";
+    if (days === 0) return "today (UTC)";
+    if (days < 60) return `${days} day${days === 1 ? "" : "s"} ago`;
+    return "";
+  }
   if (diffMs < 0) return "in the future";
   const min = diffMs / 60000;
   if (min < 60) return `${Math.round(min)} min ago`;
@@ -265,18 +420,26 @@ export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
 
   // Always show the authoritative timestamp for time-aware layers, even
   // when missing — this is the most important field for kinetic intel.
-  const featureTs = getFeatureTimestamp(p, layer.dateFields);
+  const t = feature.time !== undefined ? feature.time : resolveFeatureTime(feature, layer);
   const dateFieldShown = new Set<string>();
   if (layer.dateFields) {
-    if (featureTs !== null) {
-      const d = new Date(featureTs);
+    if (t) {
+      const rel = formatRelativeAge(t.ms, t.dateOnly);
+      const label = t.source === "event" ? "When" : t.source === "linked-post" ? "Linked post dated" : "First seen";
+      const note = t.source === "linked-post"
+        ? "event date not reported; taken from the linked post"
+        : t.source === "first-seen"
+          ? "source gave no date; first seen by this device"
+          : "";
       parts.push(
-        `<br/><b style="opacity:0.9">When:</b> <span style="color:${layer.color};opacity:0.85">` +
-        `${d.toLocaleDateString()} ${d.toLocaleTimeString()} <span style="opacity:0.5">(${formatRelativeAge(featureTs)})</span></span>`
+        `<br/><b style="opacity:0.9">${label}:</b> <span style="color:${layer.color};opacity:0.85">` +
+        `${formatResolvedTime(t)}${rel ? ` <span style="opacity:0.5">(${rel})</span>` : ""}</span>` +
+        (note ? `<br/><small style="opacity:0.5">${note}</small>` : "")
       );
-      // Mark every dateField as "already shown" so the iterator below doesn't
-      // re-emit the same value under a different field name.
-      for (const f of layer.dateFields) dateFieldShown.add(f);
+      if (t.source === "event") {
+        for (const f of layer.dateFields) if (f === t.field) dateFieldShown.add(f);
+        if (t.timeOfDay && layer.timeOfDayField) dateFieldShown.add(layer.timeOfDayField);
+      }
     } else {
       parts.push(`<br/><b style="opacity:0.7">When:</b> <span style="opacity:0.4">date not reported by source</span>`);
     }
@@ -304,9 +467,10 @@ export function buildS2Description(feature: S2Feature, layer: S2Layer): string {
 
     // Format dates nicely
     if (DATE_FIELDS.has(key)) {
-      const d = new Date(typeof val === "number" ? val : strVal);
-      if (!isNaN(d.getTime())) {
-        parts.push(`<br/><small style="opacity:0.7">${formatFieldName(key)}: ${d.toLocaleDateString()} ${d.toLocaleTimeString()}</small>`);
+      const ms = parseFeatureDate(val);
+      if (ms !== null) {
+        const dateOnly = typeof val === "number" && isDateOnlyMs(ms);
+        parts.push(`<br/><small style="opacity:0.7">${formatFieldName(key)}: ${formatResolvedTime({ ms, dateOnly })}</small>`);
         continue;
       }
     }
