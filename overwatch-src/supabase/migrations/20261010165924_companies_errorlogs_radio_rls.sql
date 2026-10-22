@@ -1,9 +1,9 @@
 -- =============================================================================
--- 20261010170000_companies_errorlogs_radio_rls.sql
+-- 20261010165924_companies_errorlogs_radio_rls.sql
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY.
 -- Status: NOT APPLIED (draft). Apply AFTER the matching frontend is live
 --         (careers / apply / intake-share pages call get_public_company).
--- Rollback: rollback/20261010170000_companies_errorlogs_radio_rls.rollback.sql
+-- Rollback: rollback/20261010165924_companies_errorlogs_radio_rls.rollback.sql
 --
 -- Live state read 2026-10-10:
 --   companies_select   SELECT TO authenticated USING true        <- every company, incl. settings/pay rates

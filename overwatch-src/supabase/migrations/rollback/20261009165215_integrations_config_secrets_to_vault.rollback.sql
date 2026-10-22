@@ -1,5 +1,5 @@
 -- =============================================================================
--- ROLLBACK for 20261007190000_integrations_config_secrets_to_vault.sql
+-- ROLLBACK for 20261009165215_integrations_config_secrets_to_vault.sql
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY. Run by hand.
 -- Copies Vault secrets created by that migration back into config (plaintext
 -- again!) and unlinks them. Only needed if the E frontend/functions are rolled
@@ -24,6 +24,6 @@ UPDATE public.integrations_config ic
   FROM vault.decrypted_secrets ds
  WHERE ds.id = ic.vault_secret_id
    AND ic.provider NOT IN ('email', 'sms')
-   AND ds.description LIKE 'Moved from integrations_config.config by 20261007190000%';
+   AND ds.description LIKE 'Moved from integrations_config.config by 20261009165215%';
 
 COMMIT;

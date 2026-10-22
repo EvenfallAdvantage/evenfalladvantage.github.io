@@ -1,4 +1,4 @@
--- Rolled-back test for 20261016210000_cctv_cameras.sql. Run AFTER pasting the
+-- Rolled-back test for 20261016212852_cctv_cameras.sql. Run AFTER pasting the
 -- migration body in the same request; the final RAISE aborts everything.
 DO $t$
 DECLARE r_pts jsonb; r_dl jsonb; r_cl jsonb; r_auth text; r_anon text; r_write text; stale int;

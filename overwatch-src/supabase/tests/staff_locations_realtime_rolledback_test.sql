@@ -1,4 +1,4 @@
--- Rolled-back test for 20261015190000_staff_locations_realtime.sql.
+-- Rolled-back test for 20261015210709_staff_locations_realtime.sql.
 -- Applies the migration body, checks publication membership and that the
 -- RLS SELECT policy Realtime relies on limits rows to company members, then
 -- aborts with RAISE EXCEPTION so nothing persists. Expected final message:

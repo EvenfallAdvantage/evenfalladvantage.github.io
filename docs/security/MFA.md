@@ -11,9 +11,9 @@ The gate is client-side. For server-side enforcement, add RLS checks on sensitiv
 `(auth.jwt()->>'aal') = 'aal2' OR NOT public.company_requires_mfa(company_id)` — a separate migration that needs review.
 Recovery: an owner who loses their phone and is the only admin needs a Supabase dashboard reset of their factors (document in the IRP).
 
-## Server-side enforcement (draft migration 20261022000000, not applied)
+## Server-side enforcement (draft migration 20261022033151, not applied)
 
-`overwatch-src/supabase/migrations/20261022000000_server_side_mfa_enforcement.sql` makes the database
+`overwatch-src/supabase/migrations/20261022033151_server_side_mfa_enforcement.sql` makes the database
 enforce what `MfaGate` does in the browser. When `companies.settings.require_mfa_admins` is `true`,
 an owner/admin of that company whose JWT has `aal` other than `aal2`:
 

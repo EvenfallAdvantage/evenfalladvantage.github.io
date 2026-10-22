@@ -1,5 +1,5 @@
 -- =============================================================================
--- 20261022030000_ship_static_cache (OverwatchDB nneueuvyeohwnspbwfub ONLY).
+-- 20261022030537_ship_static_cache (OverwatchDB nneueuvyeohwnspbwfub ONLY).
 -- NOT APPLIED. Needs owner approval.
 -- Why: AIS ship type only arrives in ShipStaticData messages (every ~6 min per
 -- ship), separate from position reports. ships_static_upsert() only updated
@@ -12,7 +12,7 @@
 --   * ships_fill_static trigger: BEFORE INSERT on ships fills null static
 --     fields from ship_static (existing rows already keep their values).
 --   * pg_cron 'ship-static-ttl': drop static rows not seen for 30 days.
--- Rollback: rollback/20261022030000_ship_static_cache.rollback.sql
+-- Rollback: rollback/20261022030537_ship_static_cache.rollback.sql
 -- =============================================================================
 BEGIN;
 

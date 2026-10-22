@@ -1,14 +1,14 @@
 /**
  * intel-cctv-ingest: scheduled fill of public.cctv_cameras.
  *
- * Called every 15 min by pg_cron (migration 20261016210500) with the
+ * Called every 15 min by pg_cron (migration 20261016224147) with the
  * `x-ingest-secret` header. For each source in the shared registry: fetch +
  * parse, upsert rows, mark rows unseen for 24h offline (cctv_mark_stale),
  * record health in cctv_source_status. One failing source never blocks others.
  *
  * Optional: ?source=<id>[,<id>] to run a subset; ?dry_run=1 to parse only.
  * Auth: x-ingest-secret is checked against Vault 'cctv_ingest_secret' via the
- * service_role-only rpc cctv_ingest_secret_matches (migration 20261016223000);
+ * service_role-only rpc cctv_ingest_secret_matches (migration 20261016224117);
  * the function never sees the secret. Accepted values are cached 5 min (hash
  * only). No env-var fallback: Vault is the single source of truth, shared
  * with the pg_cron job. Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (platform),

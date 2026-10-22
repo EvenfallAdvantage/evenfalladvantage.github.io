@@ -2,7 +2,7 @@
  * Which integrations_config.config keys are SECRETS (moved to Vault, never
  * returned to the browser). Pure module, shared by Edge Functions and the
  * Overwatch app tests. Keep in sync with the SQL list in
- * overwatch-src/supabase/migrations/20261007190000_integrations_config_lockdown.sql.
+ * overwatch-src/supabase/migrations/20261009165232_integrations_config_lockdown.sql.
  */
 export const SECRET_KEYS = [
   "api_key",

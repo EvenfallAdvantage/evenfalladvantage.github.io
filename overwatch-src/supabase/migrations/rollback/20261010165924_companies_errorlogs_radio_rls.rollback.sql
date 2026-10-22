@@ -1,4 +1,4 @@
--- Rollback for 20261010170000_companies_errorlogs_radio_rls.sql
+-- Rollback for 20261010165924_companies_errorlogs_radio_rls.sql
 -- Restores the exact live state read 2026-10-10. get_public_company is kept
 -- (harmless, branding only) so the new frontend keeps working; drop it only
 -- after reverting the frontend:  DROP FUNCTION public.get_public_company(uuid, text);

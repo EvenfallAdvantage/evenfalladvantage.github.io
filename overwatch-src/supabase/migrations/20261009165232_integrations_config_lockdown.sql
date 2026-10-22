@@ -1,9 +1,9 @@
 -- =============================================================================
--- 20261007190500_integrations_config_lockdown.sql
+-- 20261009165232_integrations_config_lockdown.sql
 -- Target: OverwatchDB (project nneueuvyeohwnspbwfub) ONLY.
 -- Status: NOT APPLIED (draft, PR "HQ Config E"). Apply LAST, after the data
---         migration 20261007190000 and after the E frontend is live.
--- Rollback: rollback/20261007190500_integrations_config_lockdown.rollback.sql
+--         migration 20261009165215 and after the E frontend is live.
+-- Rollback: rollback/20261009165232_integrations_config_lockdown.rollback.sql
 --
 -- Live state read 2026-10-07:
 --   integrations_config_select  SELECT TO authenticated USING is_company_admin(company_id)

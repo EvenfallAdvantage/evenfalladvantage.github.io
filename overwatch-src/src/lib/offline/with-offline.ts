@@ -203,7 +203,7 @@ export function logPatrolScanOffline(companyId: string, checkpointId: string, pa
 export function clockInOffline(params: Omit<NonNullable<Parameters<typeof clockIn>[0]>, "id" | "at"> = {}) {
   const full = { ...params, id: crypto.randomUUID(), at: new Date().toISOString() };
   // Online: no client time, so the server stamps the time and the GPS fix is taken
-  // (verified clock, migration 20261020032000). Only the queued replay carries `at`.
+  // (verified clock, migration 20261020053103). Only the queued replay carries `at`.
   const { at: _at, ...live } = full; void _at;
   return tryOrQueue("timesheet.clock_in", { params: full }, () => clockIn(live), "Clock in", full.id);
 }

@@ -2,7 +2,7 @@
 -- client, Edge Function, RLS policy, view, trigger, invoker function, column
 -- default or cron job calls (Supabase advisor 0028/0029). NOT APPLIED: needs
 -- owner approval. OverwatchDB nneueuvyeohwnspbwfub ONLY.
--- Rollback: rollback/20261021200000_revoke_unused_secdef_execute.rollback.sql
+-- Rollback: rollback/20261022005147_revoke_unused_secdef_execute.rollback.sql
 --
 -- Caller map (2026-10-21, repo main 1c91fbb + live catalog):
 --   get_vapid_public_key()          : no callers (push uses VAPID key from config) -> anon + authenticated revoked

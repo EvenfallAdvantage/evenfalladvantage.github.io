@@ -1,6 +1,6 @@
--- Rollback for 20261021150000_alert_delivery_mutes_escalation.
--- Restores the guard-card / patrol functions exactly as in 20261021090000 and
--- 20261021100000 (in-app only, patrol cron every 10 min), then drops the new objects.
+-- Rollback for 20261021195742_alert_delivery_mutes_escalation.
+-- Restores the guard-card / patrol functions exactly as in 20261021024711 and
+-- 20261021025119 (in-app only, patrol cron every 10 min), then drops the new objects.
 -- Rows already written with type guard_card / patrol_overdue_escalation stay (harmless history).
 
 CREATE OR REPLACE FUNCTION public.guard_card_expiry_reminders()

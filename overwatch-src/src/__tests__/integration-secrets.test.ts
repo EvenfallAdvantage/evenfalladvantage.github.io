@@ -12,7 +12,7 @@ describe("integration secret rules", () => {
   });
   it("SQL migrations use the same key list", () => {
     const list = `ARRAY[${shared.SECRET_KEYS.map((k) => `'${k}'`).join(",")}]`;
-    for (const f of ["20261007190000_integrations_config_secrets_to_vault.sql", "20261007190500_integrations_config_lockdown.sql"]) {
+    for (const f of ["20261009165215_integrations_config_secrets_to_vault.sql", "20261009165232_integrations_config_lockdown.sql"]) {
       const sql = readFileSync(path.join(root, "overwatch-src/supabase/migrations", f), "utf8");
       expect(sql).toContain(list);
     }

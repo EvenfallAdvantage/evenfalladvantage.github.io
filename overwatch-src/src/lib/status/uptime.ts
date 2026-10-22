@@ -1,4 +1,4 @@
-/** Client for the public `get_uptime_summary` RPC (migration 20261022010000_uptime_checks). */
+/** Client for the public `get_uptime_summary` RPC (migration 20261022012210_uptime_checks). */
 export interface UptimeDay { day: string; pct: number | null; checks: number }
 export interface UptimeSummary {
   target: number;

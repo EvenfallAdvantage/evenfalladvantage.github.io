@@ -57,7 +57,7 @@ export async function clockIn(params?: {
     companyId = (sh as any)?.events?.company_id ?? null;
   }
 
-  // Verified path (migration 20261020032000): server time + GPS + geofence verdict.
+  // Verified path (migration 20261020053103): server time + GPS + geofence verdict.
   const fix = params?.fix !== undefined ? params.fix : (params?.at ? null : await getQuickFix());
   if (companyId) {
     const { data, error } = await supabase.rpc("timesheet_clock_in", {

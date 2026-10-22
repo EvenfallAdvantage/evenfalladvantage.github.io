@@ -1,4 +1,4 @@
--- Rollback for 20261022000000_server_side_mfa_enforcement.sql
+-- Rollback for 20261022033151_server_side_mfa_enforcement.sql
 BEGIN;
 DROP POLICY IF EXISTS mfa_required_all ON public.api_keys;
 DROP POLICY IF EXISTS mfa_required_all ON public.integrations_config;

@@ -1,6 +1,6 @@
 -- =============================================================================
--- 20261020030000_sos_hardening (OverwatchDB nneueuvyeohwnspbwfub ONLY).
--- NOT APPLIED. Review, then apply by hand. Rollback: rollback/20261020030000_sos_hardening.rollback.sql
+-- 20261020052536_sos_hardening (OverwatchDB nneueuvyeohwnspbwfub ONLY).
+-- NOT APPLIED. Review, then apply by hand. Rollback: rollback/20261020052536_sos_hardening.rollback.sql
 --   * public.panic_alert_locations: live-location trail while an SOS is active.
 --       insert: only the alert's own sender, only while the alert is active/acknowledged
 --       select: members of the alert's company

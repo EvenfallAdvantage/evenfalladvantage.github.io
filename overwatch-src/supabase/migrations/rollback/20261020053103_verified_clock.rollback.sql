@@ -1,4 +1,4 @@
--- Rollback for 20261020032000_verified_clock. Drops the RPCs/helpers and the new
+-- Rollback for 20261020053103_verified_clock. Drops the RPCs/helpers and the new
 -- timesheets columns (their GPS / fence data is lost; clock_in/out are untouched).
 BEGIN;
 DROP FUNCTION IF EXISTS public.timesheet_clock_out(uuid, double precision, double precision, double precision, timestamptz);

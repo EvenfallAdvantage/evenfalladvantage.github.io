@@ -1,6 +1,6 @@
 -- =============================================================================
--- 20261020031000_push_subscriptions (OverwatchDB nneueuvyeohwnspbwfub ONLY).
--- NOT APPLIED. Rollback: rollback/20261020031000_push_subscriptions.rollback.sql
+-- 20261020055029_push_subscriptions (OverwatchDB nneueuvyeohwnspbwfub ONLY).
+-- NOT APPLIED. Rollback: rollback/20261020055029_push_subscriptions.rollback.sql
 -- Web push device registrations (one row per browser/device endpoint).
 --   * Users can see, add, refresh and remove only their own rows.
 --   * push-send (service role) reads them to deliver and deletes expired ones.

@@ -23,18 +23,18 @@ Source: Supabase security advisors 0028/0029 on OverwatchDB, caller map from rep
 | `get_my_user_id()` |  | yes | Keep | RLS policy helper |
 | `get_partner_companies()` | yes | yes | Keep | client rpc(); anon: landing page partner strip (signed out) |
 | `get_public_company(p_company_id uuid, p_slug text)` | yes | yes | Keep | client rpc(); anon: public careers / company page |
-| `get_vapid_public_key()` | yes | yes | **Revoke** (migration 20261021200000) | no callers found |
+| `get_vapid_public_key()` | yes | yes | **Revoke** (migration 20261022005147) | no callers found |
 | `grade_training_quiz(p_quiz_id uuid, p_answers jsonb, p_state_code text)` |  | yes | Keep | client rpc() |
 | `is_company_admin(comp_id uuid)` |  | yes | Keep | RLS + Edge Functions |
 | `is_company_manager(p_company_id uuid)` |  | yes | Keep | RLS policy helper |
 | `is_company_member(comp_id uuid)` |  | yes | Keep | RLS policy helper |
 | `is_company_owner_admin(p_company_id uuid)` |  | yes | Keep | RLS policy helper |
-| `is_team_member(team_id uuid)` |  | yes | **Revoke** (migration 20261021200000) | no callers found |
+| `is_team_member(team_id uuid)` |  | yes | **Revoke** (migration 20261022005147) | no callers found |
 | `join_company_by_code(p_join_code text, p_supabase_id text, p_email text, p_phone text, p_first_name text, p_last_name text)` |  | yes | Keep | client rpc() |
 | `log_audit_event(p_event_type text, p_outcome text, p_company_id uuid, p_metadata jsonb, p_user_agent text, p_entity_type text)` |  | yes | Keep | client rpc() |
 | `log_evidence_event(p_media_id uuid, p_action text, p_hash text, p_note text)` |  | yes | Keep | client rpc() |
 | `my_company_role(p_company_id uuid)` |  | yes | Keep | RLS policy helper |
-| `next_incident_number(p_company_id uuid)` |  | yes | **Revoke** (migration 20261021200000) | no callers found |
+| `next_incident_number(p_company_id uuid)` |  | yes | **Revoke** (migration 20261022005147) | no callers found |
 | `post_order_ack_status(p_shift_ids uuid[])` |  | yes | Keep | client rpc() |
 | `remove_company_member(p_membership_id uuid)` |  | yes | Keep | client rpc() |
 | `rotate_company_join_code(p_company_id uuid)` |  | yes | Keep | client rpc() |
@@ -57,7 +57,7 @@ Source: Supabase security advisors 0028/0029 on OverwatchDB, caller map from rep
 | `training_list_learners(p_company_id uuid)` |  | yes | Keep | client rpc() |
 | `update_member_admin_profile(p_membership_id uuid, p_user_fields jsonb, p_membership_fields jsonb)` |  | yes | Keep | client rpc() |
 | `update_member_role(p_membership_id uuid, p_new_role text)` |  | yes | Keep | client rpc() |
-| `user_belongs_to_company(p_company_id uuid)` |  | yes | **Revoke** (migration 20261021200000) | no callers found |
+| `user_belongs_to_company(p_company_id uuid)` |  | yes | **Revoke** (migration 20261022005147) | no callers found |
 
 All kept functions check `auth.uid()` / company membership inside the function body (reviewed when each was added); the advisor flags any definer function callable by API roles, not a confirmed hole.
 

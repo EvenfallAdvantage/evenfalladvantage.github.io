@@ -3,10 +3,10 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const dir = join(__dirname, "../../supabase/migrations");
-const mig = readFileSync(join(dir, "20261010170000_companies_errorlogs_radio_rls.sql"), "utf8");
-const rollback = readFileSync(join(dir, "rollback/20261010170000_companies_errorlogs_radio_rls.rollback.sql"), "utf8");
+const mig = readFileSync(join(dir, "20261010165924_companies_errorlogs_radio_rls.sql"), "utf8");
+const rollback = readFileSync(join(dir, "rollback/20261010165924_companies_errorlogs_radio_rls.rollback.sql"), "utf8");
 
-describe("20261010170000 permission-gap migration", () => {
+describe("20261010165924 permission-gap migration", () => {
   it("restricts companies SELECT to members", () => {
     expect(mig).toMatch(/CREATE POLICY companies_select ON public\.companies\s+FOR SELECT TO authenticated\s+USING \(public\.is_company_member\(id\)\)/);
   });

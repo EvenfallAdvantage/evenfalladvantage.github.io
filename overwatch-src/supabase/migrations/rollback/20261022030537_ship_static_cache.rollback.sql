@@ -1,4 +1,4 @@
--- Rollback for 20261022030000_ship_static_cache: restores ships_static_upsert from 20261019155428.
+-- Rollback for 20261022030537_ship_static_cache: restores ships_static_upsert from 20261019155428.
 BEGIN;
 SELECT cron.unschedule('ship-static-ttl') WHERE EXISTS (SELECT 1 FROM cron.job WHERE jobname = 'ship-static-ttl');
 DROP TRIGGER IF EXISTS ships_fill_static ON public.ships;

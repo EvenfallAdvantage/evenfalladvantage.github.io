@@ -3,7 +3,7 @@
  *
  * Auth: service-role key only (called by notify-send, never by browsers).
  * VAPID keys are read at runtime from Supabase Vault via the service_role-only
- * RPC public.get_vapid_keys() (migration 20261020040000_vapid_vault). They were
+ * RPC public.get_vapid_keys() (migration 20261020035113_vapid_vault). They were
  * generated inside Supabase and are never logged or returned. Optional fallback:
  * Edge Function env VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY / VAPID_SUBJECT.
  * If any is missing the function returns { skipped: "push not configured" } and

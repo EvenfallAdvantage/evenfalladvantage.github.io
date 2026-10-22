@@ -10,8 +10,8 @@ import { MUTABLE_CATEGORIES, muteCategory, parseNotifyRequest, systemChannels, u
 const CO = "0f03bc15-0000-4000-8000-000000000001";
 const U1 = "11111111-1111-4111-8111-111111111111";
 const U2 = "22222222-2222-4222-8222-222222222222";
-const MIG = fs.readFileSync(path.join(__dirname, "../../supabase/migrations/20261021150000_alert_delivery_mutes_escalation.sql"), "utf8");
-const RB = fs.readFileSync(path.join(__dirname, "../../supabase/migrations/rollback/20261021150000_alert_delivery_mutes_escalation.rollback.sql"), "utf8");
+const MIG = fs.readFileSync(path.join(__dirname, "../../supabase/migrations/20261021195742_alert_delivery_mutes_escalation.sql"), "utf8");
+const RB = fs.readFileSync(path.join(__dirname, "../../supabase/migrations/rollback/20261021195742_alert_delivery_mutes_escalation.rollback.sql"), "utf8");
 
 describe("#142 late/early clock-in flag", () => {
   it("flags notes written by the clock-in modal", () => {
@@ -58,7 +58,7 @@ describe("#143/#145 system delivery channels", () => {
   });
 });
 
-describe("migration 20261021150000", () => {
+describe("migration 20261021195742", () => {
   it("follows the grant rule for the new table", () => {
     expect(MIG).toMatch(/ALTER TABLE public\.notification_mutes ENABLE ROW LEVEL SECURITY/);
     expect(MIG).toMatch(/GRANT SELECT ON TABLE public\.notification_mutes TO anon;/);

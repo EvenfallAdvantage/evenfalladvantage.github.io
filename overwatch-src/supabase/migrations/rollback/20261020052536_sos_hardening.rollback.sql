@@ -1,4 +1,4 @@
--- Rollback for 20261020030000_sos_hardening.
+-- Rollback for 20261020052536_sos_hardening.
 BEGIN;
 DO $$
 BEGIN
