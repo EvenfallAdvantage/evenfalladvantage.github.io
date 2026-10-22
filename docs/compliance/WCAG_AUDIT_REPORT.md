@@ -73,6 +73,9 @@ A comprehensive accessibility audit was performed against WCAG 2.1 Level AA crit
 
 ## Conformance Statement
 
+> **Withdrawn 2026-10-21.** A live axe-core scan (WCAG 2.2 AA tags) of the deployed app found serious color-contrast failures on every key screen and 20 unnamed buttons on the landing page. The statement below was based on a code search only and is not accurate. Do not claim WCAG 2.2 AA conformance until a runtime scan and manual keyboard/screen-reader pass are clean.
+
+
 The Overwatch platform **substantially conforms** to WCAG 2.2 Level AA. All critical and major accessibility barriers have been identified and remediated. Known remaining items are minor in severity, do not block access for assistive technology users, and are tracked for incremental improvement.
 
 ### Criteria Met (Level AA)

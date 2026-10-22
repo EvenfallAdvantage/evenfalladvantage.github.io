@@ -72,7 +72,7 @@ Evidence paths reference files in the Overwatch codebase.
 |---|---------|--------|----------|-------|
 | 3.1.1 | Annual risk assessment performed | `[x]` | `docs/compliance/RISK_ASSESSMENT_TEMPLATE.md` | Template with 10 identified threats, risk scoring, treatment plan |
 | 3.1.2 | Threat modeling for key assets | `[x]` | `docs/compliance/THREAT_MODEL.md` | STRIDE analysis: 22 threats identified, 19 mitigated, 3 partially mitigated, 0 open |
-| 3.1.3 | Vendor risk assessments | `[ ]` | — | Need assessments for Supabase, Stripe, Resend, GitHub |
+| 3.1.3 | Vendor risk assessments | `[~]` | `VENDOR_RISK_ASSESSMENT.md` | Written; vendor SOC 2 reports not yet obtained |
 | 3.1.4 | Risk register maintained | `[x]` | `docs/compliance/risk-assessments/Q2-2026.md` | Q2 2026 assessment completed: 12 threats, 5 action items, next review Q3 |
 
 ---
@@ -83,9 +83,9 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 4.1.1 | Security event logging | `[x]` | `src/lib/security/security-audit.ts` | Audit logs with 90-day retention |
+| 4.1.1 | Security event logging | `[x]` | `src/lib/security/security-audit.ts` | Audit logs recorded. Note: no automatic purge exists, so the stated 90-day retention is not enforced yet |
 | 4.1.2 | Log review procedures | `[x]` | `docs/compliance/LOG_REVIEW_PROCEDURES.md` | Daily error triage, weekly security audit, monthly auth review, quarterly full audit |
-| 4.1.3 | Automated vulnerability scanning | `[x]` | `.github/dependabot.yml`, `.github/workflows/codeql.yml` | Dependabot (weekly npm + actions), CodeQL (weekly + on push/PR) |
+| 4.1.3 | Automated vulnerability scanning | `[~]` | `.github/dependabot.yml`, `.github/workflows/codeql.yml` | CodeQL runs on push/PR (48 open alerts on 2026-10-21, being triaged). Dependabot version-update config exists, but **Dependabot alerts are disabled** in repo settings (verified 2026-10-21) |
 | 4.1.4 | Uptime monitoring with alerting | `[x]` | UptimeRobot (monitor #802774563), `/overwatch/health/` | 5-minute keyword monitoring; alert contacts configured |
 | 4.1.5 | Error tracking / APM with alerting | `[x]` | `error_logs` table, `error-tracker.ts`, `error-alerter.ts`, HQ Config viewer | Built-in: auto-tracking, dedup, ErrorBoundary, admin digest via Briefing posts |
 | 4.1.6 | Penetration testing (annual) | `[ ]` | — | Need third-party pen test |
@@ -98,7 +98,7 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 5.1.1 | Multi-factor authentication available | `[x]` | Supabase Auth (TOTP enabled) | TOTP App Authenticator enabled; up to 10 factors per user |
+| 5.1.1 | Multi-factor authentication available | `[~]` | Supabase Auth (TOTP enabled at project level) | Project setting is on, but the app has **no MFA enrollment or challenge screen** yet (verified 2026-10-21) |
 | 5.1.2 | Password complexity requirements | `[x]` | `src/lib/security/password-strength.ts` | Min 12 chars, strength meter (weak/fair/good/strong/military) |
 | 5.1.3 | Leaked password protection | `[x]` | Supabase Auth setting | HaveIBeenPwned integration enabled |
 | 5.1.4 | Account lockout / brute force protection | `[x]` | `src/lib/security/brute-force.ts` | Lockout after failed attempts |
@@ -129,7 +129,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 5.3.6 | XSS prevention | `[x]` | `js/sanitize.js`, 52 innerHTML vectors fixed | escapeHTML/escapeAttr applied across all 18 JS files |
 | 5.3.7 | Stripe webhook signature verification | `[x]` | `supabase/functions/process-course-payment/index.ts` | Rejects unsigned payloads (no fallback) |
 | 5.3.8 | Admin self-promotion prevention | `[x]` | `sql/FIX_ADMIN_INSERT_POLICY.sql` | Only existing admins can insert new admin records |
-| 5.3.9 | Content Security Policy | `[x]` | `src/app/layout.tsx` | Comprehensive CSP header with explicit directives |
+| 5.3.9 | Content Security Policy | `[ ]` | `src/app/layout.tsx` | **No CSP is delivered.** GitHub Pages cannot send headers and a meta CSP breaks dictation; see the comment in layout.tsx |
 | 5.3.10 | Data classification policy | `[ ]` | — | Need formal data classification (public/internal/confidential/restricted) |
 
 ---
@@ -160,7 +160,7 @@ Evidence paths reference files in the Overwatch codebase.
 
 | # | Control | Status | Evidence | Notes |
 |---|---------|--------|----------|-------|
-| 7.1.1 | Defined SLA / uptime target | `[x]` | `docs/compliance/SLA_DEFINITION.md` | 99.5% monthly uptime, P1-P4 response times, RPO/RTO, maintenance windows |
+| 7.1.1 | Defined SLA / uptime target | `[~]` | `docs/compliance/SLA_DEFINITION.md` | Internal 99.5% **target** only: not in any customer contract, no credits. GitHub Pages has no SLA; Supabase SLA is Enterprise-only |
 | 7.1.2 | Uptime monitoring with alerting | `[x]` | UptimeRobot (monitor #802774563) | Configured and alerting |
 | 7.1.3 | Incident response plan | `[x]` | `docs/compliance/INCIDENT_RESPONSE_PLAN.md` | Formal IRP with roles, escalation, communication |
 | 7.1.4 | Service worker for offline fallback | `[x]` | `public/sw.js` | PWA with offline page, network-first for JS bundles |
@@ -197,7 +197,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 8.1.2 | CI/CD pipeline | `[x]` | `.github/workflows/deploy.yml` | Automated build + deploy on push to main |
 | 8.1.3 | Build concurrency controls | `[x]` | `deploy.yml` concurrency group | Prevents deployment collisions |
 | 8.1.4 | Separate dev/staging/production environments | `[x]` | `docs/STAGING_ENVIRONMENT.md`, `supabase/`, `.env.staging` | Local Supabase staging (Docker): isolated DB, Auth, Storage. 18 migrations, seed data, npm scripts |
-| 8.1.5 | Code review / PR approval required | `[x]` | GitHub branch protection | Branch protection enabled: 1 required reviewer, dismiss stale reviews |
+| 8.1.5 | Code review / PR approval required | `[~]` | GitHub branch protection | 1 required reviewer is configured, but `enforce_admins` is off and admins merge without approval: 100 of the last 100 merged PRs had 0 approvals (2026-10-21) |
 | 8.1.6 | Automated testing | `[x]` | `overwatch-src/src/__tests__/`, `vitest.config.ts` | 51 tests across 5 files (permissions, XSS, themes, errors, data isolation); runs in CI |
 | 8.1.7 | Dependency vulnerability scanning | `[x]` | `.github/dependabot.yml`, `.github/workflows/codeql.yml` | Dependabot weekly scans + CodeQL SAST |
 | 8.1.8 | Database migration tracking | `[x]` | `prisma/*.sql` | 15+ versioned SQL migration files |
@@ -222,7 +222,7 @@ Evidence paths reference files in the Overwatch codebase.
 | 9.1.2 | Supabase SOC 2 report reviewed | `[ ]` | — | Request from Supabase |
 | 9.1.3 | Stripe SOC 2 / PCI-DSS compliance verified | `[~]` | Stripe public docs | Stripe is PCI Level 1; need to document |
 | 9.1.4 | GitHub SOC 2 report reviewed | `[ ]` | — | Request from GitHub |
-| 9.1.5 | Vendor agreements / DPAs in place | `[x]` | `docs/compliance/VENDOR_RISK_ASSESSMENT.md` | DPAs executed with Supabase, Stripe, GitHub, Resend (April 6, 2026) |
+| 9.1.5 | Vendor agreements / DPAs in place | `[~]` | `/DPAs` | Signed DPAs on file for Supabase, Stripe, GitHub only. Resend, OneSignal, Twilio, Airtable, Cloudflare and Google are not on file |
 
 ### CC9.2 — Data Retention and Disposal
 
@@ -230,7 +230,7 @@ Evidence paths reference files in the Overwatch codebase.
 |---|---------|--------|----------|-------|
 | 9.2.1 | Data retention policy defined | `[x]` | `docs/compliance/DATA_RETENTION_POLICY.md` | 16 data categories with specific retention periods, deletion methods, DSAR workflow |
 | 9.2.2 | User data deletion capability | `[~]` | Edge Functions (delete-student) | Can delete users but no formal "right to erasure" workflow |
-| 9.2.3 | Data export capability | `[~]` | CSV export in Personnel, Timesheets | Some export exists but not comprehensive |
+| 9.2.3 | Data export capability | `[x]` | `data-export` edge function | Self-service "Export my data" (JSON) in Security Center |
 
 ### CC9.3 — Privacy (if pursuing Privacy criteria)
 
@@ -246,50 +246,25 @@ Evidence paths reference files in the Overwatch codebase.
 
 ## Summary
 
-| Category | Done | Partial | Gap | Total |
-|----------|------|---------|-----|-------|
-| CC1: Control Environment | 5 | 0 | 0 | 5 |
-| CC2: Communication | 7 | 0 | 0 | 7 |
-| CC3: Risk Assessment | 3 | 0 | 1 | 4 |
-| CC4: Monitoring | 5 | 0 | 0 | 5 |
-| CC5: Control Activities | 18 | 0 | 1 | 19 |
-| CC6: Access Controls | 5 | 0 | 0 | 5 |
-| CC7: System Operations | 9 | 0 | 1 | 10 |
-| CC8: Change Management | 9 | 0 | 0 | 9 |
-| CC9: Additional | 8 | 2 | 2 | 12 |
-| **TOTAL** | **69** | **2** | **5** | **76** |
+> **Corrected 2026-10-21.** An evidence-based audit found several items above had been marked done without evidence. The earlier "91% complete" score is withdrawn. Items now marked `[~]` or `[ ]` are tracked in the compliance audit plan. Readiness is self-assessed; **no SOC 2 audit has been performed**, so the product must not be described as "SOC 2 Type I Ready" until an auditor is engaged.
 
-**Readiness Score: 91% complete (69/76 fully implemented)**
+### Open items (2026-10-21)
 
-### Categories at 100%
-- CC1: Control Environment (5/5)
-- CC2: Communication and Information (7/7)
-- CC4: Monitoring Activities (5/5)
-- CC6: Logical and Physical Access Controls (5/5)
-
-### Remaining 7 Gaps
-
-| # | Control | Category | What's Needed | Type |
-|---|---------|----------|--------------|------|
-| 1 | Vendor SOC 2 reports reviewed | CC3 | Emails drafted — send and file reports when received | Process |
-| 2 | Penetration testing (annual) | CC4 | Hire third-party firm ($5-15K) | External |
-| 3 | Backup restoration tested | CC7 | Restore a Supabase daily backup to a new project and record results | Process |
-
-### Priority Remediation (Remaining)
-
-1. ~~Write Information Security Policy~~ DONE
-2. ~~Enable GitHub Dependabot + CodeQL~~ DONE
-3. ~~Set up uptime monitoring (UptimeRobot)~~ DONE
-4. ~~Write Incident Response Plan~~ DONE
-5. ~~Enforce branch protection (require PR reviews)~~ DONE
-6. ~~Set up error tracking~~ DONE (custom error_logs table)
-7. ~~Write formal data retention policy~~ DONE
-8. Document vendor risk assessments (in progress)
-9. ~~Define RPO/RTO for disaster recovery~~ DONE
-10. Schedule annual penetration test (not yet started)
+| # | Control | What's needed | Type |
+|---|---------|---------------|------|
+| 1 | 4.1.3 Dependabot alerts | Enable Dependabot alerts + security updates | Setting |
+| 2 | 4.1.3 CodeQL | Triage the 48 open alerts | Code |
+| 3 | 5.1.1 MFA | Ship TOTP enroll/verify UI; enforce for admins | Code |
+| 4 | 5.3.9 CSP | Requires a host that sends headers | Architecture |
+| 5 | 8.1.5 PR approval | Enforce for admins or add a second reviewer | Setting/process |
+| 6 | 7.1.1 SLA | Customer-facing SLA reviewed by counsel; status page | Legal/code |
+| 7 | 7.2.2 Restore test | Restore a daily backup to a new project | Process |
+| 8 | 9.1.2–9.1.5 Vendors | Obtain SOC 2 reports; complete DPAs | Process |
+| 9 | 4.1.6 Pen test | Third-party firm | External |
+| 10 | 5.3.10 Data classification | Write policy | Process |
 
 ---
 
-**Next Review:** May 2026
+**Next Review:** Q4 2026
 **Checklist Owner:** James Ferguson, CTO
 **Auditor (when engaged):** TBD
