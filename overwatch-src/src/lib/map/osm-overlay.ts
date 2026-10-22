@@ -73,6 +73,21 @@ export function isBlueText(r: number, g: number, b: number): boolean {
   return b >= 190 && r < 70 && g >= 120 && g <= 175;
 }
 
+/** Purple OSM labels (aeroway / heliport text, #8461c4 family); excludes magenta and lilac fills. */
+export function isPurpleText(r: number, g: number, b: number): boolean {
+  return b >= 170 && r >= 70 && r <= 150 && g < 125 && b - g >= 60 && r > g;
+}
+
+/** Brown OSM labels (amenity / POI text, #734a08 family). */
+export function isBrownText(r: number, g: number, b: number): boolean {
+  return r >= 95 && r <= 140 && g >= 55 && g <= 95 && b <= 40 && r - g >= 30;
+}
+
+/** Coloured label text restyled in Hybrid (blue, purple, brown). */
+export function isColouredText(r: number, g: number, b: number): boolean {
+  return isBlueText(r, g, b) || isPurpleText(r, g, b) || isBrownText(r, g, b);
+}
+
 /** Halo radius for a tile level, or 0 when labels should be left alone. */
 export function hybridHaloRadius(level: number | undefined): number {
   if (level === undefined) return HYBRID_HALO_RADIUS;
@@ -81,21 +96,23 @@ export function hybridHaloRadius(level: number | undefined): number {
 }
 /** Inside the halo, pixels darker than this luminance are glyph (made light). */
 export const HYBRID_GLYPH_LUMA = 170;
+/** How far coloured glyph pixels are lifted toward white (0..1), keeping their hue. */
+export const HYBRID_TINT_LIFT = 0.55;
 /** Halo colour behind Hybrid labels. */
 export const HYBRID_HALO: readonly [number, number, number] = [20, 20, 20];
 
 const luma = (r: number, g: number, b: number) => (r * 3 + g * 6 + b) / 10;
 
-/** Mask of Hybrid label pixels: grey or blue text cores dilated by the halo radius. */
+/** Mask of Hybrid label pixels: grey or coloured (blue/purple/brown) text cores dilated by the halo radius. */
 export function hybridLabelMask(rgba: Uint8ClampedArray, width: number, R = HYBRID_HALO_RADIUS): Uint8Array {
   const n = rgba.length / 4, h = Math.floor(n / width);
   const mask = new Uint8Array(n);
-  // Blue: thin strokes only. Solid blue blobs (bus-stop / parking icons) and
-  // pixels next to them are left alone so icons keep their colour.
+  // Coloured text: thin strokes only. Solid coloured blobs (bus-stop, parking,
+  // POI icons) and pixels next to them are left alone so icons keep their colour.
   const blue = new Uint8Array(n);
   for (let p = 0; p < n; p++) {
     const i = p * 4;
-    if (rgba[i + 3] !== 0 && isBlueText(rgba[i], rgba[i + 1], rgba[i + 2])) blue[p] = 1;
+    if (rgba[i + 3] !== 0 && isColouredText(rgba[i], rgba[i + 1], rgba[i + 2])) blue[p] = 1;
   }
   const nearSolid = new Uint8Array(n);
   for (let y = 1; y < h - 1; y++) for (let x = 1; x < width - 1; x++) {
@@ -135,7 +152,12 @@ export function processOverlayPixels(rgba: Uint8ClampedArray, style: OverlayStyl
     const r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
     if (mask && mask[i / 4] === 1) {
       const l = luma(r, g, b);
-      if (l < HYBRID_GLYPH_LUMA) { const v = 255 - l; rgba[i] = v; rgba[i + 1] = v; rgba[i + 2] = v; }
+      if (l < HYBRID_GLYPH_LUMA) {
+        if (Math.max(r, g, b) - Math.min(r, g, b) <= HYBRID_NEUTRAL_SPREAD) { const v = 255 - l; rgba[i] = v; rgba[i + 1] = v; rgba[i + 2] = v; }
+        else { // coloured text/icon strokes: lighten but keep the hue, so POI icons stay recognisable
+          rgba[i] = r + (255 - r) * HYBRID_TINT_LIFT; rgba[i + 1] = g + (255 - g) * HYBRID_TINT_LIFT; rgba[i + 2] = b + (255 - b) * HYBRID_TINT_LIFT;
+        }
+      }
       else { rgba[i] = HYBRID_HALO[0]; rgba[i + 1] = HYBRID_HALO[1]; rgba[i + 2] = HYBRID_HALO[2]; }
       continue;
     }

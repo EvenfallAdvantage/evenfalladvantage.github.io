@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HYBRID_HALO, HYBRID_MIN_LEVEL, hybridHaloRadius, isBlueText, invertLightness, isAreaFill, processOverlayPixels } from "@/lib/map/osm-overlay";
+import { HYBRID_HALO, HYBRID_MIN_LEVEL, hybridHaloRadius, isBlueText, isBrownText, isPurpleText, invertLightness, isAreaFill, processOverlayPixels } from "@/lib/map/osm-overlay";
 import { BASEMAP_LABELS, basemapOf, setBasemap, type RegistryState } from "@/lib/map/layer-registry";
 import { applyDarkLabels, DARK_LABEL } from "@/components/tactical-map/hooks/use-dark-labels";
 
@@ -51,6 +51,23 @@ describe("osm overlay pixels", () => {
     processOverlayPixels(blue, "hybrid", 2, 17);
     expect(blue[0]).toBeGreaterThan(130);
     expect([blue[4], blue[5], blue[6]]).toEqual([...HYBRID_HALO]);
+    // purple and brown labels restyled too; magenta and road colours are not text
+    expect(isPurpleText(0x84, 0x61, 0xc4)).toBe(true);
+    expect(isPurpleText(172, 58, 172)).toBe(false);
+    expect(isBrownText(0x73, 0x4a, 0x08)).toBe(true);
+    expect(isBrownText(0xfc, 0xd6, 0xa4)).toBe(false);
+    for (const c of [[0x84, 0x61, 0xc4], [0x73, 0x4a, 0x08]]) {
+      const px = new Uint8ClampedArray([...c, 255, 255, 255, 255, 255]);
+      processOverlayPixels(px, "hybrid", 2, 17);
+      expect(px[0]).toBeGreaterThan(c[0]);
+      expect(px[0] !== px[1] || px[1] !== px[2]).toBe(true); // hue kept
+      expect([px[4], px[5], px[6]]).toEqual([...HYBRID_HALO]);
+    }
+    // a solid 4x4 brown icon keeps its colour
+    const bicon = new Uint8ClampedArray(16 * 4);
+    for (let i = 0; i < 16; i++) bicon.set([0x73, 0x4a, 0x08, 255], i * 4);
+    processOverlayPixels(bicon, "hybrid", 4, 17);
+    expect([bicon[20], bicon[21], bicon[22]]).toEqual([0x73, 0x4a, 0x08]);
     // a solid 4x4 blue icon keeps its colour
     const icon = new Uint8ClampedArray(16 * 4);
     for (let i = 0; i < 16; i++) icon.set([0, 146, 218, 255], i * 4);
