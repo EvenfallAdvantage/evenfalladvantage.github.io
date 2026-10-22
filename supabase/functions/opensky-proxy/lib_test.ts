@@ -63,11 +63,13 @@ Deno.test("military / emergency flags and accuracy fields are appended at 17-21"
   assertEquals(aircraftFlags({ squawk: "7700" }), FLAG_EMERGENCY);
   assertEquals(aircraftFlags({ squawk: "1200", emergency: "none" }), 0);
   assertEquals(aircraftFlags({ emergency: "lifeguard", dbFlags: 3 }), FLAG_MILITARY | FLAG_EMERGENCY);
-  const [s] = toOpenSkyStates([{ hex: "ae1234", lat: 34, lon: -118, alt_baro: 20000, dbFlags: 1, squawk: "7600", emergency: "nordo", nac_p: 6, nic: 5, t: "C17" }], LA, 0);
-  assertEquals(s.slice(17), [FLAG_MILITARY | FLAG_EMERGENCY, 6, 5, "C17", "nordo"]);
+  const [s] = toOpenSkyStates([{ hex: "ae1234", lat: 34, lon: -118, alt_baro: 20000, dbFlags: 1, squawk: "7600", emergency: "nordo", nac_p: 6, nic: 5, t: "C17", category: "A5" }], LA, 0);
+  assertEquals(s.slice(17), [FLAG_MILITARY | FLAG_EMERGENCY, 6, 5, "C17", "nordo", "A5"]);
   assertEquals(s[14], "7600");
   const [plain] = toOpenSkyStates([{ hex: "a1", lat: 34, lon: -118, alt_baro: 1000 }], LA, 0);
-  assertEquals(plain.slice(17), [0, null, null, null, null]);
+  assertEquals(plain.slice(17), [0, null, null, null, null, null]);
+  const [bad] = toOpenSkyStates([{ hex: "a2", lat: 34, lon: -118, alt_baro: 1000, category: "<x>" }], LA, 0);
+  assertEquals(bad[22], null);
 });
 
 Deno.test("trace param", () => {

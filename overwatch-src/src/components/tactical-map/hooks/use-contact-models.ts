@@ -11,9 +11,10 @@ const TICK_MS = 1_000;
 
 /** Apply a model style to every aircraft model already on the map. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Cesium viewer/module have no published types
-function restyleModels(viewer: any, C: any, st: ReturnType<typeof modelStyle>): void {
+function restyleModels(viewer: any, C: any, highContrast: boolean): void {
   for (const e of viewer.entities.values) {
     if (!e.model || !String(e.id).startsWith("plane-")) continue;
+    const st = modelStyle(highContrast, e._owColor);
     e.model.color = C.Color.fromCssColorString(st.color);
     e.model.colorBlendAmount = st.blend;
     e.model.silhouetteColor = C.Color.fromCssColorString(st.silhouette).withAlpha(st.silhouetteAlpha);
@@ -37,7 +38,7 @@ export function useContactModels(params: { viewerRef: CesiumRef; cesiumRef: Cesi
     const viewer = viewerRef.current;
     const C = cesiumRef.current;
     if (!viewer || !C || viewer.isDestroyed?.()) return;
-    restyleModels(viewer, C, modelStyle(highContrast));
+    restyleModels(viewer, C, highContrast);
   }, [highContrast, viewerRef, cesiumRef]);
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -56,8 +57,8 @@ export function useContactModels(params: { viewerRef: CesiumRef; cesiumRef: Cesi
       if (viewer.isDestroyed?.()) return;
       try {
         const tracks = groups.aircraftTracks as Map<string, AircraftTrack> | undefined;
-        const latest = (groups.aircraftLatest ?? []) as Array<{ icao24: string; typeCode?: string | null }>;
-        const typeOf = new Map(latest.map((a) => [a.icao24, a.typeCode ?? null]));
+        const latest = (groups.aircraftLatest ?? []) as Array<{ icao24: string; typeCode?: string | null; emitterCategory?: string | null }>;
+        const typeOf = new Map(latest.map((a) => [a.icao24, a]));
         const now = Date.now();
         const items: ModelCandidate[] = [];
         if (tracks) for (const [hex, t] of tracks) {
@@ -75,9 +76,11 @@ export function useContactModels(params: { viewerRef: CesiumRef; cesiumRef: Cesi
         for (const id of [...modelled.keys()]) if (!wantSet.has(id)) strip(id);
         for (const id of want) {
           const hex = id.slice(6);
-          const url = `${MODEL_BASE}/${CLASS_MODEL[classifyAircraft({ typeCode: typeOf.get(hex) })]}`;
-          if (modelled.get(id) === url) continue;
+          const url = `${MODEL_BASE}/${CLASS_MODEL[classifyAircraft({ typeCode: typeOf.get(hex)?.typeCode, category: typeOf.get(hex)?.emitterCategory })]}`;
           const e = viewer.entities.getById(id);
+          // Keyed by model and category colour, so a recategorised contact is restyled.
+          const key = `${url}|${e?._owColor ?? ""}`;
+          if (modelled.get(id) === key) continue;
           const t = tracks?.get(hex);
           if (!e || !t) continue;
           const hpr = new C.HeadingPitchRoll();
@@ -87,7 +90,7 @@ export function useContactModels(params: { viewerRef: CesiumRef; cesiumRef: Cesi
             hpr.heading = C.Math.toRadians(modelHeadingDeg(t.fix.trackDeg || 0));
             return C.Transforms.headingPitchRollQuaternion(pos, hpr, C.Ellipsoid.WGS84, undefined, result);
           }, false);
-          const st = modelStyle(contrastRef.current);
+          const st = modelStyle(contrastRef.current, e._owColor);
           e.model = new C.ModelGraphics({
             uri: url,
             minimumPixelSize: 48,
@@ -101,7 +104,7 @@ export function useContactModels(params: { viewerRef: CesiumRef; cesiumRef: Cesi
             silhouetteSize: st.silhouetteSize,
           });
           if (e.billboard) e.billboard.show = false;
-          modelled.set(id, url);
+          modelled.set(id, key);
         }
         if (want.length || modelled.size) viewer.scene.requestRender();
         groups.modelledContacts = modelled.size;

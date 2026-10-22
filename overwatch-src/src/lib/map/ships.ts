@@ -131,30 +131,62 @@ export function inShipBox(b: GeoBox, lat: number, lng: number): boolean {
   return b.west <= b.east ? lng >= b.west && lng <= b.east : lng >= b.west || lng <= b.east;
 }
 
-export type ShipCategory = "cargo" | "tanker" | "passenger" | "fishing" | "tug" | "pleasure" | "highspeed" | "military" | "sar" | "other";
+export type ShipCategory = "cargo" | "tanker" | "passenger" | "fishing" | "tug" | "pleasure" | "highspeed" | "military" | "other";
 
-/** AIS ship type code (ITU-R M.1371) → category. */
+/**
+ * AIS ship type code (ITU-R M.1371-5, Table 53) → category.
+ * 20–29 WIG and 40–49 HSC → high-speed; 50 pilot, 51 SAR, 52 tug, 53 port tender,
+ * 54 anti-pollution, 58 medical, 31/32 towing → tug/pilot/SAR; 35 military and
+ * 55 law enforcement → military/law enforcement. 0, null, 1–19 and anything
+ * unassigned are "other" (AIS type is often not broadcast or not yet received).
+ */
 export function shipCategory(type: number | null | undefined): ShipCategory {
   const t = Number(type ?? 0);
   if (t >= 70 && t <= 79) return "cargo";
   if (t >= 80 && t <= 89) return "tanker";
   if (t >= 60 && t <= 69) return "passenger";
   if (t === 30) return "fishing";
-  if (t === 31 || t === 32 || t === 52) return "tug";
+  if (t === 31 || t === 32 || t === 50 || t === 51 || t === 52 || t === 53 || t === 54 || t === 58) return "tug";
   if (t === 36 || t === 37) return "pleasure";
-  if (t >= 40 && t <= 49) return "highspeed";
-  if (t === 35) return "military";
-  if (t === 51) return "sar";
+  if ((t >= 40 && t <= 49) || (t >= 20 && t <= 29)) return "highspeed";
+  if (t === 35 || t === 55) return "military";
   return "other";
 }
 
+/**
+ * Category colours shared by the 2D icons, 3D models, labels and legend.
+ * Based on the Okabe–Ito colourblind-safe palette, lightened where needed so
+ * each reads on the dark/satellite map (all ≥ 4.5:1 against #0b1220).
+ * Military is vermillion (red-ish) in both the ship and aircraft palettes.
+ */
 export const CATEGORY_COLOR: Record<ShipCategory, string> = {
-  cargo: "#4ade80", tanker: "#f87171", passenger: "#60a5fa", fishing: "#fbbf24", tug: "#2dd4bf",
-  pleasure: "#e879f9", highspeed: "#facc15", military: "#a3e635", sar: "#fb923c", other: "#cbd5e1",
+  cargo: "#2ec4a0",     // bluish green
+  tanker: "#e69f00",    // orange
+  passenger: "#56b4e9", // sky blue
+  fishing: "#f0e442",   // yellow
+  tug: "#cc79a7",       // reddish purple
+  pleasure: "#c4b5fd",  // lavender
+  highspeed: "#a3e4f0", // pale cyan
+  military: "#ff5a36",  // vermillion
+  other: "#b8bec8",     // grey
 };
 export const CATEGORY_LABEL: Record<ShipCategory, string> = {
-  cargo: "Cargo", tanker: "Tanker", passenger: "Passenger", fishing: "Fishing", tug: "Tug / tow", pleasure: "Pleasure craft",
-  highspeed: "High-speed craft", military: "Military", sar: "Search & rescue", other: "Other / unknown",
+  cargo: "Cargo", tanker: "Tanker", passenger: "Passenger / ferry", fishing: "Fishing", tug: "Tug / pilot / SAR",
+  pleasure: "Pleasure / sailing", highspeed: "High-speed", military: "Military / law enf.", other: "Other / unknown",
+};
+export const SHIP_CATEGORIES: readonly ShipCategory[] = ["cargo", "tanker", "passenger", "fishing", "tug", "pleasure", "highspeed", "military", "other"];
+
+/**
+ * 3D model per category. cargo keeps the CC BY 4.0 ship.glb; the rest are
+ * Evenfall's own CC0 low-poly models (scripts/gen-ship-models.py, ~4–8 KB each,
+ * bow +X, 4000 units long, origin at the waterline).
+ */
+export interface ShipModel { url: string; headingOffsetDeg: number }
+const GEN = (n: string): ShipModel => ({ url: `/overwatch/models/ships/${n}.glb?v=1`, headingOffsetDeg: 0 });
+export const SHIP_CATEGORY_MODEL: Record<ShipCategory, ShipModel> = {
+  cargo: { url: "/overwatch/models/ship.glb?v=2", headingOffsetDeg: 90 },
+  tanker: GEN("tanker"), passenger: GEN("passenger"), fishing: GEN("fishing"), tug: GEN("tug"),
+  pleasure: GEN("sailing"), highspeed: GEN("highspeed"), military: GEN("military"), other: GEN("generic"),
 };
 
 const NAV_STATUS: Record<number, string> = {
@@ -187,4 +219,4 @@ export function selectShipModelIds(camera: { lat: number; lng: number; heightM: 
     .map((x) => x.id);
 }
 
-export const shipModelHeadingDeg = (h: number) => (((h + SHIP_MODEL_HEADING_OFFSET_DEG) % 360) + 360) % 360;
+export const shipModelHeadingDeg = (h: number, offsetDeg = SHIP_MODEL_HEADING_OFFSET_DEG) => (((h + offsetDeg) % 360) + 360) % 360;

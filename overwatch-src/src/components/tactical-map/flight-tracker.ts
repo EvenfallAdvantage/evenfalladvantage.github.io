@@ -43,6 +43,8 @@ export interface Aircraft {
   /** Position accuracy category (NACp, 0–11); null if not reported. */
   nacp?: number | null;
   typeCode?: string | null;
+  /** ADS-B emitter category (A1–A7, B1–B7, C1–C3); null if not reported. */
+  emitterCategory?: string | null;
 }
 
 function getProxyUrl(south: number, north: number, west: number, east: number): string {
@@ -72,6 +74,7 @@ export function parseStates(data: { states?: (string | number | boolean | null)[
       emergencyStatus: s[21] == null ? null : String(s[21]),
       nacp: typeof s[18] === "number" ? s[18] : null,
       typeCode: s[20] == null ? null : String(s[20]),
+      emitterCategory: typeof s[22] === "string" ? s[22] : null,
     }));
 }
 

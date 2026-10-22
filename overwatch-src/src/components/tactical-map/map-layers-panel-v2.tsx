@@ -8,6 +8,8 @@
  * Model: lib/map/layer-registry.ts.
  */
 
+import { AIRCRAFT_CATEGORIES, AIRCRAFT_CATEGORY_COLOR, AIRCRAFT_CATEGORY_LABEL, AIRCRAFT_EMERGENCY_COLOR } from "@/lib/map/aircraft-category";
+import { CATEGORY_COLOR, CATEGORY_LABEL, SHIP_CATEGORIES } from "@/lib/map/ships";
 import { useState, type ReactNode } from "react";
 import {
   Layers, ChevronRight, ChevronDown, X, MapPin, CloudLightning, Shield, Plane, Camera, Factory, Eye, Maximize2, Minimize2,
@@ -85,6 +87,20 @@ function osmBuildingsHint(st: OsmBuildingsStatus | undefined): string | null {
     case "on": return st.buildings > 0 ? `${st.buildings.toLocaleString()} buildings · © OpenStreetMap contributors` : "No mapped buildings here";
     default: return null;
   }
+}
+
+/** Colour key for a layer's categories (same colours as its icons and 3D models). */
+function ColorLegend({ items, testId }: { items: ReadonlyArray<{ color: string; label: string }>; testId: string }) {
+  return (
+    <ul data-testid={testId} aria-label="Colour key" className="mt-1 grid grid-cols-2 gap-x-2 gap-y-0.5">
+      {items.map((it) => (
+        <li key={it.label} className="flex items-center gap-1.5 text-[10px] leading-tight text-white/85 min-w-0">
+          <span aria-hidden className="h-2 w-2 shrink-0 rounded-full ring-1 ring-black/60" style={{ backgroundColor: it.color }} />
+          <span className="truncate">{it.label}</span>
+        </li>
+      ))}
+    </ul>
+  );
 }
 
 function Switch({ on, onToggle, label }: { on: boolean; onToggle: () => void; label: string }) {
@@ -234,6 +250,12 @@ function PanelBody(props: MapLayersPanelV2Props) {
                         {g.id === "airSea" && s.id === "aircraft" && checked && (
                           <div className="ml-6 mb-1">
                             <Segmented value={layers.aircraftFilter ?? "all"} options={["all", "military", "emergency"] as const} labels={AIRCRAFT_FILTER_LABELS} onPick={(f) => onChange({ ...layers, aircraftFilter: f })} />
+                            <ColorLegend testId="legend-aircraft" items={[...AIRCRAFT_CATEGORIES.map((c) => ({ color: AIRCRAFT_CATEGORY_COLOR[c], label: AIRCRAFT_CATEGORY_LABEL[c] })), { color: AIRCRAFT_EMERGENCY_COLOR, label: "Emergency" }]} />
+                          </div>
+                        )}
+                        {g.id === "airSea" && s.id === "ships" && checked && (
+                          <div className="ml-6 mb-1">
+                            <ColorLegend testId="legend-ships" items={SHIP_CATEGORIES.map((c) => ({ color: CATEGORY_COLOR[c], label: CATEGORY_LABEL[c] }))} />
                           </div>
                         )}
                         {g.id === "security" && s.id === "events" && checked && s2ActiveLayers && onToggleS2Layer && (

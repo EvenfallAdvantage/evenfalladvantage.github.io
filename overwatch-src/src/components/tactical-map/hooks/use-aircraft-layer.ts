@@ -1,3 +1,4 @@
+import { AIRCRAFT_CATEGORY_COLOR, AIRCRAFT_CATEGORY_LABEL, AIRCRAFT_EMERGENCY_COLOR, aircraftCategory } from "@/lib/map/aircraft-category";
 import { useEffect, useRef } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
@@ -55,6 +56,7 @@ interface MergedAircraft {
   emergencyStatus?: string | null;
   nacp?: number | null;
   typeCode?: string | null;
+  emitterCategory?: string | null;
 }
 
 export function useAircraftLayer(params: {
@@ -175,7 +177,7 @@ export function useAircraftLayer(params: {
         if (!visible) continue;
 
         const existing = v.entities.getById(entityId);
-        const color = plane.emergency ? "#ef4444" : plane.military ? "#a3e635" : plane.source === "adsb" ? "#22d3ee" : "#38bdf8";
+        const color = plane.emergency ? AIRCRAFT_EMERGENCY_COLOR : AIRCRAFT_CATEGORY_COLOR[aircraftCategory({ ...plane, category: plane.emitterCategory })];
         const scale = plane.emergency ? 0.55 : plane.source === "adsb" ? 0.45 : 0.35;
 
         if (existing) {
@@ -217,6 +219,7 @@ export function useAircraftLayer(params: {
             },
             description: buildDesc(plane),
           });
+          entity._owColor = color;
           entityGroupsRef.current.aircraft.push(entity);
         }
       }
@@ -313,6 +316,7 @@ export function useAircraftLayer(params: {
               emergencyStatus: plane.emergencyStatus,
               nacp: plane.nacp,
               typeCode: plane.typeCode,
+              emitterCategory: plane.emitterCategory,
             });
           }
         }
@@ -379,7 +383,7 @@ function buildDesc(plane: MergedAircraft): string {
     ? `<div style="color:#ef4444"><b>EMERGENCY</b> ${plane.squawk && SQUAWK_MEANING[plane.squawk] ? `squawk ${plane.squawk} (${SQUAWK_MEANING[plane.squawk]})` : escapeHtml(plane.emergencyStatus ?? "")}</div>`
     : "";
   return `<div style="font-family:monospace;font-size:11px;line-height:1.7">
-    <b>${escapeHtml(plane.callsign || plane.icao24)}</b>${plane.military ? ' <span style="color:#a3e635">MIL</span>' : ""}
+    <b>${escapeHtml(plane.callsign || plane.icao24)}</b>${(() => { const c = aircraftCategory({ ...plane, category: plane.emitterCategory }); return ` <span style="color:${AIRCRAFT_CATEGORY_COLOR[c]}">${AIRCRAFT_CATEGORY_LABEL[c]}</span>`; })()}
     ${emerg}
     <div>ICAO: ${escapeHtml(plane.icao24)}${plane.typeCode ? ` · ${escapeHtml(plane.typeCode)}` : ""}</div>
     <div>Alt: ${formatAltFt(plane.altitude)}</div>

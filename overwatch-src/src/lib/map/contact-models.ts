@@ -70,10 +70,13 @@ export function selectModelIds(
  * a dark shape on the green/white image.
  */
 export interface ModelStyle { color: string; blend: number; silhouette: string; silhouetteAlpha: number; silhouetteSize: number }
-export function modelStyle(highContrast: boolean): ModelStyle {
-  return highContrast
-    ? { color: "#050805", blend: 0.85, silhouette: "#000000", silhouetteAlpha: 1, silhouetteSize: 2.5 }
-    : { color: "#ffffff", blend: 0.35, silhouette: "#22d3ee", silhouetteAlpha: 0.6, silhouetteSize: 1 };
+export function modelStyle(highContrast: boolean, categoryColor?: string | null): ModelStyle {
+  if (highContrast) return { color: "#050805", blend: 0.85, silhouette: "#000000", silhouetteAlpha: 1, silhouetteSize: 2.5 };
+  // Category colour (same as the 2D icon) blended over the model's shading, and a
+  // category-coloured outline: the model is lit by the sun, so after dark the
+  // outline is what still shows the category.
+  if (categoryColor) return { color: categoryColor, blend: 0.7, silhouette: categoryColor, silhouetteAlpha: 0.95, silhouetteSize: 1.5 };
+  return { color: "#ffffff", blend: 0.35, silhouette: "#22d3ee", silhouetteAlpha: 0.6, silhouetteSize: 1 };
 }
 /** True for the map looks that flatten colour to brightness (NVG, thermal). */
 export function isHighContrastLook(layers: { nvgGoggles?: boolean; flirThermal?: boolean }): boolean {
