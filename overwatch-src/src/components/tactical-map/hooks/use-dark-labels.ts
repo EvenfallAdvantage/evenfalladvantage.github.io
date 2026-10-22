@@ -3,9 +3,9 @@ import { setVisibleInterval } from "@/lib/visible-interval";
 import type { CesiumRef } from "./cesium-layer-types";
 
 /**
- * Dark mode: give every entity label a dark backing plate so it reads over
- * the dimmed imagery. The label's own fill colour (category colour) is kept.
- * Re-applied on a 1 s tick for labels added later; restored when Dark is off.
+ * Dark and Hybrid modes: give every entity label a dark backing plate so it reads over
+ * the dimmed or satellite imagery. The label's own fill colour (category colour) is kept.
+ * Re-applied on a 1 s tick for labels added later; restored when the mode is off.
  */
 export const DARK_LABEL = Object.freeze({ backgroundAlpha: 0.7, padX: 5, padY: 3, minOutlineWidth: 3 });
 const TICK_MS = 1000;

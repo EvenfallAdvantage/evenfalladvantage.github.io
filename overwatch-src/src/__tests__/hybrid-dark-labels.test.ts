@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { invertLightness, isAreaFill, processOverlayPixels } from "@/lib/map/osm-overlay";
+import { HYBRID_HALO, invertLightness, isAreaFill, processOverlayPixels } from "@/lib/map/osm-overlay";
 import { BASEMAP_LABELS, basemapOf, setBasemap, type RegistryState } from "@/lib/map/layer-registry";
 import { applyDarkLabels, DARK_LABEL } from "@/components/tactical-map/hooks/use-dark-labels";
 
@@ -22,6 +22,24 @@ describe("osm overlay pixels", () => {
     expect(h[3]).toBe(0); expect([h[4], h[5], h[6], h[7]]).toEqual([20, 20, 20, 255]);
     const d = px(); processOverlayPixels(d, "dark");
     expect([d[4], d[5], d[6]]).toEqual([235, 235, 235]);
+  });
+  it("hybrid restyles labels only: light text on a dark halo, roads kept", () => {
+    // no width: hybrid only keys area fills
+    const h = new Uint8ClampedArray([20, 20, 20, 255, 255, 255, 255, 255]);
+    processOverlayPixels(h, "hybrid");
+    expect(Array.from(h)).toEqual([20, 20, 20, 255, 255, 255, 255, 255]);
+    // 8px row: text at 0, white halo at 1, white minor road far away at 7, area fill at 6
+    const row = new Uint8ClampedArray(8 * 4);
+    for (let i = 0; i < 8; i++) row.set([255, 255, 255, 255], i * 4);
+    row.set([30, 30, 30, 255], 0); row.set([0xf2, 0xef, 0xe9, 255], 24);
+    expect(processOverlayPixels(row, "hybrid", 8)).toBe(1);
+    expect(row[0]).toBeGreaterThan(200);
+    expect([row[4], row[5], row[6]]).toEqual([...HYBRID_HALO]);
+    expect(row[27]).toBe(0);
+    expect([row[28], row[29], row[30], row[31]]).toEqual([255, 255, 255, 255]);
+    // coloured road pixel away from text is untouched
+    const road = new Uint8ClampedArray([0xe8, 0x92, 0xa2, 255]); processOverlayPixels(road, "hybrid", 1);
+    expect(Array.from(road)).toEqual([0xe8, 0x92, 0xa2, 255]);
   });
 });
 
