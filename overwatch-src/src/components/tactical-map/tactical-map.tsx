@@ -332,7 +332,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   useSiteImagery({ viewerRef, cesiumRef, loading, selection: siteImagery });
   // NVG: saturated category colour + white halo + larger icons on aircraft, ships, satellites.
   useNvgContacts({ viewerRef, cesiumRef, loading, enabled: !!activeLayers.nvgGoggles });
-  useDarkLabels({ viewerRef, cesiumRef, loading, enabled: !!activeLayers.nightVision && !activeLayers.nvgGoggles });
+  useDarkLabels({ viewerRef, cesiumRef, loading, enabled: (!!activeLayers.nightVision && !activeLayers.nvgGoggles) || (!!activeLayers.hybrid && !!activeLayers.satellite && !activeLayers.nightVision) });
   const osmBuildingsStatus = useOsmBuildingsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading,
     enabled: !!activeLayers.osmBuildings,
