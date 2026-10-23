@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useState, useEffect } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
+import { expiredLinkMessage } from "@/lib/auth/link-messages";
 import { useRouter, useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Lock, Loader2, CheckCircle2, Eye, EyeOff, ShieldCheck } from "lucide-react";
@@ -62,6 +63,7 @@ function UpdatePasswordPage() {
   const [done, setDone] = useState(false);
   const [error, setError] = useState("");
   const [sessionReady, setSessionReady] = useState(false);
+  const readyRef = useRef(false);
 
   const pwCheck = password.length > 0 ? checkPasswordStrength(password) : null;
   const mismatch = confirm.length > 0 && password !== confirm;
@@ -71,19 +73,23 @@ function UpdatePasswordPage() {
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string) => {
       if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+        readyRef.current = true;
         setSessionReady(true);
+        setError("");
         subscription.unsubscribe();
       }
     });
 
     // Also check if already authenticated
     supabase.auth.getSession().then(({ data }: { data: { session: { user: { id: string } } | null } }) => {
-      if (data.session) setSessionReady(true);
+      if (data.session) { readyRef.current = true; setSessionReady(true); setError(""); }
     });
 
+    // Read a ref, not the `sessionReady` state captured by this closure
+    // (always false), which showed "link expired" even after success.
     const timeout = setTimeout(() => {
       subscription.unsubscribe();
-      if (!sessionReady) setError("Reset link expired or invalid. Please request a new one.");
+      if (!readyRef.current) setError(expiredLinkMessage(isInviteFlow));
     }, 10000);
 
     return () => {

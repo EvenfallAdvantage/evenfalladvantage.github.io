@@ -45,7 +45,7 @@ export function buildInvitationEmail(params: InvitationTemplateParams): {
       <p style="text-align:center;margin:32px 0;">
         <a href="${inviteUrlHtml}" style="display:inline-block;padding:12px 24px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:6px;font-weight:600;">Accept invitation</a>
       </p>
-      <p style="font-size:12px;color:#888;line-height:1.6;">This link expires in ${expires}. If the button doesn't work, copy and paste this URL into your browser:</p>
+      <p style="font-size:12px;color:#888;line-height:1.6;">This link works once and expires in ${expires}. If it has expired, ask your admin to resend your invite. If the button doesn't work, copy and paste this URL into your browser:</p>
       <p style="font-size:12px;color:#2563eb;word-break:break-all;">${inviteUrlHtml}</p>
       <hr style="border:none;border-top:1px solid #e5e5e5;margin:24px 0;" />
       <p style="font-size:12px;color:#999;">If you weren't expecting this invitation, you can safely ignore this email.</p>
@@ -61,7 +61,7 @@ export function buildInvitationEmail(params: InvitationTemplateParams): {
     "",
     params.inviteUrl,
     "",
-    `This link expires in ${expires}. If you weren't expecting this invitation, you can safely ignore this email.`,
+    `This link works once and expires in ${expires}. If it has expired, ask your admin to resend your invite. If you weren't expecting this invitation, you can safely ignore this email.`,
   ].join("\n");
 
   return { subject, html, text };

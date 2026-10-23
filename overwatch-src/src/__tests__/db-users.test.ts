@@ -263,6 +263,39 @@ describe("fetchUserProfile()", () => {
     expect(result).toEqual({ user, memberships: [] });
   });
 
+  it("links a pre-rostered profile by verified email instead of creating a duplicate", async () => {
+    const linked = { id: "roster-user", supabase_id: "auth-123", email: "agent@example.com" };
+    const memberships = [{ id: "m-roster", role: "lead" }];
+    // First select by supabase_id → not found
+    queryBuilder.maybeSingle.mockResolvedValueOnce({ data: null, error: null });
+    vi.mocked(mockClient.rpc).mockResolvedValueOnce({ data: { action: "linked_existing", user_id: "roster-user" }, error: null } as never);
+    // Re-select after link → found
+    queryBuilder.maybeSingle.mockResolvedValueOnce({ data: linked, error: null });
+    queryBuilder.then = vi.fn((resolve: (v: unknown) => void) =>
+      Promise.resolve({ data: memberships, error: null }).then(resolve)
+    );
+
+    const result = await fetchUserProfile();
+
+    expect(mockClient.rpc).toHaveBeenCalledWith("accept_roster_invitation");
+    expect(queryBuilder.insert).not.toHaveBeenCalled();
+    expect(result).toEqual({ user: linked, memberships });
+  });
+
+  it("falls back to auto-create when the link RPC errors", async () => {
+    const created = { id: "new-user", supabase_id: "auth-123" };
+    queryBuilder.maybeSingle.mockResolvedValueOnce({ data: null, error: null });
+    vi.mocked(mockClient.rpc).mockRejectedValueOnce(new Error("rpc down"));
+    setAuthUser({ id: "auth-123", email: "x@example.com", user_metadata: {} });
+    queryBuilder.maybeSingle.mockResolvedValueOnce({ data: created, error: null });
+    queryBuilder.then = vi.fn((resolve: (v: unknown) => void) =>
+      Promise.resolve({ data: [], error: null }).then(resolve)
+    );
+    const result = await fetchUserProfile();
+    expect(queryBuilder.insert).toHaveBeenCalled();
+    expect(result).toEqual({ user: created, memberships: [] });
+  });
+
   it("auto-creates user from auth metadata when user not found in DB", async () => {
     const authUser = {
       id: "auth-123",

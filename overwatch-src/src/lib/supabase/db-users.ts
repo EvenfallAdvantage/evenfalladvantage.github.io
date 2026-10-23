@@ -104,6 +104,28 @@ export async function fetchUserProfile(knownAuthId?: string) {
     .maybeSingle();
 
   if (!user) {
+    // Pre-rostered agent (admin-added, never signed in) who arrived without
+    // the invite link: claim the existing roster row by VERIFIED email so
+    // they keep their company + role instead of colliding on users_email_key
+    // and landing with no company. The RPC derives identity from auth.uid()
+    // server-side; nothing caller-supplied is trusted. Best-effort.
+    try {
+      const { data: linkRes } = await supabase.rpc("accept_roster_invitation");
+      const action = (linkRes as { action?: string } | null)?.action;
+      if (action === "linked_existing" || action === "cross_company_added") {
+        const { data: linked } = await supabase
+          .from("users")
+          .select("*")
+          .eq("supabase_id", authId)
+          .maybeSingle();
+        if (linked) user = linked;
+      }
+    } catch {
+      // fall through to auto-create
+    }
+  }
+
+  if (!user) {
     // Auto-create from auth metadata — only call getUser() if we must
     const { data: { user: authUser } } = await supabase.auth.getUser();
     if (!authUser) return null;
