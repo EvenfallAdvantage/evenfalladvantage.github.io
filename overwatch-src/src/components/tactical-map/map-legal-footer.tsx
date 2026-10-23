@@ -11,6 +11,8 @@ interface MapLegalFooterProps {
   onOpenSources: () => void;
   /** OSM 3D buildings are on: show their required attribution (never truncated). */
   osmBuildings?: boolean;
+  /** Hybrid place-name labels (OpenFreeMap / OpenMapTiles vector tiles). */
+  placeLabels?: boolean;
   /** CC BY 4.0 3D aircraft models are on screen: show their credit. */
   models?: boolean;
   /** Live AIS ships layer is on: credit its sources (Digitraffic is CC BY 4.0). */
@@ -18,7 +20,7 @@ interface MapLegalFooterProps {
 }
 
 /** Persistent bottom strip: emergency-use disclaimer, sources link and provider credits. */
-export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings, models, ais }: MapLegalFooterProps) {
+export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings, placeLabels, models, ais }: MapLegalFooterProps) {
   return (
     <div
       className="absolute bottom-0 left-0 right-0 z-[5] flex items-center gap-2 px-2 py-0.5 text-[9px] leading-tight text-white/60 pointer-events-none"
@@ -56,10 +58,10 @@ export function MapLegalFooter({ creditRef, onOpenSources, osmBuildings, models,
           AIS: aisstream.io · Fintraffic (CC BY 4.0)
         </a>
       )}
-      {osmBuildings && (
+      {(osmBuildings || placeLabels) && (
         <span className="pointer-events-auto shrink-0 whitespace-nowrap"
-          title="Required attribution for the 3D buildings layer (kept at the right edge, clear of the map toolbars)" data-testid="osm-buildings-attribution">
-          3D buildings:{" "}
+          title="Required attribution for the 3D buildings and place-name layers (kept at the right edge, clear of the map toolbars)" data-testid="osm-buildings-attribution">
+          {osmBuildings && placeLabels ? "3D buildings & place names" : osmBuildings ? "3D buildings" : "Place names"}:{" "}
           <a href="https://openmaptiles.org/" target="_blank" rel="noopener noreferrer" className="underline hover:text-white">© OpenMapTiles</a>{" "}
           <a href={OSM_COPYRIGHT_URL} target="_blank" rel="noopener noreferrer" className="underline hover:text-white">© OpenStreetMap contributors</a>
           <a href={OPENFREEMAP_URL} target="_blank" rel="noopener noreferrer" className="hidden sm:inline underline hover:text-white ml-1">OpenFreeMap</a>

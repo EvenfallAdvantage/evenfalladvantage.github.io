@@ -14,6 +14,7 @@ import { buildScopeFilters, resolveRadii, sitesFrom, type ViewRect } from "@/lib
 import { DEFAULT_COMPANY_MAP_DEFAULTS, getCompanyMapDefaults, getUserMapPrefs, saveUserMapPrefs, saveUserPanelChoice, type CompanyMapDefaults } from "@/lib/supabase/db-map-prefs";
 import { useSiteWatch } from "./hooks/use-site-watch";
 import { useOsmBuildingsLayer } from "./hooks/use-osm-buildings-layer";
+import { useHybridPlaceLabels } from "./hooks/use-hybrid-place-labels";
 import { SiteWatchStrip } from "./site-watch-strip";
 import { CompanyMapDefaultsEditor } from "./company-map-defaults";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
@@ -333,6 +334,8 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   // NVG: saturated category colour + white halo + larger icons on aircraft, ships, satellites.
   useNvgContacts({ viewerRef, cesiumRef, loading, enabled: !!activeLayers.nvgGoggles });
   useDarkLabels({ viewerRef, cesiumRef, loading, enabled: (!!activeLayers.nightVision && !activeLayers.nvgGoggles) || (!!activeLayers.hybrid && !!activeLayers.satellite && !activeLayers.nightVision) });
+  const hybridPlaceLabels = !!activeLayers.hybrid && !!activeLayers.satellite && !activeLayers.nightVision;
+  useHybridPlaceLabels({ viewerRef, cesiumRef, loading, enabled: hybridPlaceLabels });
   const osmBuildingsStatus = useOsmBuildingsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading,
     enabled: !!activeLayers.osmBuildings,
@@ -872,7 +875,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       <div ref={containerRef} className="w-full h-full" />
 
       {/* Persistent legal footer + Cesium provider credits */}
-      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} osmBuildings={osmBuildingsStatus.state !== "off"} models={modelsShown || shipsLayer.modelsShown} ais={!!activeLayers.ships} />
+      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} osmBuildings={osmBuildingsStatus.state !== "off"} placeLabels={hybridPlaceLabels} models={modelsShown || shipsLayer.modelsShown} ais={!!activeLayers.ships} />
 
       {/* Ops Mode bar — top right, above other overlays, so the top-centre
           tracking chip (Phase 1A) can never cover Share / Exit. */}
