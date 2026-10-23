@@ -18,6 +18,7 @@ import {
 import { createRosterMember } from "@/lib/supabase/db-users";
 import { createClient } from "@/lib/supabase/client";
 import RosterBulkEmailModal from "@/components/roster/roster-bulk-email-modal";
+import { runInviteBatches, INVITE_BATCH_SIZE, INVITE_RUN_CAP, type InviteResult } from "@/lib/roster/invite-batches";
 import { updateMemberPayRate } from "@/lib/supabase/db-pay";
 import { assignableRoles, canChangeRoleOf } from "@/lib/permissions";
 import { exportCSV, MEMBER_COLUMNS } from "@/lib/csv-export";
@@ -129,6 +130,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
   const [invitations, setInvitations] = useState<Record<string, InvitationRow>>({});
   const [invitingId, setInvitingId] = useState<string | null>(null);
   const [bulkInviting, setBulkInviting] = useState(false);
+  const [inviteProgress, setInviteProgress] = useState<{ processed: number; total: number } | null>(null);
   const [showBulkEmail, setShowBulkEmail] = useState(false);
 
   // Single-member add form
@@ -204,6 +206,27 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
       return { kind: "expired", sent_at: inv.sent_at };
     }
     return { kind: "pending", sent_at: inv.sent_at };
+  }
+
+  /** POST one batch to roster-invite. Never toasts; callers decide. */
+  async function postRosterInvite(
+    membershipIds: string[],
+    resend: boolean,
+  ): Promise<{ ok: true; results: InviteResult[] } | { ok: false; error: string }> {
+    const base = getSupabaseFunctionsBaseUrl();
+    if (!base) return { ok: false, error: "Invitation endpoint not configured." };
+    const supabase = createClient();
+    const { data: sess } = await supabase.auth.getSession();
+    const token = sess?.session?.access_token;
+    if (!token) return { ok: false, error: "Please re-authenticate and try again." };
+    const res = await fetch(`${base}/roster-invite`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ company_id: activeCompanyId, membership_ids: membershipIds, resend }),
+    });
+    const json = (await res.json().catch(() => ({}))) as { error?: string; results?: InviteResult[] };
+    if (!res.ok) return { ok: false, error: json.error ?? `HTTP ${res.status}` };
+    return { ok: true, results: json.results ?? [] };
   }
 
   async function callRosterInvite(membershipIds: string[]): Promise<void> {
@@ -381,23 +404,57 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
     }
   }
 
+  /**
+   * Bulk targets: unlinked members with no live (pending) invitation. Members
+   * invited in an earlier, interrupted run drop out, so re-clicking resumes.
+   */
+  const bulkInviteTargets = unlinkedMembers.filter(
+    (m) => invitationStatus(m.id).kind !== "pending",
+  );
+
   async function handleInviteAllUnlinked() {
-    if (unlinkedMembers.length === 0) {
-      toast.message("No unlinked members on the roster.");
+    if (bulkInviteTargets.length === 0) {
+      toast.message("Everyone unlinked already has a pending invite.");
       return;
     }
+    const runCount = Math.min(bulkInviteTargets.length, INVITE_RUN_CAP);
     if (!await confirm({
-      title: "Invite all unlinked members",
-      description: `Send invitations to ${unlinkedMembers.length} member${unlinkedMembers.length === 1 ? "" : "s"} who don't yet have an account?`,
-      confirmLabel: `Invite ${unlinkedMembers.length}`,
+      title: "Invite unlinked members",
+      description:
+        `Send invitations to ${runCount} member${runCount === 1 ? "" : "s"} who don't yet have an account, ` +
+        `in batches of ${INVITE_BATCH_SIZE}.` +
+        (bulkInviteTargets.length > runCount
+          ? ` ${bulkInviteTargets.length - runCount} more will remain; run again later (email providers limit daily sends).`
+          : "") +
+        " Invite links are single-use and expire after 24 hours.",
+      confirmLabel: `Invite ${runCount}`,
     })) return;
     setBulkInviting(true);
+    setInviteProgress({ processed: 0, total: runCount });
     try {
-      await callRosterInvite(unlinkedMembers.map((m) => m.id));
+      const summary = await runInviteBatches(
+        bulkInviteTargets.map((m) => m.id),
+        (ids) => postRosterInvite(ids, false),
+        { onProgress: (p) => setInviteProgress({ processed: p.processed, total: p.total }) },
+      );
+      const left = bulkInviteTargets.length - (summary.processed);
+      const parts = [`Delivered ${summary.delivered} of ${summary.total}.`];
+      if (summary.failed.length) parts.push(`${summary.failed.length} failed.`);
+      if (left > 0) parts.push(`${left} still to invite. Click Invite Unlinked again to continue.`);
+      const desc = summary.stoppedError
+        ? `Stopped: ${summary.stoppedError}`
+        : summary.failed[0]?.reason;
+      if (summary.failed.length || summary.stoppedError) {
+        toast.message(parts.join(" "), { description: desc });
+      } else {
+        toast.success(parts.join(" "));
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to send invites");
     } finally {
       setBulkInviting(false);
+      setInviteProgress(null);
+      void loadInternalData();
     }
   }
 
@@ -600,7 +657,7 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
                 : <Plus className="h-3.5 w-3.5" />}
             </Button>
           )}
-          {canManage && unlinkedMembers.length > 0 && (
+          {canManage && bulkInviteTargets.length > 0 && (
             <Button
               size="sm"
               variant="outline"
@@ -612,7 +669,9 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
               {bulkInviting
                 ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 : <MailPlus className="h-3.5 w-3.5" />}
-              Invite Unlinked ({unlinkedMembers.length})
+              {inviteProgress
+                ? `Inviting ${inviteProgress.processed}/${inviteProgress.total}`
+                : `Invite Unlinked (${bulkInviteTargets.length})`}
             </Button>
           )}
           <input ref={csvInputRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleCSVFile} />
