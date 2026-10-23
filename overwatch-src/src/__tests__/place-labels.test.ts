@@ -17,7 +17,7 @@ describe("hybrid place labels", () => {
   it("covers a rectangle with capped, centre-first tiles", () => {
     const t = tilesForRect(-118.4, 33.9, -118.1, 34.2, 10);
     expect(t.length).toBeGreaterThan(0);
-    expect(t.length).toBeLessThanOrEqual(12);
+    expect(t.length).toBeLessThanOrEqual(16);
     expect(t.every((x) => x.z === 10)).toBe(true);
     expect(tilesForRect(179.5, -1, -179.5, 1, 8).length).toBeGreaterThan(0); // antimeridian
   });

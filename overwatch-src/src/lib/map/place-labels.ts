@@ -15,9 +15,9 @@ import { lonLatToTileFloat, tilePointToLonLat, type TileXY } from "./osm-buildin
 export const PLACE_TILE_MAX_ZOOM = 14;
 export const PLACE_TILE_MIN_ZOOM = 2;
 /** Cap on labels drawn at once (keeps wide views tidy and cheap). */
-export const MAX_PLACE_LABELS = 80;
+export const MAX_PLACE_LABELS = 120;
 /** Cap on tiles fetched for one view. */
-export const MAX_PLACE_TILES = 12;
+export const MAX_PLACE_TILES = 16;
 
 /** Label priority by OpenMapTiles place class (lower draws first / wins). */
 export const PLACE_CLASS_RANK: Readonly<Record<string, number>> = {
@@ -33,11 +33,11 @@ export interface PlaceLabel { key: string; name: string; lon: number; lat: numbe
 
 /**
  * Vector tile zoom to use for a camera height (metres above ground).
- * ~ the zoom whose tiles are about 1.5 screen-widths across at that height.
+ * ~ the zoom whose tiles are about one screen-width across at that height.
  */
 export function placeZoomForHeight(heightM: number): number {
   const h = Math.max(50, heightM);
-  const z = Math.round(Math.log2(40_000_000 / h) - 1.5);
+  const z = Math.round(Math.log2(40_000_000 / h) - 0.5);
   return Math.max(PLACE_TILE_MIN_ZOOM, Math.min(PLACE_TILE_MAX_ZOOM, z));
 }
 
