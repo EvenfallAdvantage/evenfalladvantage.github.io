@@ -120,8 +120,8 @@ export const CCTV_SOURCES: CctvSource[] = [
 ];
 
 /**
- * Key-gated sources. Implemented above (secret-gated): NPS_API_KEY, GA511_API_KEY,
- * WI511_API_KEY, ID511_API_KEY, ONTARIO511_API_KEY, ALBERTA511_API_KEY.
+ * Key-gated sources. Implemented above via each source's `secret:` field
+ * (NPS and the five FIVE11 hosts in parsers_keyed.ts).
  * Not implemented yet (listed so go-live can pick them up):
  * ONTARIO511_API_KEY, ALBERTA511_API_KEY, GA511_API_KEY, AZ511_API_KEY,
  * NVROADS_API_KEY, UDOT_API_KEY, PA511_API_KEY, WI511_API_KEY, FL511_API_KEY,
