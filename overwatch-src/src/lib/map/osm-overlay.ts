@@ -63,10 +63,14 @@ export const HYBRID_HALO_RADIUS = 1;
 export const HYBRID_HALO_RADIUS_CLOSE = 2;
 export const HYBRID_CLOSE_LEVEL = 16;
 /**
- * Below this tile level OSM text is too small to read, so the halo would only
- * show up as dark dashes along roads: wide views keep plain labels.
+ * Below this tile level OSM text is too small to read over imagery (and a halo
+ * would only show up as dark dashes along roads), so Hybrid erases the baked
+ * text there; place names come from the dedicated label layer instead
+ * (see place-labels.ts).
  */
 export const HYBRID_MIN_LEVEL = 16;
+/** Mask dilation (px) used when erasing baked text below HYBRID_MIN_LEVEL. */
+export const HYBRID_ERASE_RADIUS = 1;
 
 /** Blue OSM labels (tourism/hotel/transport text, #0092da family); excludes navy one-way arrows. */
 export function isBlueText(r: number, g: number, b: number): boolean {
@@ -145,11 +149,17 @@ export function hybridLabelMask(rgba: Uint8ClampedArray, width: number, R = HYBR
  */
 export function processOverlayPixels(rgba: Uint8ClampedArray, style: OverlayStyle, width?: number, level?: number): number {
   const radius = style === "hybrid" && width ? hybridHaloRadius(level) : 0;
-  const mask = radius > 0 && width ? hybridLabelMask(rgba, width, radius) : null;
+  const erase = style === "hybrid" && !!width && level !== undefined && level < HYBRID_MIN_LEVEL;
+  const mask = erase ? hybridLabelMask(rgba, width!, HYBRID_ERASE_RADIUS) : radius > 0 && width ? hybridLabelMask(rgba, width, radius) : null;
   let keyed = 0;
   for (let i = 0; i < rgba.length; i += 4) {
     if (rgba[i + 3] === 0) continue;
     const r = rgba[i], g = rgba[i + 1], b = rgba[i + 2];
+    if (mask && mask[i / 4] === 1 && erase) {
+      // Wide views: drop baked text and its anti-aliased edge; keep road colours under it.
+      if (luma(r, g, b) < HYBRID_GLYPH_LUMA || isAreaFill(r, g, b)) { rgba[i + 3] = 0; keyed++; }
+      continue;
+    }
     if (mask && mask[i / 4] === 1) {
       const l = luma(r, g, b);
       if (l < HYBRID_GLYPH_LUMA) {

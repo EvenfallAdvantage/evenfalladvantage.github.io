@@ -37,10 +37,12 @@ describe("osm overlay pixels", () => {
     expect([row[4], row[5], row[6]]).toEqual([...HYBRID_HALO]);
     expect(row[27]).toBe(0);
     expect([row[28], row[29], row[30], row[31]]).toEqual([255, 255, 255, 255]);
-    // wide views (low tile level) leave labels alone
-    const wide = new Uint8ClampedArray([30, 30, 30, 255, 255, 255, 255, 255]);
-    processOverlayPixels(wide, "hybrid", 2, HYBRID_MIN_LEVEL - 1);
-    expect(Array.from(wide)).toEqual([30, 30, 30, 255, 255, 255, 255, 255]);
+    // wide views (low tile level): baked text is erased (place labels come from the label layer), roads kept
+    const wide = new Uint8ClampedArray([30, 30, 30, 255, 247, 250, 191, 255, 0xf2, 0xef, 0xe9, 255]);
+    processOverlayPixels(wide, "hybrid", 3, HYBRID_MIN_LEVEL - 1);
+    expect(wide[3]).toBe(0);
+    expect(Array.from(wide.slice(4, 8))).toEqual([247, 250, 191, 255]);
+    expect(wide[11]).toBe(0);
     expect(hybridHaloRadius(HYBRID_MIN_LEVEL - 1)).toBe(0);
     expect(hybridHaloRadius(undefined)).toBe(1);
     expect(hybridHaloRadius(HYBRID_MIN_LEVEL)).toBe(2);
