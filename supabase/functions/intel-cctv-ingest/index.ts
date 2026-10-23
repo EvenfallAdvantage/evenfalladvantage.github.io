@@ -3,8 +3,11 @@
  *
  * Called every 15 min by pg_cron (migration 20261016224147) with the
  * `x-ingest-secret` header. For each source in the shared registry: fetch +
- * parse, upsert rows, mark rows unseen for 24h offline (cctv_mark_stale),
- * record health in cctv_source_status. One failing source never blocks others.
+ * parse, upsert rows, mark rows unseen for 35 min (two runs) offline
+ * (cctv_mark_stale), record health in cctv_source_status. One failing source
+ * never blocks others. Full (non-subset) runs also mark every online row of a
+ * disabled source (e.g. NYC DOT, unkeyed 511 hosts) offline, so turned-off
+ * sources stop being served at the DB level too, not only by intel-cctv's filter.
  *
  * Optional: ?source=<id>[,<id>] to run a subset; ?dry_run=1 to parse only.
  * Auth: x-ingest-secret is checked against Vault 'cctv_ingest_secret' via the
@@ -18,10 +21,8 @@
  *   _shared/cctv/sources.ts (`secret:` field).
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { enabledSources, makeFetchers } from "../_shared/cctv/sources.ts";
-import { chunk, SecretCache, toRows } from "./lib.ts";
-
-const STALE_AFTER_MS = 24 * 3600_000;
+import { disabledSourceIds, enabledSources, makeFetchers } from "../_shared/cctv/sources.ts";
+import { chunk, SecretCache, staleCutoffIso, sweepTargets, toRows } from "./lib.ts";
 const CHUNK = 500;
 
 function rest(path: string, init: RequestInit = {}) {
@@ -77,7 +78,7 @@ Deno.serve(async (req) => {
           }), "upsert");
         }
         const r = await rest("rpc/cctv_mark_stale", {
-          method: "POST", body: JSON.stringify({ p_source: src.id, p_cutoff: new Date(now.getTime() - STALE_AFTER_MS).toISOString() }),
+          method: "POST", body: JSON.stringify({ p_source: src.id, p_cutoff: staleCutoffIso(now) }),
         });
         if (!r.ok) throw new Error(`mark_stale: ${r.status}`);
         stale = Number(await r.json()) || 0;
@@ -100,7 +101,24 @@ Deno.serve(async (req) => {
     }
   }));
 
-  return new Response(JSON.stringify({ dry_run: dryRun, results, timestamp: new Date().toISOString() }), {
+  // Disabled sources: mark all their online rows offline (cutoff = now).
+  const disabled: Record<string, number | string> = {};
+  if (!dryRun) {
+    const pending = Deno.env.get("CCTV_ENABLE_PENDING_SOURCES");
+    const cutoff = new Date().toISOString();
+    for (const id of sweepTargets(disabledSourceIds(pending, (k) => Deno.env.get(k)), only)) {
+      try {
+        const r = await rest("rpc/cctv_mark_stale", { method: "POST", body: JSON.stringify({ p_source: id, p_cutoff: cutoff }) });
+        if (!r.ok) { await r.body?.cancel(); throw new Error(`mark_stale: ${r.status}`); }
+        disabled[id] = Number(await r.json()) || 0;
+      } catch (e) {
+        disabled[id] = e instanceof Error ? e.message : String(e);
+        console.warn("[intel-cctv-ingest] sweep", id, disabled[id]);
+      }
+    }
+  }
+
+  return new Response(JSON.stringify({ dry_run: dryRun, results, disabled_swept: disabled, timestamp: new Date().toISOString() }), {
     headers: { "Content-Type": "application/json" },
   });
 });
