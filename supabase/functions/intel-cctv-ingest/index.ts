@@ -13,8 +13,9 @@
  * only). No env-var fallback: Vault is the single source of truth, shared
  * with the pg_cron job. Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (platform),
  *   optional CCTV_ENABLE_PENDING_SOURCES ("all" or comma ids) to enable the
- *   terms-pending sources. Optional free-key secrets (source off until set):
- *   NPS_API_KEY, GA511_API_KEY, WI511_API_KEY, ID511_API_KEY, ONTARIO511_API_KEY, ALBERTA511_API_KEY.
+ *   terms-pending sources. Key-gated sources (NPS, 511 hosts) stay off until
+ *   their own function secret is set; names are listed per source in
+ *   _shared/cctv/sources.ts (`secret:` field).
  */
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { enabledSources, makeFetchers } from "../_shared/cctv/sources.ts";
