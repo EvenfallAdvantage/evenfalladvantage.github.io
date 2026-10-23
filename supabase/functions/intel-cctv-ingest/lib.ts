@@ -22,6 +22,24 @@ export function toRows(cams: CctvCamera[], attribution: string, nowIso: string):
   return [...byId.values()];
 }
 
+/**
+ * Rows not seen for this long are marked offline. Ingest runs every 15 min, so
+ * 35 min = two missed runs: one flaky upstream response never hides a camera,
+ * but cameras a source has dropped disappear within ~30 min instead of 24 h.
+ */
+export const STALE_AFTER_MS = 35 * 60_000;
+
+export const staleCutoffIso = (now: Date, ms = STALE_AFTER_MS) => new Date(now.getTime() - ms).toISOString();
+
+/**
+ * Sources whose remaining online rows should be swept offline this run: every
+ * disabled source (no key / terms pending / agreement required). Skipped for
+ * ?source= subset runs so a targeted run only touches what it names.
+ */
+export function sweepTargets(disabled: Iterable<string>, subset: string[] | undefined): string[] {
+  return subset?.length ? [] : [...disabled].sort();
+}
+
 export function chunk<T>(xs: T[], n: number): T[][] {
   const out: T[][] = [];
   for (let i = 0; i < xs.length; i += n) out.push(xs.slice(i, i + n));
