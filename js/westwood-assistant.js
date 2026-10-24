@@ -8,8 +8,9 @@
  *    Active Threat, Legal/Licensing), and instant estimate routing
  *  - Direct lead capture connected to Overwatch `intake-ingest` via
  *    `window.EVENFALL_LEAD_INTAKE` (js/lead-config.js)
- *  - Optional, 100% free browser-native voice readout (Web Speech API
- *    `window.speechSynthesis`), muted by default
+ *  - Optional, 100% free neural voice readout using pre-generated studio
+ *    MP3s (`audio/westwood/*.mp3`, en-US-ChristopherNeural) with smart
+ *    Web Speech API fallback, muted by default
  */
 (function () {
     'use strict';
@@ -24,6 +25,24 @@
             '<path d="M16 68c4-14 15-21 24-21s20 7 24 21" fill="#dd8c33"/>' +
             '</svg>'
         );
+
+    const GREETING_SPEECH =
+        "Hello, I'm Agent Westwood. How can I help you with Evenfall Advantage's services, training, or estimates today?";
+
+    const AUDIO_CLIPS = {
+        greeting: 'audio/westwood/greeting.mp3',
+        pillars: 'audio/westwood/pillars.mp3',
+        estimates: 'audio/westwood/estimates.mp3',
+        consulting: 'audio/westwood/consulting.mp3',
+        events: 'audio/westwood/events.mp3',
+        training: 'audio/westwood/training.mp3',
+        'stop-the-bleed': 'audio/westwood/stop-the-bleed.mp3',
+        ics: 'audio/westwood/ics.mp3',
+        'use-of-force': 'audio/westwood/use-of-force.mp3',
+        'active-threat': 'audio/westwood/active-threat.mp3',
+        legal: 'audio/westwood/legal.mp3',
+        fallback: 'audio/westwood/fallback.mp3'
+    };
 
     const ESTIMATE_LINKS = [
         {
@@ -477,7 +496,60 @@
         const leadSubmit = document.getElementById('westwood-lead-submit');
         const leadService = document.getElementById('westwood-lead-service');
 
+        let currentAudio = null;
+        let lastSpokenClipKey = 'greeting';
+        let lastSpokenText = GREETING_SPEECH;
+        let preferredSynthVoice = null;
+
+        function pickBestSynthVoice() {
+            if (!('speechSynthesis' in window)) return null;
+            const voices = window.speechSynthesis.getVoices() || [];
+            if (!voices.length) return null;
+
+            const enVoices = voices.filter((v) => /^en(-|_|$)/i.test(v.lang));
+            const pool = enVoices.length ? enVoices : voices;
+
+            const priorityPatterns = [
+                /Christopher.*Natural/i,
+                /Andrew.*Natural/i,
+                /Brian.*Natural/i,
+                /Guy.*Natural/i,
+                /Eric.*Natural/i,
+                /Natural/i,
+                /Online/i,
+                /Google US English/i,
+                /Evan.*Enhanced/i,
+                /Daniel.*Enhanced/i,
+                /Alex/i,
+                /Samantha/i
+            ];
+
+            for (const pattern of priorityPatterns) {
+                const match = pool.find((v) => pattern.test(v.name));
+                if (match) return match;
+            }
+            return pool.find((v) => /en-US/i.test(v.lang)) || pool[0] || null;
+        }
+
+        if ('speechSynthesis' in window) {
+            preferredSynthVoice = pickBestSynthVoice();
+            if (typeof window.speechSynthesis.addEventListener === 'function') {
+                window.speechSynthesis.addEventListener('voiceschanged', () => {
+                    preferredSynthVoice = pickBestSynthVoice();
+                });
+            }
+        }
+
         function stopSpeech() {
+            if (currentAudio) {
+                try {
+                    currentAudio.pause();
+                    currentAudio.currentTime = 0;
+                } catch (_) {
+                    // ignore
+                }
+                currentAudio = null;
+            }
             if ('speechSynthesis' in window) {
                 try {
                     window.speechSynthesis.cancel();
@@ -487,17 +559,67 @@
             }
         }
 
-        function speakText(text) {
+        function speakWithWebSpeechFallback(text) {
             if (!voiceEnabled || !('speechSynthesis' in window) || !text) return;
             try {
                 window.speechSynthesis.cancel();
                 const utterance = new SpeechSynthesisUtterance(text);
-                utterance.rate = 0.98;
-                utterance.pitch = 0.92;
+                const chosen = preferredSynthVoice || pickBestSynthVoice();
+                if (chosen) {
+                    utterance.voice = chosen;
+                }
+                utterance.rate = 1.0;
+                utterance.pitch = 1.0;
                 window.speechSynthesis.speak(utterance);
             } catch (_) {
                 // ignore browser speech errors
             }
+        }
+
+        function speakResponse(clipKey, fallbackText) {
+            if (clipKey) {
+                lastSpokenClipKey = clipKey;
+            }
+            if (fallbackText) {
+                lastSpokenText = fallbackText;
+            }
+            if (!voiceEnabled) return;
+
+            stopSpeech();
+
+            const clipSrc = clipKey && AUDIO_CLIPS[clipKey];
+            if (clipSrc && typeof Audio !== 'undefined') {
+                try {
+                    const audio = new Audio(clipSrc);
+                    audio.preload = 'auto';
+                    currentAudio = audio;
+                    audio.addEventListener('ended', () => {
+                        if (currentAudio === audio) {
+                            currentAudio = null;
+                        }
+                    });
+                    audio.addEventListener('error', () => {
+                        if (currentAudio === audio) {
+                            currentAudio = null;
+                        }
+                        speakWithWebSpeechFallback(fallbackText || lastSpokenText);
+                    });
+                    const playPromise = audio.play();
+                    if (playPromise && typeof playPromise.catch === 'function') {
+                        playPromise.catch(() => {
+                            if (currentAudio === audio) {
+                                currentAudio = null;
+                            }
+                            speakWithWebSpeechFallback(fallbackText || lastSpokenText);
+                        });
+                    }
+                    return;
+                } catch (_) {
+                    // Fall through to Web Speech API fallback
+                }
+            }
+
+            speakWithWebSpeechFallback(fallbackText || lastSpokenText);
         }
 
         function setVoiceEnabled(enabled) {
@@ -507,11 +629,13 @@
                 'aria-label',
                 voiceEnabled
                     ? 'Voice readout enabled. Click to mute.'
-                    : 'Voice readout muted. Click to enable browser voice.'
+                    : 'Voice readout muted. Click to enable neural voice.'
             );
             voiceBtn.title = voiceEnabled ? 'Voice readout (On)' : 'Voice readout (Muted)';
             voiceIcon.className = voiceEnabled ? 'fas fa-volume-high' : 'fas fa-volume-xmark';
-            if (!voiceEnabled) {
+            if (voiceEnabled) {
+                speakResponse(lastSpokenClipKey || 'greeting', lastSpokenText || GREETING_SPEECH);
+            } else {
                 stopSpeech();
             }
         }
@@ -558,13 +682,13 @@
             messagesEl.scrollTop = messagesEl.scrollHeight;
         }
 
-        function appendAgentMessage(html, speechText) {
+        function appendAgentMessage(html, speechText, clipKey) {
             const msg = document.createElement('div');
             msg.className = 'westwood-msg westwood-msg-agent';
             msg.innerHTML = `<div class="westwood-msg-bubble">${html}</div>`;
             messagesEl.appendChild(msg);
             messagesEl.scrollTop = messagesEl.scrollHeight;
-            speakText(speechText);
+            speakResponse(clipKey, speechText);
         }
 
         function handleTopicSelection(topicKey, userLabel) {
@@ -577,7 +701,7 @@
             }
             const entry = KNOWLEDGE_BASE[topicKey];
             if (entry) {
-                appendAgentMessage(entry.html, entry.speech);
+                appendAgentMessage(entry.html, entry.speech, topicKey);
                 return;
             }
             const fallbackSpeech =
@@ -589,7 +713,7 @@
                     <button type="button" class="westwood-action-btn" data-westwood-view="contact"><i class="fas fa-paper-plane"></i> Talk to Our Team</button>
                 </div>
             `;
-            appendAgentMessage(fallbackHtml, fallbackSpeech);
+            appendAgentMessage(fallbackHtml, fallbackSpeech, 'fallback');
         }
 
         // Event bindings
@@ -649,7 +773,8 @@
                      <div class="westwood-inline-actions">
                          <button type="button" class="westwood-action-btn" data-westwood-view="contact"><i class="fas fa-envelope"></i> Open Callback Form</button>
                      </div>`,
-                    "I've opened our direct inquiry form so our team can follow up with you."
+                    "You can request a tailored estimate using any of our four interactive service calculators below, or leave your contact details for a direct callback.",
+                    'estimates'
                 );
                 setTimeout(() => switchView('contact'), 250);
                 return;
