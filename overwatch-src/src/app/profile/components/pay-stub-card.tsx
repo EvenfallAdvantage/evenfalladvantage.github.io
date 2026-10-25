@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign } from "lucide-react";
 import { getMyPaySummary } from "@/lib/supabase/db-pay";
-import { parseUTC } from "@/lib/parse-utc";
+import { formatDateRange } from "@/components/timeclock/timeclock-utils";
 
 interface PayStubCardProps {
   activeCompanyId: string;
@@ -76,7 +76,7 @@ export function PayStubCard({ activeCompanyId }: PayStubCardProps) {
               <tbody>
                 {data.timesheets.slice(0, 20).map((t) => (
                   <tr key={t.id} className="border-b border-border/10">
-                    <td className="py-1.5">{parseUTC(t.clock_in).toLocaleDateString([], { month: "short", day: "numeric" })}</td>
+                    <td className="py-1.5">{formatDateRange(t.clock_in, t.clock_out)}</td>
                     <td className="py-1.5 text-muted-foreground truncate max-w-[100px]">{t.event_name ?? "General"}</td>
                     <td className="py-1.5 text-right">{t.hours.toFixed(1)}</td>
                     <td className="py-1.5 text-right">{t.rate != null ? `$${t.rate.toFixed(2)}` : "\u2014"}</td>

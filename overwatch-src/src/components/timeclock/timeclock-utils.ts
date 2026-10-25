@@ -35,6 +35,43 @@ export function formatFullDate(iso: string, timezone?: string) {
   return parseUTC(iso).toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", year: "numeric" });
 }
 
+export function isSameDay(startISO: string, endISO?: string | null, timezone?: string): boolean {
+  if (!startISO || !endISO) return true;
+  if (timezone) {
+    const opts: Intl.DateTimeFormatOptions = { year: "numeric", month: "2-digit", day: "2-digit" };
+    return formatInTimezone(startISO, timezone, opts) === formatInTimezone(endISO, timezone, opts);
+  }
+  const a = parseUTC(startISO);
+  const b = parseUTC(endISO);
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
+export function formatDateRange(startISO: string, endISO?: string | null, timezone?: string): string {
+  const start = formatDate(startISO, timezone);
+  if (!endISO || isSameDay(startISO, endISO, timezone)) return start;
+  return `${start} → ${formatDate(endISO, timezone)}`;
+}
+
+export function formatFullDateRange(startISO: string, endISO?: string | null, timezone?: string): string {
+  const start = formatFullDate(startISO, timezone);
+  if (!endISO || isSameDay(startISO, endISO, timezone)) return start;
+  return `${start} → ${formatFullDate(endISO, timezone)}`;
+}
+
+export function formatLocaleDateRange(
+  startISO: string,
+  endISO?: string | null,
+  options?: Intl.DateTimeFormatOptions,
+): string {
+  const start = parseUTC(startISO).toLocaleDateString([], options);
+  if (!endISO || isSameDay(startISO, endISO)) return start;
+  return `${start} → ${parseUTC(endISO).toLocaleDateString([], options)}`;
+}
+
 export function calcHoursNum(clockInISO: string, clockOutISO: string) {
   return Math.max(0, (parseUTC(clockOutISO).getTime() - parseUTC(clockInISO).getTime()) / 3600000);
 }

@@ -5,7 +5,7 @@ import { CalendarDays, MapPin } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { parseUTC } from "@/lib/parse-utc";
-import { formatFullDate, formatTime, type Shift } from "./timeclock-utils";
+import { formatFullDateRange, formatTime, type Shift } from "./timeclock-utils";
 
 function formatTimeUntil(startTime: string, now: number): string {
   const ms = parseUTC(startTime).getTime() - now;
@@ -39,7 +39,7 @@ export function UpcomingShiftCard({ shift }: UpcomingShiftCardProps) {
               </Badge>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
-              {formatFullDate(shift.start_time, tz)} &bull; {formatTime(shift.start_time, tz)} — {formatTime(shift.end_time, tz)}
+              {formatFullDateRange(shift.start_time, shift.end_time, tz)} &bull; {formatTime(shift.start_time, tz)} — {formatTime(shift.end_time, tz)}
             </p>
             {shift.events && (
               <p className="text-[11px] text-muted-foreground/70 flex items-center gap-1 mt-0.5">

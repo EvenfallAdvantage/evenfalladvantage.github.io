@@ -2,7 +2,7 @@
 
 import { History, Flag, Briefcase } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { formatDate, formatTime, calcHours, type Timesheet } from "./timeclock-utils";
+import { formatDateRange, formatTime, calcHours, type Timesheet } from "./timeclock-utils";
 
 interface RecentWatchLogProps {
   recent: Timesheet[];
@@ -24,7 +24,7 @@ export function RecentWatchLog({ recent, onSelectEntry }: RecentWatchLogProps) {
               className="w-full flex items-center justify-between rounded-lg border border-border/50 bg-card px-4 py-3 hover:bg-muted/30 hover:border-primary/20 transition-colors text-left">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3">
-                  <div className="text-xs text-muted-foreground font-medium">{formatDate(ts.clock_in)}</div>
+                  <div className="text-xs text-muted-foreground font-medium">{formatDateRange(ts.clock_in, ts.clock_out)}</div>
                   <div className="text-sm">{formatTime(ts.clock_in)} → {formatTime(ts.clock_out)}</div>
                 </div>
                 {ts.events?.name && (

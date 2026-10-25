@@ -6,7 +6,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { parseUTC } from "@/lib/parse-utc";
-import { fmtDate, fmtTime, statusColor, type Shift } from "./schedule-helpers";
+import { fmtDateRange, fmtTime, statusColor, type Shift } from "./schedule-helpers";
 
 export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
   shifts: Shift[];
@@ -73,7 +73,7 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
                   <div className="flex items-center gap-2">
                     {conflictIds.has(sh.id) ? <AlertTriangle className="h-3 w-3 text-amber-500" /> : <Clock className="h-3 w-3 text-primary/60" />}
                     <span className="text-muted-foreground">
-                      {!highlight && `${fmtDate(sh.start_time, timezone)} · `}{fmtTime(sh.start_time, timezone)} — {fmtTime(sh.end_time, timezone)}
+                      {!highlight && `${fmtDateRange(sh.start_time, sh.end_time, timezone)} · `}{fmtTime(sh.start_time, timezone)} — {fmtTime(sh.end_time, timezone)}
                     </span>
                     <div className="flex items-center gap-1 ml-auto">
                       {shiftPostOrders && (
