@@ -14,7 +14,7 @@ import type { OperationDocument } from "@/types/operations";
 import type { AvailabilityStatus } from "@/lib/supabase/db-availability";
 import { DocsPopup } from "@/components/ops/staff-doc-viewer";
 import { ShiftAccordion } from "./shift-accordion";
-import { fmtDate, fmtTime, statusColor, type Ev, type Shift } from "./schedule-helpers";
+import { fmtDate, fmtDateRange, fmtTime, statusColor, type Ev, type Shift } from "./schedule-helpers";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
 
 interface ScheduleTabProps {
@@ -242,7 +242,7 @@ export function ScheduleTab({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{sh.events?.name ?? "Shift"}</p>
                     <p className="text-xs text-muted-foreground">
-                      {fmtDate(sh.start_time, shTz)} · {fmtTime(sh.start_time, shTz)} — {fmtTime(sh.end_time, shTz)}
+                      {fmtDateRange(sh.start_time, sh.end_time, shTz)} · {fmtTime(sh.start_time, shTz)} — {fmtTime(sh.end_time, shTz)}
                     </p>
                     {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
                   </div>
@@ -294,7 +294,7 @@ export function ScheduleTab({
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{sh.events?.name ?? "Shift"}</p>
                     <p className="text-xs text-muted-foreground">
-                      {fmtDate(sh.start_time, shTz)} · {fmtTime(sh.start_time, shTz)} — {fmtTime(sh.end_time, shTz)}
+                      {fmtDateRange(sh.start_time, sh.end_time, shTz)} · {fmtTime(sh.start_time, shTz)} — {fmtTime(sh.end_time, shTz)}
                     </p>
                     {sh.role && <p className="text-xs text-muted-foreground mt-0.5">Role: {sh.role}</p>}
                   </div>

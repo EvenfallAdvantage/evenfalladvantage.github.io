@@ -8,11 +8,19 @@ export type Shift = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Asset = any;
 
+import { isSameDay } from "@/components/timeclock/timeclock-utils";
+
 export function fmtDate(iso: string, timezone?: string) {
   if (timezone) {
     return formatInTimezone(iso, timezone, { weekday: "short", month: "short", day: "numeric" });
   }
   return parseUTC(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+}
+
+export function fmtDateRange(startISO: string, endISO?: string | null, timezone?: string) {
+  const start = fmtDate(startISO, timezone);
+  if (!endISO || isSameDay(startISO, endISO, timezone)) return start;
+  return `${start} → ${fmtDate(endISO, timezone)}`;
 }
 
 export function fmtTime(iso: string, timezone?: string) {

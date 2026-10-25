@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCompanyTimeChangeRequests, reviewTimeChangeRequest } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
+import { isSameDay } from "@/components/timeclock/timeclock-utils";
 import { formatMemberName } from "@/lib/format-names";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 
@@ -99,14 +100,14 @@ export function CorrectionsTab({ activeCompanyId, canManage }: CorrectionsTabPro
             {/* Row 2: Time details */}
             <div className="ml-12 space-y-1">
               <p className="text-xs text-muted-foreground">
-                Original: {ts?.clock_in ? parseUTC(ts.clock_in).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"} → {ts?.clock_out ? parseUTC(ts.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : "—"}
+                Original: {ts?.clock_in ? parseUTC(ts.clock_in).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "—"} → {ts?.clock_out ? (ts?.clock_in && !isSameDay(ts.clock_in, ts.clock_out) ? parseUTC(ts.clock_out).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : parseUTC(ts.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })) : "—"}
               </p>
               <div className="flex flex-wrap gap-x-4 gap-y-0.5">
                 {r.requested_clock_in && (
-                  <span className="text-[10px]"><span className="text-muted-foreground">New In:</span> <span className="font-mono font-medium text-blue-400">{parseUTC(r.requested_clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
+                  <span className="text-[10px]"><span className="text-muted-foreground">New In:</span> <span className="font-mono font-medium text-blue-400">{ts?.clock_in && !isSameDay(ts.clock_in, r.requested_clock_in) ? parseUTC(r.requested_clock_in).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : parseUTC(r.requested_clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
                 )}
                 {r.requested_clock_out && (
-                  <span className="text-[10px]"><span className="text-muted-foreground">New Out:</span> <span className="font-mono font-medium text-blue-400">{parseUTC(r.requested_clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
+                  <span className="text-[10px]"><span className="text-muted-foreground">New Out:</span> <span className="font-mono font-medium text-blue-400">{(r.requested_clock_in ?? ts?.clock_in) && !isSameDay((r.requested_clock_in ?? ts?.clock_in) as string, r.requested_clock_out) ? parseUTC(r.requested_clock_out).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : parseUTC(r.requested_clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
                 )}
               </div>
               {r.reason && <p className="text-[10px] text-muted-foreground/70 italic line-clamp-2">&ldquo;{r.reason}&rdquo;</p>}

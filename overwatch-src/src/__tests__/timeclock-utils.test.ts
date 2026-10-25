@@ -5,7 +5,14 @@ import {
   calcHours,
   getWeekDates,
   DAY_LABELS,
+  isSameDay,
+  formatDate,
+  formatDateRange,
+  formatFullDate,
+  formatFullDateRange,
+  formatLocaleDateRange,
 } from "@/components/timeclock/timeclock-utils";
+import { fmtDate, fmtDateRange } from "@/app/schedule/components/schedule-helpers";
 
 describe("formatDuration", () => {
   it("formats zero milliseconds", () => {
@@ -120,5 +127,59 @@ describe("DAY_LABELS", () => {
   it("starts with Mon and ends with Sun", () => {
     expect(DAY_LABELS[0]).toBe("Mon");
     expect(DAY_LABELS[6]).toBe("Sun");
+  });
+});
+
+describe("overnight / multi-day date range helpers", () => {
+  it("isSameDay returns true when start and end fall on the same day in timezone", () => {
+    expect(
+      isSameDay("2026-10-25T13:00:00Z", "2026-10-25T21:00:00Z", "America/New_York")
+    ).toBe(true);
+  });
+
+  it("isSameDay returns false for overnight shifts crossing midnight", () => {
+    // 10 PM EDT Oct 25 -> 6 AM EDT Oct 26
+    expect(
+      isSameDay("2026-10-26T02:00:00Z", "2026-10-26T10:00:00Z", "America/New_York")
+    ).toBe(false);
+    expect(
+      isSameDay("2026-10-25T22:00:00", "2026-10-26T14:00:00")
+    ).toBe(false);
+  });
+
+  it("isSameDay returns true when endISO is null or undefined", () => {
+    expect(isSameDay("2026-10-25T13:00:00Z", null)).toBe(true);
+    expect(isSameDay("2026-10-25T13:00:00Z", undefined)).toBe(true);
+  });
+
+  it("formatDateRange shows single date for same-day shifts and start → end for overnight shifts", () => {
+    const sameDayStart = "2026-10-25T13:00:00Z";
+    const sameDayEnd = "2026-10-25T21:00:00Z";
+    expect(formatDateRange(sameDayStart, sameDayEnd, "America/New_York")).toBe(
+      formatDate(sameDayStart, "America/New_York")
+    );
+
+    const overnightStart = "2026-10-26T02:00:00Z"; // Oct 25 10:00 PM EDT
+    const overnightEnd = "2026-10-26T10:00:00Z";   // Oct 26 06:00 AM EDT
+    expect(formatDateRange(overnightStart, overnightEnd, "America/New_York")).toBe(
+      `${formatDate(overnightStart, "America/New_York")} → ${formatDate(overnightEnd, "America/New_York")}`
+    );
+  });
+
+  it("formatFullDateRange and formatLocaleDateRange append end date when different from start date", () => {
+    const overnightStart = "2026-10-25T22:00:00Z";
+    const overnightEnd = "2026-10-26T14:00:00Z";
+    expect(formatFullDateRange(overnightStart, overnightEnd, "UTC")).toBe(
+      `${formatFullDate(overnightStart, "UTC")} → ${formatFullDate(overnightEnd, "UTC")}`
+    );
+    expect(formatLocaleDateRange(overnightStart, overnightEnd)).toContain(" → ");
+  });
+
+  it("fmtDateRange shows single date for same-day shift and start → end for overnight shift", () => {
+    const overnightStart = "2026-10-26T02:00:00Z"; // Oct 25 10:00 PM EDT
+    const overnightEnd = "2026-10-26T10:00:00Z";   // Oct 26 06:00 AM EDT
+    expect(fmtDateRange(overnightStart, overnightEnd, "America/New_York")).toBe(
+      `${fmtDate(overnightStart, "America/New_York")} → ${fmtDate(overnightEnd, "America/New_York")}`
+    );
   });
 });

@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCompanyTimesheets, approveTimesheet, unapproveTimesheet, deleteTimesheet } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
+import { formatLocaleDateRange, isSameDay } from "@/components/timeclock/timeclock-utils";
 import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
 import { formatMemberName } from "@/lib/format-names";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -159,7 +160,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /><ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} />{isLikelyAccidental(t) && <Badge className="ml-1 text-[10px] bg-muted text-muted-foreground" title="Under a minute; probably a test or mis-tap. Not counted as pending.">Under 1 min · likely accidental</Badge>}</p>
                     <p className="text-xs text-muted-foreground truncate">
-                      {op ? `${op} · ` : ""}In since {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {op ? `${op} · ` : ""}In since {!isSameDay(t.clock_in, new Date().toISOString()) ? `${parseUTC(t.clock_in).toLocaleDateString()} ` : ""}{parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </p>
                   </div>
                   <span className="font-mono text-sm font-semibold">{((Date.now() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(1)}h</span>
@@ -219,7 +220,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                             <div className="flex-1 min-w-0">
                               <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /><ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} /></p>
                               <p className="text-xs text-muted-foreground">
-                                {parseUTC(t.clock_in).toLocaleDateString()} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                {formatLocaleDateRange(t.clock_in, t.clock_out)} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                               </p>
                             </div>
                             {signedIds.has(t.id) && (

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { formatTime, formatFullDate, calcHours, type Timesheet } from "./timeclock-utils";
+import { formatTime, formatDate, formatFullDateRange, isSameDay, calcHours, type Timesheet } from "./timeclock-utils";
 import { parseUTC } from "@/lib/parse-utc";
 import { createTimeChangeRequest } from "@/lib/supabase/db";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
@@ -99,7 +99,7 @@ export function ShiftDetailModal({ entry, companyId, onClose }: ShiftDetailModal
           {/* Header */}
           <div>
             <h3 className="text-lg font-bold font-mono">Shift Detail</h3>
-            <p className="text-xs text-muted-foreground">{formatFullDate(entry.clock_in)}</p>
+            <p className="text-xs text-muted-foreground">{formatFullDateRange(entry.clock_in, entry.clock_out)}</p>
           </div>
 
           {/* Time details */}
@@ -107,10 +107,16 @@ export function ShiftDetailModal({ entry, companyId, onClose }: ShiftDetailModal
             <div className="rounded-lg bg-muted/30 p-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Clock In</p>
               <p className="text-lg font-mono font-bold">{formatTime(entry.clock_in)}</p>
+              {entry.clock_out && !isSameDay(entry.clock_in, entry.clock_out) && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">{formatDate(entry.clock_in)}</p>
+              )}
             </div>
             <div className="rounded-lg bg-muted/30 p-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Clock Out</p>
               <p className="text-lg font-mono font-bold">{formatTime(entry.clock_out)}</p>
+              {entry.clock_out && !isSameDay(entry.clock_in, entry.clock_out) && (
+                <p className="text-[10px] text-muted-foreground mt-0.5">{formatDate(entry.clock_out)}</p>
+              )}
             </div>
           </div>
 

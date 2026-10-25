@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Activity, FolderOpen, Loader2, Clock } from "lucide-react";
 import { getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
+import { formatLocaleDateRange } from "@/components/timeclock/timeclock-utils";
 import type { Sub, Sheet, Attempt } from "./types";
 import { logger } from "@/lib/logger";
 
@@ -124,7 +125,7 @@ export function ProfileActivityTabs({ activeCompanyId }: Props) {
                       <Clock className="h-4 w-4 text-green-500 shrink-0" />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium">Shift — {hrs}h</p>
-                        <p className="text-[10px] text-muted-foreground">{parseUTC(t.clock_in).toLocaleDateString()}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatLocaleDateRange(t.clock_in, t.clock_out)}</p>
                       </div>
                       <Badge variant={t.approved ? "default" : "secondary"} className="text-[10px]">
                         {t.approved ? "Approved" : "Pending"}
