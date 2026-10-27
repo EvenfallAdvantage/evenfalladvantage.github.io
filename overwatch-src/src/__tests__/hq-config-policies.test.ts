@@ -1,7 +1,26 @@
 import { describe, it, expect, vi } from "vitest";
 vi.mock("@/lib/supabase/client", () => ({ createClient: vi.fn() }));
 import { splitWorkweek, splitWorkweekByDay, splitHours, splitDays, toWorkweeks, DEFAULT_OT_CONFIG } from "@/lib/supabase/db-overtime";
-import { OT_PRESETS, detectOtPreset, validateOvertimeConfig, parseRate, parseOptionalNumber } from "@/lib/policy-presets";
+import {
+  OT_PRESETS,
+  detectOtPreset,
+  validateOvertimeConfig,
+  parseRate,
+  parseOptionalNumber,
+  BREAK_PRESETS,
+  detectBreakPreset,
+  validateBreakPolicy,
+} from "@/lib/policy-presets";
+import {
+  DEFAULT_BREAK_POLICY,
+  resolveBreakPolicy,
+  calculateBreakCompliance,
+} from "@/lib/supabase/db-breaks";
+import {
+  calcBreakSummary,
+  calcPayableHoursNum,
+  calcPayableHours,
+} from "@/components/timeclock/timeclock-utils";
 
 const ca = { ...DEFAULT_OT_CONFIG, ...OT_PRESETS.find((p) => p.id === "california")!.config };
 
@@ -70,5 +89,102 @@ describe("policy presets", () => {
     expect(parseRate("1.234")).toBeUndefined();
     expect(parseOptionalNumber("80")).toBe(80);
     expect(parseOptionalNumber("-1")).toBeUndefined();
+  });
+});
+
+describe("break policy presets & payable hours", () => {
+  const federalBreak = BREAK_PRESETS.find((p) => p.id === "federal")!.config;
+
+  it("defaults to California Labor Code break policy", () => {
+    expect(resolveBreakPolicy(null)).toEqual(DEFAULT_BREAK_POLICY);
+    expect(detectBreakPreset(DEFAULT_BREAK_POLICY)).toBe("california");
+    expect(detectBreakPreset(federalBreak)).toBe("federal");
+    expect(detectBreakPreset({ ...DEFAULT_BREAK_POLICY, mealBreakMinutes: 45 })).toBe("custom");
+  });
+
+  it("validates break policy rules", () => {
+    expect(validateBreakPolicy(DEFAULT_BREAK_POLICY)).toBeNull();
+    expect(validateBreakPolicy({ ...DEFAULT_BREAK_POLICY, mealBreakMinutes: 0 })).toMatch(/between 5 and 120/);
+    expect(validateBreakPolicy({ ...DEFAULT_BREAK_POLICY, secondMealAfterHours: 4 })).toMatch(/2nd meal break threshold/);
+    expect(validateBreakPolicy({ ...DEFAULT_BREAK_POLICY, maxRestBreaksPerShift: 11 })).toMatch(/Max rest breaks/);
+  });
+
+  it("deducts unpaid meal breaks and preserves paid rest breaks in payable hours", () => {
+    const sheet = {
+      clock_in: "2026-10-27T08:00:00Z",
+      clock_out: "2026-10-27T16:30:00Z", // 8.5h gross
+      timesheet_breaks: [
+        {
+          id: "b1",
+          break_type: "meal" as const,
+          start_time: "2026-10-27T12:00:00Z",
+          end_time: "2026-10-27T12:30:00Z",
+          duration_minutes: 30,
+        },
+        {
+          id: "b2",
+          break_type: "rest" as const,
+          start_time: "2026-10-27T10:00:00Z",
+          end_time: "2026-10-27T10:10:00Z",
+          duration_minutes: 10,
+        },
+      ],
+    };
+
+    // CA default: meal break is unpaid (deducted), rest break is paid (not deducted)
+    const caSummary = calcBreakSummary(sheet, DEFAULT_BREAK_POLICY);
+    expect(caSummary.mealMinutes).toBe(30);
+    expect(caSummary.restMinutes).toBe(10);
+    expect(caSummary.unpaidMinutes).toBe(30);
+    expect(caSummary.paidMinutes).toBe(10);
+    expect(calcPayableHoursNum(sheet.clock_in, sheet.clock_out, sheet, DEFAULT_BREAK_POLICY)).toBe(8);
+    expect(calcPayableHours(sheet.clock_in, sheet.clock_out, sheet, DEFAULT_BREAK_POLICY)).toBe("8.00");
+
+    // Paid meal break company policy: neither break deducted (8.5h payable)
+    const paidMealPolicy = { ...DEFAULT_BREAK_POLICY, mealBreakPaid: true };
+    expect(calcPayableHoursNum(sheet.clock_in, sheet.clock_out, sheet, paidMealPolicy)).toBe(8.5);
+  });
+
+  it("evaluates break compliance against company break policy thresholds", () => {
+    // 6-hour shift with 0 meal breaks -> violation under CA (>5h requires 1 meal break)
+    const c1 = calculateBreakCompliance(
+      "2026-10-27T08:00:00Z",
+      "2026-10-27T14:00:00Z",
+      [],
+      DEFAULT_BREAK_POLICY,
+    );
+    expect(c1.mealBreaksRequired).toBe(1);
+    expect(c1.mealBreakViolation).toBe(true);
+    expect(c1.restBreaksEligible).toBe(2); // >=3.5h and >=6h
+
+    // 6-hour shift with a 30m meal break -> no violation
+    const c2 = calculateBreakCompliance(
+      "2026-10-27T08:00:00Z",
+      "2026-10-27T14:00:00Z",
+      [
+        {
+          id: "b1",
+          timesheet_id: "t1",
+          break_type: "meal",
+          start_time: "2026-10-27T12:00:00Z",
+          end_time: "2026-10-27T12:30:00Z",
+          duration_minutes: 30,
+          paid: false,
+          created_at: "2026-10-27T12:00:00Z",
+        },
+      ],
+      DEFAULT_BREAK_POLICY,
+    );
+    expect(c2.mealBreakViolation).toBe(false);
+
+    // Federal preset (firstMealAfterHours: 0) -> no mandatory meal break violation
+    const c3 = calculateBreakCompliance(
+      "2026-10-27T08:00:00Z",
+      "2026-10-27T14:00:00Z",
+      [],
+      federalBreak,
+    );
+    expect(c3.mealBreaksRequired).toBe(0);
+    expect(c3.mealBreakViolation).toBe(false);
   });
 });

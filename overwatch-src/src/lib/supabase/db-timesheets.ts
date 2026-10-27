@@ -3,6 +3,9 @@ import { parseUTC } from "@/lib/parse-utc";
 import { createClient } from "./client";
 import { ts, ensureInternalUser } from "./db-helpers";
 import { logDbReadError } from "./db-error";
+import { closeActiveBreaksForTimesheet } from "./db-breaks";
+
+const TIMESHEET_BREAKS_SELECT = "timesheet_breaks(id, break_type, start_time, end_time, duration_minutes)";
 
 // ─── Timesheets (Watch Log) ──────────────────────────────
 
@@ -13,7 +16,7 @@ export async function getActiveTimesheet(companyId?: string) {
   const supabase = createClient();
   let query = supabase
     .from("timesheets")
-    .select("*, shifts(id, role, start_time, end_time, events(id, name, location)), events(id, name, location)")
+    .select(`*, shifts(id, role, start_time, end_time, events(id, name, location)), events(id, name, location), ${TIMESHEET_BREAKS_SELECT}`)
     .eq("user_id", userId)
     .is("clock_out", null)
     .order("clock_in", { ascending: false })
@@ -167,6 +170,8 @@ export function shiftEdgeKind(shift: { start_time: string; end_time: string }, n
 
 export async function clockOut(timesheetId: string, at?: string, fixIn?: Fix | null) {
   const supabase = createClient();
+  const effectiveOutISO = at ?? new Date().toISOString();
+  await closeActiveBreaksForTimesheet(timesheetId, effectiveOutISO);
   const fix = fixIn !== undefined ? fixIn : (at ? null : await getQuickFix());
   const { data: v, error: e } = await supabase.rpc("timesheet_clock_out", {
     p_id: timesheetId, p_lat: fix?.lat ?? null, p_lng: fix?.lng ?? null, p_accuracy: fix?.accuracy ?? null, p_client_at: at ?? null,
@@ -175,7 +180,7 @@ export async function clockOut(timesheetId: string, at?: string, fixIn?: Fix | n
   if (!isMissingRpc(e)) throw e;
   const { data, error } = await supabase
     .from("timesheets")
-    .update({ clock_out: at ?? new Date().toISOString() })
+    .update({ clock_out: effectiveOutISO })
     .eq("id", timesheetId)
     .select()
     .maybeSingle();
@@ -204,7 +209,7 @@ export async function getRecentTimesheets(limit = 10, companyId?: string) {
 
   let query = supabase
     .from("timesheets")
-    .select("*, events(id, name, location, company_id)")
+    .select(`*, events(id, name, location, company_id), ${TIMESHEET_BREAKS_SELECT}`)
     .eq("user_id", userId)
     .order("clock_in", { ascending: false })
     .limit(companyId ? limit * 2 : limit); // fetch extra for post-filter
@@ -222,7 +227,7 @@ export async function getRecentTimesheets(limit = 10, companyId?: string) {
   if (companyId && results.length === 0) {
     const { data: fallback } = await supabase
       .from("timesheets")
-      .select("*, events(id, name, location, company_id)")
+      .select(`*, events(id, name, location, company_id), ${TIMESHEET_BREAKS_SELECT}`)
       .eq("user_id", userId)
       .is("company_id", null)
       .order("clock_in", { ascending: false })
@@ -246,7 +251,7 @@ export async function getCompanyTimesheets(companyId: string) {
   // Primary: filter by company_id (set on newer timesheets)
   const { data: directData, error: directErr } = await supabase
     .from("timesheets")
-    .select("*, users!timesheets_user_id_fkey(first_name, last_name, callsign, avatar_url), events(id, name, location), shifts(id, role, events(id, name, location))")
+    .select(`*, users!timesheets_user_id_fkey(first_name, last_name, callsign, avatar_url), events(id, name, location), shifts(id, role, events(id, name, location)), ${TIMESHEET_BREAKS_SELECT}`)
     .eq("company_id", companyId)
     .order("clock_in", { ascending: false })
     .limit(50);
@@ -266,7 +271,7 @@ export async function getCompanyTimesheets(companyId: string) {
 
   const { data: allTimesheets } = await supabase
     .from("timesheets")
-    .select("*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location, company_id), shifts(id, role, events(id, name, location))")
+    .select(`*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location, company_id), shifts(id, role, events(id, name, location)), ${TIMESHEET_BREAKS_SELECT}`)
     .in("user_id", userIds)
     .is("company_id", null)
     .order("clock_in", { ascending: false })
@@ -319,7 +324,7 @@ export async function getTimesheetsForDateRange(startISO: string, endISO: string
   const supabase = createClient();
   let query = supabase
     .from("timesheets")
-    .select("*")
+    .select(`*, ${TIMESHEET_BREAKS_SELECT}`)
     .eq("user_id", userId)
     .not("clock_out", "is", null)
     .gte("clock_in", startISO)

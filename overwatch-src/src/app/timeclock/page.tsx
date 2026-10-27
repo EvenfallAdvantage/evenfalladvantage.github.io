@@ -23,7 +23,7 @@ import { startLocationWatcher, isLocationSharingEnabled } from "@/lib/supabase/d
 import { usePageHeader } from "@/stores/page-header-store";
 import dynamic from "next/dynamic";
 
-import { getWeekDates, calcHoursNum, type Timesheet, type Shift } from "@/components/timeclock/timeclock-utils";
+import { getWeekDates, calcPayableHoursNum, type Timesheet, type Shift } from "@/components/timeclock/timeclock-utils";
 import { UpcomingShiftCard } from "@/components/timeclock/upcoming-shift-card";
 import { ClockWidget } from "@/components/timeclock/clock-widget";
 import { WeeklyHoursCalendar } from "@/components/timeclock/weekly-hours-calendar";
@@ -240,7 +240,7 @@ function TimeClockInner() {
         const ci = parseUTC(t.clock_in);
         return ci >= dayStart && ci <= dayEnd && t.clock_out;
       })
-      .reduce((sum: number, t: Timesheet) => sum + calcHoursNum(t.clock_in, t.clock_out), 0);
+      .reduce((sum: number, t: Timesheet) => sum + calcPayableHoursNum(t.clock_in, t.clock_out, t, activeCompany?.settings), 0);
   });
   const weekTotal = weekHours.reduce((a, b) => a + b, 0);
   const isCurrentWeek = weekOffset === 0;
@@ -271,7 +271,7 @@ function TimeClockInner() {
           {nextShift && <UpcomingShiftCard shift={nextShift} />}
           <ClockWidget active={active} loading={loading} acting={acting} elapsed={elapsed} onClockIn={handleClockIn} onClockOut={handleClockOut} />
           {/* Break tracker — visible when clocked in */}
-          {active?.id && <BreakTracker timesheetId={active.id} />}
+          {active?.id && !String(active.id).startsWith("offline-") && <BreakTracker timesheetId={active.id} onChange={load} />}
           <WeeklyHoursCalendar
             weekDates={weekDates} weekHours={weekHours} weekTotal={weekTotal}
             weekOffset={weekOffset} isCurrentWeek={isCurrentWeek}

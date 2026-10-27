@@ -14,6 +14,7 @@ const rpc = vi.fn();
 vi.mock("@/lib/supabase/client", () => ({ createClient: () => ({ rpc: (...a: unknown[]) => rpc(...a), from: vi.fn() }) }));
 vi.mock("@/lib/supabase/db-users", () => ({ updateCompanySettings: vi.fn() }));
 import { saveOvertimeConfig, DEFAULT_OT_CONFIG } from "@/lib/supabase/db-overtime";
+import { saveBreakPolicy, DEFAULT_BREAK_POLICY } from "@/lib/supabase/db-breaks";
 import { updateCompanySettings } from "@/lib/supabase/db-users";
 
 afterEach(cleanup);
@@ -40,5 +41,17 @@ describe("pay & overtime access", () => {
   it("surfaces a permission error instead of falling back", async () => {
     rpc.mockResolvedValueOnce({ error: { code: "42501", message: "no" } });
     await expect(saveOvertimeConfig("c1", DEFAULT_OT_CONFIG)).rejects.toMatchObject({ code: "42501" });
+  });
+
+  it("saves break policy through set_company_break_policy RPC and falls back when missing", async () => {
+    vi.mocked(updateCompanySettings).mockClear();
+    rpc.mockResolvedValueOnce({ error: null });
+    await saveBreakPolicy("c1", DEFAULT_BREAK_POLICY);
+    expect(rpc).toHaveBeenCalledWith("set_company_break_policy", { p_company_id: "c1", p_config: DEFAULT_BREAK_POLICY });
+    expect(updateCompanySettings).not.toHaveBeenCalled();
+
+    rpc.mockResolvedValueOnce({ error: { code: "PGRST202" } });
+    await saveBreakPolicy("c1", DEFAULT_BREAK_POLICY);
+    expect(updateCompanySettings).toHaveBeenCalledWith("c1", { break_policy: DEFAULT_BREAK_POLICY });
   });
 });

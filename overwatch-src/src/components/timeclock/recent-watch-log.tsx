@@ -1,8 +1,10 @@
 "use client";
 
-import { History, Flag, Briefcase } from "lucide-react";
+import { Calendar, Flag, Briefcase, UtensilsCrossed, Coffee } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatDateRange, formatTime, calcHours, type Timesheet } from "./timeclock-utils";
+import { useActiveCompany } from "@/stores/auth-store";
+import { calcBreakSummary, calcPayableHours, formatDate, formatTime, type Timesheet } from "./timeclock-utils";
 
 interface RecentWatchLogProps {
   recent: Timesheet[];
@@ -10,46 +12,73 @@ interface RecentWatchLogProps {
 }
 
 export function RecentWatchLog({ recent, onSelectEntry }: RecentWatchLogProps) {
+  const activeCompany = useActiveCompany();
+
   return (
-    <div>
-      <h2 className="mb-3 flex items-center gap-2 section-title">
-        <History className="h-4 w-4" /> Recent Watch Log
-      </h2>
-      {recent.length === 0 ? (
-        <p className="text-sm text-muted-foreground">No completed shifts yet. Clock in to start logging hours.</p>
-      ) : (
-        <div className="space-y-2">
-          {recent.map((ts: Timesheet) => (
-            <button key={ts.id} type="button" onClick={() => onSelectEntry(ts)}
-              className="w-full flex items-center justify-between rounded-lg border border-border/50 bg-card px-4 py-3 hover:bg-muted/30 hover:border-primary/20 transition-colors text-left">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-3">
-                  <div className="text-xs text-muted-foreground font-medium">{formatDateRange(ts.clock_in, ts.clock_out)}</div>
-                  <div className="text-sm">{formatTime(ts.clock_in)} → {formatTime(ts.clock_out)}</div>
-                </div>
-                {ts.events?.name && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <Flag className="h-3 w-3 text-primary/60" />
-                    <span className="text-[10px] text-muted-foreground truncate">{ts.events.name}</span>
+    <Card className="border-border/50">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+          <Calendar className="h-4 w-4" /> Recent Watch Log
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        {recent.length === 0 ? (
+          <p className="py-6 text-center text-sm text-muted-foreground">No timesheet entries yet. Clock in to start tracking.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {recent.map((t: Timesheet) => {
+              const breakSummary = calcBreakSummary(t, activeCompany?.settings);
+              return (
+                <button
+                  key={t.id}
+                  onClick={() => onSelectEntry(t)}
+                  className="flex w-full items-center justify-between rounded-lg border border-border/40 px-3 py-2 text-sm hover:bg-muted/30 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div>
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <span className="font-medium">{formatDate(t.clock_in)}</span>
+                        {t.events?.name ? (
+                          <Badge variant="outline" className="text-[9px] gap-0.5 text-primary border-primary/30">
+                            <Flag className="h-2.5 w-2.5" /> {t.events.name}
+                          </Badge>
+                        ) : t.clock_in_type === "admin" ? (
+                          <Badge variant="outline" className="text-[9px] gap-0.5 text-amber-600 border-amber-500/30">
+                            <Briefcase className="h-2.5 w-2.5" /> Admin
+                          </Badge>
+                        ) : null}
+                        {breakSummary.mealCount > 0 && (
+                          <Badge variant="outline" className="text-[9px] gap-0.5 border-amber-500/30 text-amber-600 dark:text-amber-400">
+                            <UtensilsCrossed className="h-2.5 w-2.5" /> {breakSummary.mealMinutes}m lunch
+                          </Badge>
+                        )}
+                        {breakSummary.restCount > 0 && (
+                          <Badge variant="outline" className="text-[9px] gap-0.5 border-sky-500/30 text-sky-600 dark:text-sky-400">
+                            <Coffee className="h-2.5 w-2.5" /> {breakSummary.restCount}× rest ({breakSummary.restMinutes}m)
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {formatTime(t.clock_in)} — {t.clock_out ? formatTime(t.clock_out) : "Active"}
+                        {breakSummary.unpaidMinutes > 0 && ` (-${breakSummary.unpaidMinutes}m unpaid)`}
+                        {t.notes && !t.events?.name && ` · ${t.notes}`}
+                      </p>
+                    </div>
                   </div>
-                )}
-                {!ts.events?.name && ts.clock_in_type === "admin" && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <Briefcase className="h-3 w-3 text-amber-500/60" />
-                    <span className="text-[10px] text-amber-600/70">Admin</span>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <span className="font-mono text-xs font-semibold">
+                      {calcPayableHours(t.clock_in, t.clock_out, t, activeCompany?.settings)}h
+                    </span>
+                    <Badge variant={t.approved ? "default" : "secondary"} className="text-[10px]">
+                      {t.approved ? "Approved" : t.clock_out ? "Pending" : "Active"}
+                    </Badge>
                   </div>
-                )}
-              </div>
-              <div className="flex items-center gap-2 shrink-0 ml-2">
-                <span className="font-mono text-sm font-semibold">{calcHours(ts.clock_in, ts.clock_out)}h</span>
-                <Badge variant={ts.approved ? "default" : "secondary"} className="text-[10px]">
-                  {ts.approved ? "Approved" : "Pending"}
-                </Badge>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
