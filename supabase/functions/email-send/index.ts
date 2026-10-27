@@ -100,13 +100,15 @@ Deno.serve(async (req) => {
       companyName,
     );
 
-    const from =
-      body.from_override ?? factory.defaultFrom;
+    let effectiveFrom = body.from_override ?? factory.defaultFrom;
     const replyTo = body.reply_to ?? factory.defaultReplyTo;
+    let deliveryMethod = factory.provider.kind;
+    let usedFallback = factory.usedFallback;
+    let primaryError: string | undefined;
 
     const message: EmailMessage = {
       to: body.to,
-      from,
+      from: effectiveFrom,
       replyTo,
       subject: body.subject,
       html: body.html,
@@ -115,32 +117,67 @@ Deno.serve(async (req) => {
       idempotencyKey: body.idempotency_key,
     };
 
-    const result = await factory.provider.send(message);
+    let result = await factory.provider.send(message);
+
+    // Runtime fallback: if a company's custom SMTP/Resend provider failed completely
+    // (e.g. revoked SMTP App Password) and we have the platform Resend fallback,
+    // automatically retry via PlatformProvider (except on explicit test_send).
+    if (
+      !factory.usedFallback &&
+      body.purpose !== "test_send" &&
+      result.accepted.length === 0 &&
+      result.rejected.length > 0 &&
+      factory.fallbackProvider
+    ) {
+      primaryError = result.rejected[0]?.reason;
+      // eslint-disable-next-line no-console -- operational visibility for fallback
+      console.warn(
+        `[email-send] custom ${factory.provider.kind} failed (${primaryError ?? "unknown"}), retrying via PlatformProvider`,
+      );
+      const fallbackFrom =
+        body.from_override ?? factory.fallbackDefaultFrom ?? effectiveFrom;
+      const fallbackResult = await factory.fallbackProvider.send({
+        ...message,
+        from: fallbackFrom,
+      });
+      if (fallbackResult.accepted.length > 0) {
+        result = fallbackResult;
+        effectiveFrom = fallbackFrom;
+        deliveryMethod = factory.fallbackProvider.kind;
+        usedFallback = true;
+      }
+    }
+
+    const logMetadata: Record<string, unknown> = { used_fallback: usedFallback };
+    if (primaryError) {
+      logMetadata.primary_provider_failed = factory.provider.kind;
+      logMetadata.primary_error = primaryError;
+    }
 
     // Log every send (accepted + rejected) into email_send_log.
     const logRows = [
       ...result.accepted.map((toEmail) => ({
         company_id: body.company_id,
-        delivery_method: factory.provider.kind,
+        delivery_method: deliveryMethod,
         to_email: toEmail,
-        from_email: from.email,
+        from_email: effectiveFrom.email,
         subject: body.subject,
         purpose: body.purpose,
         status: "sent" as const,
         provider_id: result.providerMessageId,
-        metadata: { used_fallback: factory.usedFallback },
+        metadata: logMetadata,
       })),
       ...result.rejected.map((r) => ({
         company_id: body.company_id,
-        delivery_method: factory.provider.kind,
+        delivery_method: deliveryMethod,
         to_email: r.to,
-        from_email: from.email,
+        from_email: effectiveFrom.email,
         subject: body.subject,
         purpose: body.purpose,
         status: "rejected" as const,
         provider_id: result.providerMessageId,
         error_message: r.reason,
-        metadata: { used_fallback: factory.usedFallback },
+        metadata: logMetadata,
       })),
     ];
     if (logRows.length > 0) {
@@ -155,8 +192,8 @@ Deno.serve(async (req) => {
 
     return new Response(
       JSON.stringify({
-        delivery_method: factory.provider.kind,
-        used_fallback: factory.usedFallback,
+        delivery_method: deliveryMethod,
+        used_fallback: usedFallback,
         accepted: result.accepted,
         rejected: result.rejected,
         provider_id: result.providerMessageId,

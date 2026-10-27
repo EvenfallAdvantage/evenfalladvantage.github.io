@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import {
   createIntakeToken,
   getIntakeTokens,
-  revokeIntakeToken,
+  deleteIntakeToken,
   type IntakeTokenRow,
 } from "@/lib/supabase/db-client-intake";
 import { logger } from "@/lib/logger";
@@ -59,6 +59,18 @@ function relativeTime(iso: string): string {
   const days = Math.floor(hr / 24);
   if (days < 30) return `${days}d ago`;
   return new Date(iso).toLocaleDateString();
+}
+
+function relativeFutureTime(iso: string): string {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return "expired";
+  const min = Math.ceil(ms / 60000);
+  if (min < 60) return `in ${min}m`;
+  const hr = Math.ceil(min / 60);
+  if (hr < 24) return `in ${hr}h`;
+  const days = Math.ceil(hr / 24);
+  if (days <= 60) return `in ${days}d`;
+  return `on ${new Date(iso).toLocaleDateString()}`;
 }
 
 export function ClientIntakeShareModal({ companyId, userId, open, onClose, eventId, eventName }: ClientIntakeShareModalProps) {
@@ -118,21 +130,25 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose, event
     }
   }
 
-  async function handleRevoke(row: IntakeTokenRow) {
+  async function handleDelete(row: IntakeTokenRow) {
     const ok = await confirm({
-      title: "Revoke intake link?",
-      description: "The client will no longer be able to access or submit this form.",
+      title: "Delete intake link?",
+      description: "This link will be permanently deleted and the client will no longer be able to access or submit this form.",
       variant: "destructive",
-      confirmLabel: "Revoke",
+      confirmLabel: "Delete",
     });
     if (!ok) return;
     try {
-      await revokeIntakeToken(row.id);
-      setTokens(prev => prev.map(t => t.id === row.id ? { ...t, status: "revoked" } : t));
-      toast.success("Link revoked");
+      await deleteIntakeToken(row.id);
+      setTokens(prev => prev.filter(t => t.id !== row.id));
+      if (qrToken === row.token) {
+        setQrToken(null);
+        setQrDataUrl(null);
+      }
+      toast.success("Link deleted");
     } catch (e) {
-      logger.swallow("ClientIntakeShareModal:revoke", e, "warn");
-      toast.error("Failed to revoke link");
+      logger.swallow("ClientIntakeShareModal:delete", e, "warn");
+      toast.error("Failed to delete link");
     }
   }
 
@@ -174,6 +190,7 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose, event
   if (!open) return null;
 
   return (
+    <>
     <div
       ref={dialogRef}
       tabIndex={-1}
@@ -310,7 +327,7 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose, event
                         {row.expires_at && !isExpired && !isRevoked && !isApi && (
                           <>
                             <span className="text-[9px] text-muted-foreground/50">·</span>
-                            <span className="text-[9px] text-muted-foreground/50">expires {relativeTime(row.expires_at)}</span>
+                            <span className="text-[9px] text-muted-foreground/50">expires {relativeFutureTime(row.expires_at)}</span>
                           </>
                         )}
                       </div>
@@ -347,17 +364,15 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose, event
                       >
                         <ExternalLink className="h-3 w-3" />
                       </Button>
-                      {!isRevoked && (
-                        <Button
-                          size="sm" variant="ghost"
-                          className="h-7 w-7 p-0 text-muted-foreground/70 hover:text-red-400"
-                          onClick={() => handleRevoke(row)}
-                          aria-label="Revoke link"
-                          title="Revoke link"
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      )}
+                      <Button
+                        size="sm" variant="ghost"
+                        className="h-7 w-7 p-0 text-muted-foreground/70 hover:text-red-400"
+                        onClick={() => handleDelete(row)}
+                        aria-label="Delete link"
+                        title="Delete link"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
 
@@ -389,7 +404,8 @@ export function ClientIntakeShareModal({ companyId, userId, open, onClose, event
           </Button>
         </div>
       </div>
-      <ConfirmDialog />
     </div>
+    <ConfirmDialog />
+    </>
   );
 }

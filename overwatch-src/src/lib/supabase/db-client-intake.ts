@@ -146,3 +146,12 @@ export async function revokeIntakeToken(tokenId: string) {
     .eq("id", tokenId);
   if (error) throw error;
 }
+
+export async function deleteIntakeToken(tokenId: string) {
+  const supabase = createClient();
+  const { error } = await supabase
+    .from("client_intake_tokens")
+    .delete()
+    .eq("id", tokenId);
+  if (error) throw error;
+}
