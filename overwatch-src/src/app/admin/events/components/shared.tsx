@@ -94,26 +94,52 @@ export const SUCCESS_CRITERIA_OPTIONS = ["No major incidents", "Controlled crowd
 
 /* ── Helpers ───────────────────────────────────────────── */
 
-import { formatInTimezone } from "@/lib/timezone";
+import { parseUTC } from "@/lib/parse-utc";
+import { formatInTimezone, localToUTC, utcToLocalInput, resolveTimezone } from "@/lib/timezone";
 
 export function fmtTime(iso: string, timezone?: string) {
   if (timezone) {
     return formatInTimezone(iso, timezone, { hour: "2-digit", minute: "2-digit" });
   }
-  return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return parseUTC(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 export function fmtDateShort(iso: string) {
+  if (!iso) return "";
+  const m = /^(\d{4}-\d{2}-\d{2})$/.exec(iso.trim());
+  if (m) {
+    return new Date(`${m[1]}T12:00:00`).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+  }
   return new Date(iso).toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
 }
 export function fmtDateLong(dateStr: string) {
   return new Date(dateStr + "T12:00:00").toLocaleDateString([], { weekday: "long", month: "short", day: "numeric" });
 }
-export function getDaysInRange(start: string, end: string): string[] {
+
+function extractDateOnly(val: string, timezone?: string): string | null {
+  if (!val) return null;
+  const trimmed = val.trim();
+  const hasExplicitTz = /[T ]\\d{2}:\\d{2}/.test(trimmed) && /(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(trimmed);
+  if (hasExplicitTz) {
+    return utcToLocalInput(trimmed, resolveTimezone(timezone)).slice(0, 10);
+  }
+  const m = /^(\d{4}-\d{2}-\d{2})/.exec(trimmed);
+  if (m) return m[1];
+  const d = new Date(trimmed);
+  if (isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+export function getDaysInRange(start: string, end: string, timezone?: string): string[] {
+  const sDay = extractDateOnly(start, timezone);
+  const eDay = extractDateOnly(end, timezone);
+  if (!sDay || !eDay) return [];
   const days: string[] = [];
-  const s = new Date(start); s.setHours(0, 0, 0, 0);
-  const e = new Date(end); e.setHours(0, 0, 0, 0);
-  const cur = new Date(s);
-  while (cur <= e) { days.push(cur.toISOString().split("T")[0]); cur.setDate(cur.getDate() + 1); }
+  const cur = new Date(`${sDay}T12:00:00Z`);
+  const endDt = new Date(`${eDay}T12:00:00Z`);
+  while (cur <= endDt) {
+    days.push(cur.toISOString().slice(0, 10));
+    cur.setUTCDate(cur.getUTCDate() + 1);
+  }
   return days;
 }
 
@@ -153,15 +179,13 @@ export function parseHHMM(value: string): { h: number; m: number } | null {
   return { h, m };
 }
 
-import { localToUTC } from "@/lib/timezone";
-
 export function toISO(dateStr: string, h: number, m: number, nextDay: boolean, timezone?: string) {
   if (timezone) {
     // Build a local datetime string and convert using the event timezone
     let day = dateStr; // "YYYY-MM-DD"
     if (nextDay) {
-      const d = new Date(dateStr + "T12:00:00");
-      d.setDate(d.getDate() + 1);
+      const d = new Date(dateStr + "T12:00:00Z");
+      d.setUTCDate(d.getUTCDate() + 1);
       day = d.toISOString().slice(0, 10);
     }
     const local = `${day}T${pad2(h)}:${pad2(m)}`;
@@ -174,10 +198,19 @@ export function toISO(dateStr: string, h: number, m: number, nextDay: boolean, t
   return d.toISOString();
 }
 
-export function groupByDay(shifts: Shift[]): Map<string, Shift[]> {
+/**
+ * Convert a UTC ISO timestamp (with or without trailing Z) to its YYYY-MM-DD
+ * calendar date in the given IANA timezone (falling back to browser timezone).
+ */
+export function shiftDayInTz(iso: string, timezone?: string): string {
+  const tz = resolveTimezone(timezone);
+  return utcToLocalInput(iso, tz).slice(0, 10);
+}
+
+export function groupByDay(shifts: Shift[], timezone?: string): Map<string, Shift[]> {
   const m = new Map<string, Shift[]>();
   for (const sh of shifts) {
-    const day = new Date(sh.start_time).toISOString().split("T")[0];
+    const day = shiftDayInTz(sh.start_time, timezone ?? sh.events?.timezone);
     if (!m.has(day)) m.set(day, []);
     m.get(day)!.push(sh);
   }

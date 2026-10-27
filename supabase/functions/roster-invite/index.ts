@@ -258,6 +258,7 @@ Deno.serve(async (req) => {
         // generateLink errors with "email already registered".)
         let authUserExists = false;
         let authUserConfirmed = false;
+        let authUserLinkedInPublicUsers = false;
         try {
           const { data: authList } = await admin.auth.admin.listUsers({
             page: 1,
@@ -268,6 +269,20 @@ Deno.serve(async (req) => {
           if (au && au.email && au.email.toLowerCase() === u.email.toLowerCase()) {
             authUserExists = true;
             authUserConfirmed = Boolean(au.confirmed_at);
+            if (authUserConfirmed) {
+              // Only treat as cross-company if this auth.users row is already
+              // linked to a public.users profile. If public.users.supabase_id
+              // is still NULL everywhere for this auth user (e.g. an auth.users
+              // row seeded manually for testing or confirmed by clicking a prior
+              // invite link before setting a password), they still need a
+              // password-setup link.
+              const { data: linkedRows } = await admin
+                .from("users")
+                .select("id")
+                .eq("supabase_id", au.id)
+                .limit(1);
+              authUserLinkedInPublicUsers = Boolean(linkedRows && linkedRows.length > 0);
+            }
           }
         } catch (_listErr) {
           // If listUsers fails, fall through and let the generateLink path
@@ -275,9 +290,10 @@ Deno.serve(async (req) => {
           // "already registered" edge case so we never hard-fail.
           authUserExists = false;
           authUserConfirmed = false;
+          authUserLinkedInPublicUsers = false;
         }
 
-        if (authUserExists && authUserConfirmed) {
+        if (authUserExists && authUserConfirmed && authUserLinkedInPublicUsers) {
           // ── Cross-company notification path ──
           // The user already has an Overwatch account elsewhere. Don't
           // generate a password-reset link — that would confuse them with
@@ -394,7 +410,7 @@ Deno.serve(async (req) => {
           ? await generateSetupLink("recovery")
           : primary;
 
-        if (linkErr || !linkData?.properties?.action_link) {
+        if (linkErr || (!linkData?.properties?.action_link && !linkData?.properties?.hashed_token)) {
           results.push({
             membership_id: m.id,
             status: "error",
@@ -402,7 +418,10 @@ Deno.serve(async (req) => {
           });
           continue;
         }
-        const actionLink = linkData.properties.action_link;
+        const verifyType = linkData.properties.verification_type || (needsRecovery ? "recovery" : "invite");
+        const actionLink = linkData.properties.hashed_token
+          ? `${siteUrl}/overwatch/auth/update-password/?invite=1&token_hash=${encodeURIComponent(linkData.properties.hashed_token)}&type=${encodeURIComponent(verifyType)}`
+          : linkData.properties.action_link;
 
         const { subject, html, text } = buildInvitationEmail({
           firstName: u.first_name ?? "",

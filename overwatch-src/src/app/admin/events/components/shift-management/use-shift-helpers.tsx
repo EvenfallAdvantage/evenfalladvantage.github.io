@@ -6,6 +6,7 @@ import {
   getDaysInRange, groupByDay,
 } from "../shared";
 import { formatMemberName } from "@/lib/format-names";
+import { parseUTC } from "@/lib/parse-utc";
 
 /**
  * Custom hook that derives computed data from shift/member/availability inputs.
@@ -17,10 +18,11 @@ export function useShiftDerivedData(
   shifts: Shift[],
   members: Member[],
   availability: OperationAvailability[],
+  eventTimezone?: string,
 ) {
   /* ── Derived ── */
-  const opDays = getDaysInRange(startDate, endDate);
-  const shiftsByDay = groupByDay(shifts);
+  const opDays = getDaysInRange(startDate, endDate, eventTimezone);
+  const shiftsByDay = groupByDay(shifts, eventTimezone);
 
   // Availability lookup
   const availByUser = new Map<string, string>();
@@ -41,8 +43,8 @@ export function useShiftDerivedData(
     for (let j = i + 1; j < assignedShifts.length; j++) {
       const a = assignedShifts[i], b = assignedShifts[j];
       if (a.assigned_user_id === b.assigned_user_id &&
-          new Date(a.start_time) < new Date(b.end_time) &&
-          new Date(a.end_time) > new Date(b.start_time)) {
+          parseUTC(a.start_time) < parseUTC(b.end_time) &&
+          parseUTC(a.end_time) > parseUTC(b.start_time)) {
         adminConflictIds.add(a.id); adminConflictIds.add(b.id);
       }
     }

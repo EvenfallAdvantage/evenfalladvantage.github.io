@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { parseUTC } from "@/lib/parse-utc";
+import { utcToLocalInput, resolveTimezone } from "@/lib/timezone";
 import { fmtDateRange, fmtTime, statusColor, type Shift } from "./schedule-helpers";
 
 export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
@@ -19,25 +20,27 @@ export function ShiftAccordion({ shifts, highlight, conflictIds, timezone }: {
   const [view, setView] = useState<"list" | "calendar">("calendar");
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
 
-  // Group shifts by day for calendar
+  // Group shifts by day in the event timezone for calendar
+  const effectiveTz = resolveTimezone(timezone);
   const shiftsByDay = new Map<string, Shift[]>();
   for (const sh of shifts) {
-    const day = parseUTC(sh.start_time).toISOString().slice(0, 10);
+    const shTz = resolveTimezone(timezone ?? sh.events?.timezone);
+    const day = utcToLocalInput(sh.start_time, shTz).slice(0, 10);
     if (!shiftsByDay.has(day)) shiftsByDay.set(day, []);
     shiftsByDay.get(day)!.push(sh);
   }
 
   // Calendar grid: span from first to last shift day, padded to full weeks
   const sortedDays = Array.from(shiftsByDay.keys()).sort();
-  const firstDay = sortedDays.length > 0 ? new Date(sortedDays[0] + "T12:00:00") : new Date();
-  const lastDay = sortedDays.length > 0 ? new Date(sortedDays[sortedDays.length - 1] + "T12:00:00") : new Date();
-  const startOfWeek = new Date(firstDay); startOfWeek.setDate(firstDay.getDate() - firstDay.getDay());
-  const endOfWeek = new Date(lastDay); endOfWeek.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
+  const firstDay = sortedDays.length > 0 ? new Date(sortedDays[0] + "T12:00:00Z") : new Date();
+  const lastDay = sortedDays.length > 0 ? new Date(sortedDays[sortedDays.length - 1] + "T12:00:00Z") : new Date();
+  const startOfWeek = new Date(firstDay); startOfWeek.setUTCDate(firstDay.getUTCDate() - firstDay.getUTCDay());
+  const endOfWeek = new Date(lastDay); endOfWeek.setUTCDate(lastDay.getUTCDate() + (6 - lastDay.getUTCDay()));
   const calDays: string[] = [];
   const cur = new Date(startOfWeek);
-  while (cur <= endOfWeek) { calDays.push(cur.toISOString().slice(0, 10)); cur.setDate(cur.getDate() + 1); }
+  while (cur <= endOfWeek) { calDays.push(cur.toISOString().slice(0, 10)); cur.setUTCDate(cur.getUTCDate() + 1); }
   const opDaySet = new Set(sortedDays);
-  const todayStr = new Date().toISOString().slice(0, 10);
+  const todayStr = utcToLocalInput(new Date().toISOString(), effectiveTz).slice(0, 10);
 
   return (
     <div className="mt-2 ml-14 border-t border-primary/10 pt-2">

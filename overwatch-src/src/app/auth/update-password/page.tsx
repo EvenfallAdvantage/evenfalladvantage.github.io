@@ -64,11 +64,13 @@ function UpdatePasswordPage() {
   const [error, setError] = useState("");
   const [sessionReady, setSessionReady] = useState(false);
   const readyRef = useRef(false);
+  const verifyingRef = useRef(false);
 
   const pwCheck = password.length > 0 ? checkPasswordStrength(password) : null;
   const mismatch = confirm.length > 0 && password !== confirm;
 
-  // Wait for Supabase to process the recovery token from the URL hash
+  // Process invite / recovery tokens from query params (?token_hash=..., ?code=...)
+  // or implicit-flow URL hash (#access_token=...&refresh_token=...).
   useEffect(() => {
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event: string) => {
@@ -80,10 +82,100 @@ function UpdatePasswordPage() {
       }
     });
 
-    // Also check if already authenticated
-    supabase.auth.getSession().then(({ data }: { data: { session: { user: { id: string } } | null } }) => {
-      if (data.session) { readyRef.current = true; setSessionReady(true); setError(""); }
-    });
+    async function resolveUrlAuth() {
+      if (verifyingRef.current || typeof window === "undefined") return;
+      verifyingRef.current = true;
+
+      const url = new URL(window.location.href);
+      const tokenHash = url.searchParams.get("token_hash");
+      const typeParam = url.searchParams.get("type");
+      const code = url.searchParams.get("code");
+      const hashRaw = window.location.hash ? window.location.hash.substring(1) : "";
+      const hashParams = new URLSearchParams(hashRaw);
+      const accessToken = hashParams.get("access_token");
+      const refreshToken = hashParams.get("refresh_token");
+      const explicitError =
+        hashParams.get("error_description") ||
+        hashParams.get("error") ||
+        url.searchParams.get("error_description") ||
+        url.searchParams.get("error");
+      let tokenAttemptFailed = false;
+
+      // a) Direct token_hash verification (?token_hash=...&type=invite|recovery)
+      if (tokenHash) {
+        const otpType =
+          typeParam === "invite" || typeParam === "recovery" || typeParam === "email"
+            ? typeParam
+            : "recovery";
+        const { data, error: otpErr } = await supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: otpType,
+        });
+        if (!otpErr && data.session) {
+          readyRef.current = true;
+          setSessionReady(true);
+          setError("");
+          url.searchParams.delete("token_hash");
+          url.searchParams.delete("type");
+          window.history.replaceState({}, "", url.pathname + url.search);
+          return;
+        }
+        tokenAttemptFailed = true;
+        if (otpErr) {
+          console.warn("[update-password] verifyOtp error:", otpErr.message);
+        }
+      }
+
+      // b) Implicit flow hash (#access_token=...&refresh_token=...) from GoTrue /auth/v1/verify
+      // @supabase/ssr defaults to flowType: "pkce" and rejects implicit hash URLs during auto-init,
+      // so we explicitly hydrate the session with setSession().
+      if (accessToken && refreshToken) {
+        const { data, error: setErr } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        });
+        if (!setErr && data.session) {
+          readyRef.current = true;
+          setSessionReady(true);
+          setError("");
+          window.history.replaceState({}, "", url.pathname + url.search);
+          return;
+        }
+        tokenAttemptFailed = true;
+        if (setErr) {
+          console.warn("[update-password] setSession error:", setErr.message);
+        }
+      }
+
+      // c) PKCE code (?code=...)
+      if (code) {
+        const { data, error: codeErr } = await supabase.auth.exchangeCodeForSession(code);
+        if (!codeErr && data.session) {
+          readyRef.current = true;
+          setSessionReady(true);
+          setError("");
+          url.searchParams.delete("code");
+          window.history.replaceState({}, "", url.pathname + url.search);
+          return;
+        }
+        tokenAttemptFailed = true;
+      }
+
+      // d) Fallback: check if already authenticated in storage/cookies
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (sessionData.session) {
+        readyRef.current = true;
+        setSessionReady(true);
+        setError("");
+        return;
+      }
+
+      if ((explicitError || tokenAttemptFailed) && !readyRef.current) {
+        setError(expiredLinkMessage(isInviteFlow));
+      }
+    }
+
+    void resolveUrlAuth();
 
     // Read a ref, not the `sessionReady` state captured by this closure
     // (always false), which showed "link expired" even after success.

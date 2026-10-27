@@ -30,6 +30,25 @@ export function fmtTime(iso: string, timezone?: string) {
   return parseUTC(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
+function hasExplicitTz(iso: string): boolean {
+  const s = (iso ?? "").trim();
+  return /[T ]\\d{2}:\\d{2}/.test(s) && /(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(s);
+}
+
+export function fmtEventDate(iso: string, timezone?: string) {
+  if (!iso) return "";
+  if (hasExplicitTz(iso)) return fmtDate(iso, timezone);
+  const d = new Date(iso.trim().replace(" ", "T"));
+  return d.toLocaleDateString([], { weekday: "short", month: "short", day: "numeric" });
+}
+
+export function fmtEventTime(iso: string, timezone?: string) {
+  if (!iso) return "";
+  if (hasExplicitTz(iso)) return fmtTime(iso, timezone);
+  const d = new Date(iso.trim().replace(" ", "T"));
+  return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+}
+
 export function statusColor(s: string) {
   if (s === "published" || s === "confirmed") return "bg-green-500/15 text-green-600";
   if (s === "draft") return "bg-amber-500/15 text-amber-600";

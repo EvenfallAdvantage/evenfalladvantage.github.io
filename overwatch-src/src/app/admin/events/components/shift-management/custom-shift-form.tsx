@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { toast } from "sonner";
 import {
   getEventShifts, createShift, getConflictingShifts,
 } from "@/lib/supabase/db";
@@ -44,6 +45,10 @@ export function CustomShiftForm({
     // Convert datetime-local inputs from event timezone to UTC
     const utcStart = eventTimezone ? localToUTC(cStart, eventTimezone) : new Date(cStart).toISOString();
     const utcEnd = eventTimezone ? localToUTC(cEnd, eventTimezone) : new Date(cEnd).toISOString();
+    if (new Date(utcEnd).getTime() <= new Date(utcStart).getTime()) {
+      toast.error("Shift end time must be after start time");
+      return;
+    }
     const shiftPostOrders = cPostOrders.trim() || undefined;
     if (cAssign) {
       try {

@@ -10,11 +10,12 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { parseUTC } from "@/lib/parse-utc";
+import { utcToLocalInput, resolveTimezone } from "@/lib/timezone";
 import type { OperationDocument } from "@/types/operations";
 import type { AvailabilityStatus } from "@/lib/supabase/db-availability";
 import { DocsPopup } from "@/components/ops/staff-doc-viewer";
 import { ShiftAccordion } from "./shift-accordion";
-import { fmtDate, fmtDateRange, fmtTime, statusColor, type Ev, type Shift } from "./schedule-helpers";
+import { fmtDate, fmtDateRange, fmtTime, fmtEventDate, fmtEventTime, statusColor, type Ev, type Shift } from "./schedule-helpers";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
 
 interface ScheduleTabProps {
@@ -49,17 +50,29 @@ export function ScheduleTab({
     );
   }
 
-  const today = new Date(); today.setHours(0, 0, 0, 0);
-  const isToday = (iso: string) => { const d = parseUTC(iso); d.setHours(0, 0, 0, 0); return d.getTime() === today.getTime(); };
-  const isCurrent = (startIso: string, endIso: string) => {
-    const s = parseUTC(startIso); s.setHours(0, 0, 0, 0);
-    const e = parseUTC(endIso); e.setHours(0, 0, 0, 0);
-    return s.getTime() <= today.getTime() && e.getTime() >= today.getTime();
+  const nowIso = new Date().toISOString();
+  const isToday = (iso: string, tz?: string) => {
+    const resolved = resolveTimezone(tz);
+    return utcToLocalInput(iso, resolved).slice(0, 10) === utcToLocalInput(nowIso, resolved).slice(0, 10);
   };
-  const currentShifts = shifts.filter((sh: Shift) => isToday(sh.start_time));
-  const upcomingShifts = shifts.filter((sh: Shift) => !isToday(sh.start_time));
-  const currentEvents = events.filter((ev: Ev) => isCurrent(ev.start_date, ev.end_date));
-  const upcomingEvents = events.filter((ev: Ev) => !isCurrent(ev.start_date, ev.end_date));
+  const extractEventDay = (val: string, tz?: string) => {
+    const trimmed = (val ?? "").trim();
+    const hasExplicitTz = /[T ]\\d{2}:\\d{2}/.test(trimmed) && /(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(trimmed);
+    if (hasExplicitTz) return utcToLocalInput(trimmed, resolveTimezone(tz)).slice(0, 10);
+    const m = /^(\d{4}-\d{2}-\d{2})/.exec(trimmed);
+    if (m) return m[1];
+    return utcToLocalInput(trimmed, resolveTimezone(tz)).slice(0, 10);
+  };
+  const isCurrent = (startIso: string, endIso: string, tz?: string) => {
+    const todayInTz = utcToLocalInput(nowIso, resolveTimezone(tz)).slice(0, 10);
+    const sDay = extractEventDay(startIso, tz);
+    const eDay = extractEventDay(endIso, tz);
+    return sDay <= todayInTz && eDay >= todayInTz;
+  };
+  const currentShifts = shifts.filter((sh: Shift) => isToday(sh.start_time, sh.events?.timezone));
+  const upcomingShifts = shifts.filter((sh: Shift) => !isToday(sh.start_time, sh.events?.timezone));
+  const currentEvents = events.filter((ev: Ev) => isCurrent(ev.start_date, ev.end_date, ev.timezone));
+  const upcomingEvents = events.filter((ev: Ev) => !isCurrent(ev.start_date, ev.end_date, ev.timezone));
 
   // Detect conflicting shifts (same user, overlapping time ranges)
   const conflictIds = new Set<string>();
@@ -103,7 +116,7 @@ export function ScheduleTab({
           <div className="flex-1 min-w-0">
             <p className="font-medium text-sm">{ev.name}</p>
             <p className="text-xs text-muted-foreground">
-              {fmtDate(ev.start_date, tz)} · {fmtTime(ev.start_date, tz)} — {fmtTime(ev.end_date, tz)}
+              {fmtEventDate(ev.start_date, tz)} · {fmtEventTime(ev.start_date, tz)} — {fmtEventTime(ev.end_date, tz)}
             </p>
             {ev.location && (
               <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">

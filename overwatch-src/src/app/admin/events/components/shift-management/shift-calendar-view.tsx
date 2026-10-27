@@ -3,7 +3,8 @@
 import { Calendar, Check, X, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from "@/components/ui/tooltip";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { type Shift, type Member, fmtDateLong } from "../shared";
+import { type Shift, type Member, fmtDateLong, shiftDayInTz } from "../shared";
+import { parseUTC } from "@/lib/parse-utc";
 import { formatMemberName, memberInitials } from "@/lib/format-names";
 import { ShiftRow } from "./shift-row";
 
@@ -50,20 +51,21 @@ export function ShiftCalendarView({
       </div>
     );
   }
-  const sortedDays = Array.from(shiftsByDay.entries()).sort(([a], [b]) => a.localeCompare(b));
-  const firstDay = new Date(sortedDays[0][0] + "T12:00:00");
+  const allDayKeys = Array.from(new Set([...opDays, ...shiftsByDay.keys()])).sort();
+  const firstDay = new Date(allDayKeys[0] + "T12:00:00Z");
   const startOfWeek = new Date(firstDay);
-  startOfWeek.setDate(firstDay.getDate() - firstDay.getDay());
-  const lastDay = new Date(sortedDays[sortedDays.length - 1][0] + "T12:00:00");
+  startOfWeek.setUTCDate(firstDay.getUTCDate() - firstDay.getUTCDay());
+  const lastDay = new Date(allDayKeys[allDayKeys.length - 1] + "T12:00:00Z");
   const endOfWeek = new Date(lastDay);
-  endOfWeek.setDate(lastDay.getDate() + (6 - lastDay.getDay()));
+  endOfWeek.setUTCDate(lastDay.getUTCDate() + (6 - lastDay.getUTCDay()));
   const calDays: string[] = [];
   const cur = new Date(startOfWeek);
   while (cur <= endOfWeek) {
     calDays.push(cur.toISOString().slice(0, 10));
-    cur.setDate(cur.getDate() + 1);
+    cur.setUTCDate(cur.getUTCDate() + 1);
   }
   const opDaySet = new Set(opDays);
+  const todayStr = shiftDayInTz(new Date().toISOString(), eventTimezone);
 
   const memberMap = new Map<string, { fn: string; ln: string; cs: string; role: string; avatar: string }>();
   members.forEach((m: Member) => { if (m.users?.id) memberMap.set(m.users.id, { fn: m.users.first_name ?? "", ln: m.users.last_name ?? "", cs: m.users.callsign ?? "", role: m.role ?? "member", avatar: m.users.avatar_url ?? "" }); });
@@ -78,16 +80,16 @@ export function ShiftCalendarView({
       <div className="grid grid-cols-7 gap-1">
         {calDays.map(day => {
           const dayShifts = shiftsByDay.get(day) ?? [];
-          const isOpDay = opDaySet.has(day);
+          const isOpDay = opDaySet.has(day) || dayShifts.length > 0;
           const filled = dayShifts.filter((s: Shift) => s.assigned_user_id).length;
           const open = dayShifts.length - filled;
           const hasConflicts = dayShifts.some((s: Shift) => adminConflictIds.has(s.id));
           const isSelected = calendarDay === day;
           const dayNum = new Date(day + "T12:00:00").getDate();
-          const isToday = day === new Date().toISOString().slice(0, 10);
+          const isToday = day === todayStr;
           const totalHrs = dayShifts.reduce((sum: number, s: Shift) => {
-            const ms = new Date(s.end_time).getTime() - new Date(s.start_time).getTime();
-            return sum + (ms > 0 ? ms / 3600000 : ms / 3600000 + 24);
+            const ms = parseUTC(s.end_time).getTime() - parseUTC(s.start_time).getTime();
+            return sum + (ms > 0 ? ms / 3600000 : 0);
           }, 0);
           const uniqueStaff = [...new Set(dayShifts.filter((s: Shift) => s.assigned_user_id).map((s: Shift) => s.assigned_user_id as string))];
           const staffData = uniqueStaff.slice(0, 3).map(uid => {
