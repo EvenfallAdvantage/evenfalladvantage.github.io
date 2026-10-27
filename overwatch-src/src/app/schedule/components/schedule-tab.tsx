@@ -15,7 +15,7 @@ import type { OperationDocument } from "@/types/operations";
 import type { AvailabilityStatus } from "@/lib/supabase/db-availability";
 import { DocsPopup } from "@/components/ops/staff-doc-viewer";
 import { ShiftAccordion } from "./shift-accordion";
-import { fmtDate, fmtDateRange, fmtTime, fmtEventDate, fmtEventTime, statusColor, type Ev, type Shift } from "./schedule-helpers";
+import { fmtDateRange, fmtTime, fmtEventDate, fmtEventTime, statusColor, type Ev, type Shift } from "./schedule-helpers";
 import type { OperationAvailability } from "@/lib/supabase/db-availability";
 
 interface ScheduleTabProps {
