@@ -7,7 +7,7 @@ vi.mock("@/lib/supabase/client", () => ({
   createClient: () => mockClient,
 }));
 
-import { getIntakeByToken, submitIntakeData, createIntakeToken } from "@/lib/supabase/db-client-intake";
+import { getIntakeByToken, submitIntakeData, createIntakeToken, deleteIntakeToken } from "@/lib/supabase/db-client-intake";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -86,5 +86,23 @@ describe("createIntakeToken()", () => {
     await createIntakeToken({ companyId: "c1", createdBy: "u1" });
     const inserted = queryBuilder.insert.mock.calls[0][0] as { token: string };
     expect(inserted.token).toMatch(/^[0-9a-f]{32}$/);
+  });
+});
+
+describe("deleteIntakeToken()", () => {
+  it("deletes the token row from client_intake_tokens by id", async () => {
+    setMockResponse({ data: null, error: null });
+    await deleteIntakeToken("tok-id-1");
+    expect(mockClient.from).toHaveBeenCalledWith("client_intake_tokens");
+    expect(queryBuilder.delete).toHaveBeenCalled();
+    expect(queryBuilder.eq).toHaveBeenCalledWith("id", "tok-id-1");
+  });
+
+  it("throws when Supabase returns an error", async () => {
+    setMockResponse({ data: null, error: { code: "42501", message: "forbidden" } });
+    await expect(deleteIntakeToken("tok-id-1")).rejects.toEqual({
+      code: "42501",
+      message: "forbidden",
+    });
   });
 });

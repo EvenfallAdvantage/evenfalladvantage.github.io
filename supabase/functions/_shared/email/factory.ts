@@ -40,6 +40,10 @@ export interface FactoryResult {
   defaultReplyTo?: { email: string };
   /** Tells the caller whether we ended up using the platform fallback. */
   usedFallback: boolean;
+  /** Platform fallback provider if the primary custom provider fails at send time. */
+  fallbackProvider?: EmailProvider;
+  /** Default From-address to use when retrying via fallbackProvider. */
+  fallbackDefaultFrom?: { email: string; name?: string };
 }
 
 /**
@@ -66,9 +70,12 @@ export async function resolveProviderForCompany(
     platformFromName,
   };
 
-  const fallback = (): FactoryResult => ({
+  const platformDefaultFrom = { email: platformFromEmail, name: companyName };
+
+  const fallback = (replyToEmail?: string | null): FactoryResult => ({
     provider: new PlatformProvider(platformConfig),
-    defaultFrom: { email: platformFromEmail, name: companyName },
+    defaultFrom: platformDefaultFrom,
+    defaultReplyTo: replyToEmail ? { email: replyToEmail } : undefined,
     usedFallback: true,
   });
 
@@ -99,11 +106,11 @@ export async function resolveProviderForCompany(
     return fallback();
   }
   if (!row || !row.is_active || !row.verified_at || !row.delivery_method) {
-    return fallback();
+    return fallback(row?.reply_to);
   }
 
   const cfg = row as CompanyEmailConfig & { is_active: boolean };
-  if (!cfg.vault_secret_id) return fallback();
+  if (!cfg.vault_secret_id) return fallback(cfg.reply_to);
 
   let secret: Record<string, unknown>;
   try {
@@ -111,7 +118,7 @@ export async function resolveProviderForCompany(
   } catch (e) {
     // eslint-disable-next-line no-console -- needed for production debugging
     console.warn("[email/factory] vault read failed:", e instanceof Error ? e.message : e);
-    return fallback();
+    return fallback(cfg.reply_to);
   }
 
   const defaultFrom = {
@@ -119,28 +126,35 @@ export async function resolveProviderForCompany(
     name: cfg.from_name ?? companyName,
   };
   const defaultReplyTo = cfg.reply_to ? { email: cfg.reply_to } : undefined;
+  const fallbackProvider = platformApiKey
+    ? new PlatformProvider(platformConfig)
+    : undefined;
 
   if (cfg.delivery_method === "smtp") {
     const smtpCfg = secret as unknown as SmtpConfig;
     if (!smtpCfg.host || !smtpCfg.port || !smtpCfg.username || !smtpCfg.password) {
-      return fallback();
+      return fallback(cfg.reply_to);
     }
     return {
       provider: new SmtpProvider(smtpCfg),
       defaultFrom,
       defaultReplyTo,
       usedFallback: false,
+      fallbackProvider,
+      fallbackDefaultFrom: platformDefaultFrom,
     };
   }
   if (cfg.delivery_method === "resend") {
     const resendCfg = secret as unknown as ResendConfig;
-    if (!resendCfg.apiKey) return fallback();
+    if (!resendCfg.apiKey) return fallback(cfg.reply_to);
     return {
       provider: new ResendProvider(resendCfg),
       defaultFrom,
       defaultReplyTo,
       usedFallback: false,
+      fallbackProvider,
+      fallbackDefaultFrom: platformDefaultFrom,
     };
   }
-  return fallback();
+  return fallback(cfg.reply_to);
 }
