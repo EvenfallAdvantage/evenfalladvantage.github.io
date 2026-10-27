@@ -66,3 +66,7 @@ c772cc64f549c2790143c720835881e8fe632eb4:student-portal/js/supabase-config.js:jw
 
 # supabase-service-role-jwt under overwatch-src/ (1)
 cb71f6967f6149da467bec9af2e9f0dd213d845b:overwatch-src/scripts/geocode-frequencies.js:supabase-service-role-jwt:10
+
+# generic-api-key false positives under supabase/ (doc comments listing ALBERTA511_API_KEY env var name) (2)
+903996498b1660987cb07bdaabc5093aefbd46f9:supabase/functions/_shared/cctv/sources.ts:generic-api-key:124
+903996498b1660987cb07bdaabc5093aefbd46f9:supabase/functions/intel-cctv-ingest/index.ts:generic-api-key:17

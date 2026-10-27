@@ -53,9 +53,9 @@ regexes = [
 ]
 
 [[allowlists]]
-description = "Environment variable NAMES (not values), e.g. lists of supported *_API_KEY secrets"
+description = "Environment variable NAMES (not values), e.g. lists of supported *_API_KEY secrets (with optional trailing prose punctuation)"
 regexTarget = "secret"
-regexes = ['''^[A-Z][A-Z0-9_]*_(API_KEY|TOKEN|SECRET|KEY)$''']
+regexes = ['''^[A-Z][A-Z0-9_]*_(API_KEY|TOKEN|SECRET|KEY)[.,;:]?$''']
 
 [[allowlists]]
 description = "Public intake-only key for the website estimate forms: visible in page source by design, origin-locked, intake:write scope only (see js/lead-config.js header). Rotate in Overwatch > Settings > API Sources."
