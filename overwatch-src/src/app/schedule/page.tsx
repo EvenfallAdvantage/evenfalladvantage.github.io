@@ -279,8 +279,9 @@ export default function SchedulePage() {
         const u = Array.isArray(sh.users) ? sh.users[0] : sh.users;
         if (!u?.id) continue;
         const firstName = u.first_name ?? "Team member";
-        const shiftDate = fmtDate(sh.start_time);
-        const shiftTime = `${fmtTime(sh.start_time)} — ${fmtTime(sh.end_time)}`;
+        const tz = sh.events?.timezone ?? undefined;
+        const shiftDate = fmtDate(sh.start_time, tz);
+        const shiftTime = `${fmtTime(sh.start_time, tz)} — ${fmtTime(sh.end_time, tz)}`;
         const location = sh.events?.location;
         // In-app + email + SMS (server-side via notify-send).
         dispatch({ userId: u.id, companyId: activeCompanyId, title: "Shift Reminder", body: `${shiftDate} at ${shiftTime}${location ? ` — ${location}` : ""}`, type: "shift_reminder", actionUrl: "/schedule", urgent: true, emailFallback: true }).catch(() => {});

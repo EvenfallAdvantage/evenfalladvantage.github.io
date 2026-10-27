@@ -54,7 +54,7 @@ export function ShiftManagement({
   /* ── Derived ── */
   const {
     opDays, shiftsByDay, availByUser, sortedMembers, adminConflictIds,
-  } = useShiftDerivedData(startDate, endDate, shifts, members, availability);
+  } = useShiftDerivedData(startDate, endDate, shifts, members, availability, eventTimezone);
 
   /* ── Fetch user certifications on mount ── */
   useEffect(() => {

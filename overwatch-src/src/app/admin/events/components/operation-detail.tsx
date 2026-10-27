@@ -18,7 +18,8 @@ import type { TlpStep } from "@/types/operations";
 import StoryboardEditor from "@/components/storyboard-editor";
 import type { StoryboardPin } from "@/components/storyboard-editor";
 import type { ConflictWarningData } from "./conflict-warning-modal";
-import { type Event, type Shift, type Member } from "./shared";
+import { type Event, type Shift, type Member, getDaysInRange } from "./shared";
+import { parseUTC } from "@/lib/parse-utc";
 
 import { StatsBar } from "./stats-bar";
 import { ActivityFeed } from "./activity-feed";
@@ -145,21 +146,14 @@ export function OperationDetail({
     for (let j = i + 1; j < assignedShifts.length; j++) {
       const a = assignedShifts[i], b = assignedShifts[j];
       if (a.assigned_user_id === b.assigned_user_id &&
-          new Date(a.start_time) < new Date(b.end_time) &&
-          new Date(a.end_time) > new Date(b.start_time)) {
+          parseUTC(a.start_time) < parseUTC(b.end_time) &&
+          parseUTC(a.end_time) > parseUTC(b.start_time)) {
         adminConflictIds.add(a.id); adminConflictIds.add(b.id);
       }
     }
   }
 
-  const opDaysCount = (() => {
-    const days: string[] = [];
-    const s = new Date(ev.start_date); s.setHours(0, 0, 0, 0);
-    const e = new Date(ev.end_date); e.setHours(0, 0, 0, 0);
-    const cur = new Date(s);
-    while (cur <= e) { days.push(cur.toISOString().split("T")[0]); cur.setDate(cur.getDate() + 1); }
-    return days.length;
-  })();
+  const opDaysCount = getDaysInRange(ev.start_date, ev.end_date, ev.timezone ?? undefined).length;
 
   /* ── Storyboard save handler ── */
 
