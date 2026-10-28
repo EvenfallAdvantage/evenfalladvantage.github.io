@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Ruler, Crosshair, Pencil, Pentagon, Circle, ArrowRight, Type, Minus, Trash2, Check, X, Eye, Mountain } from "lucide-react";
 
 export type ActiveTool = "none" | "measure" | "range-rings" | "los" | "elevation";
@@ -11,7 +12,7 @@ interface MeasureResult {
   bearing: number;
 }
 
-interface MapToolsProps {
+export interface MapToolsProps {
   activeTool: ActiveTool;
   onToolChange: (tool: ActiveTool) => void;
   measureResult: MeasureResult | null;
@@ -24,6 +25,8 @@ interface MapToolsProps {
   drawColor: string;
   onDrawColorChange: (color: string) => void;
   drawPointCount: number;
+  drawLabel?: string;
+  onDrawLabelChange?: (label: string) => void;
   onDrawFinish: () => void;
   onDrawCancel: () => void;
   onDrawClearAll: () => void;
@@ -35,65 +38,264 @@ const DRAW_COLORS = ["#ef4444", "#f97316", "#eab308", "#22c55e", "#06b6d4", "#3b
 export function MapToolsBar({
   activeTool, onToolChange, measureResult, rangeCenter, losResult, elevationStatus,
   drawMode, onDrawModeChange, drawColor, onDrawColorChange,
-  drawPointCount, onDrawFinish, onDrawCancel, onDrawClearAll, isAdmin,
+  drawPointCount, drawLabel = "", onDrawLabelChange,
+  onDrawFinish, onDrawCancel, onDrawClearAll, isAdmin,
 }: MapToolsProps) {
+  const [measureOpen, setMeasureOpen] = useState(false);
+  const [annotateOpen, setAnnotateOpen] = useState(false);
+  const [confirmingClear, setConfirmingClear] = useState(false);
+
+  const isMeasureExpanded = measureOpen || activeTool !== "none";
+  const isAnnotateExpanded = isAdmin && (annotateOpen || drawMode !== "none" || confirmingClear);
   const panelBg = "color-mix(in srgb, var(--brand-primary, #0f1a2e) 90%, transparent)";
 
+  const handleToggleMeasureMenu = () => {
+    if (isMeasureExpanded) {
+      onToolChange("none");
+      setMeasureOpen(false);
+    } else {
+      onDrawModeChange("none");
+      setAnnotateOpen(false);
+      setConfirmingClear(false);
+      setMeasureOpen(true);
+    }
+  };
+
+  const handleToggleAnnotateMenu = () => {
+    if (isAnnotateExpanded) {
+      onDrawCancel();
+      setAnnotateOpen(false);
+      setConfirmingClear(false);
+    } else {
+      onToolChange("none");
+      setMeasureOpen(false);
+      setAnnotateOpen(true);
+    }
+  };
+
   return (
-    <div className="absolute bottom-3 left-1/2 -translate-x-1/2 z-10 flex items-end gap-2">
-      {/* Tool buttons — single unified card */}
-      <div className="flex items-center gap-px rounded-xl backdrop-blur-sm border border-white/10 p-1.5" style={{ backgroundColor: panelBg }}>
-        {/* Measure tools */}
-        <ToolBtn icon={<Ruler className="h-3.5 w-3.5" />} label="Measure" active={activeTool === "measure"}
-          onClick={() => { onDrawModeChange("none"); onToolChange(activeTool === "measure" ? "none" : "measure"); }} />
-        <ToolBtn icon={<Crosshair className="h-3.5 w-3.5" />} label="Range Rings" active={activeTool === "range-rings"}
-          onClick={() => { onDrawModeChange("none"); onToolChange(activeTool === "range-rings" ? "none" : "range-rings"); }} />
-        <ToolBtn icon={<Eye className="h-3.5 w-3.5" />} label="Line of Sight" active={activeTool === "los"}
-          onClick={() => { onDrawModeChange("none"); onToolChange(activeTool === "los" ? "none" : "los"); }} />
-        <ToolBtn icon={<Mountain className="h-3.5 w-3.5" />} label="Elevation" active={activeTool === "elevation"}
-          onClick={() => { onDrawModeChange("none"); onToolChange(activeTool === "elevation" ? "none" : "elevation"); }} />
+    <div
+      data-testid="map-tools-bar"
+      className="absolute bottom-7 left-1/2 -translate-x-1/2 z-10 flex items-end gap-2"
+    >
+      {/* Collapsible tool groups — compact by default */}
+      <div
+        className="flex items-center gap-1 rounded-xl backdrop-blur-sm border border-white/10 p-1"
+        style={{ backgroundColor: panelBg }}
+      >
+        {/* Measure group toggle */}
+        <button
+          type="button"
+          data-testid="map-tools-measure-toggle"
+          onClick={handleToggleMeasureMenu}
+          title={isMeasureExpanded ? "Collapse measure tools" : "Measure & terrain tools"}
+          aria-expanded={isMeasureExpanded}
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors ${
+            isMeasureExpanded
+              ? "border text-white"
+              : "text-white/65 hover:text-white hover:bg-white/5"
+          }`}
+          style={
+            isMeasureExpanded
+              ? {
+                  backgroundColor: "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, transparent)",
+                  color: "var(--brand-accent, #d59b3c)",
+                  borderColor: "color-mix(in srgb, var(--brand-accent, #d59b3c) 35%, transparent)",
+                }
+              : undefined
+          }
+        >
+          <Ruler className="h-3.5 w-3.5" />
+          <span>Measure</span>
+        </button>
 
-        {/* Divider */}
-        {isAdmin && <div className="w-px h-5 bg-white/10 mx-1" />}
+        {/* Expanded Measure tools */}
+        {isMeasureExpanded && (
+          <div className="flex items-center gap-px pl-0.5 pr-1 border-l border-white/10">
+            <ToolBtn
+              icon={<Ruler className="h-3.5 w-3.5" />}
+              label="Distance"
+              active={activeTool === "measure"}
+              onClick={() => {
+                onDrawModeChange("none");
+                onToolChange(activeTool === "measure" ? "none" : "measure");
+              }}
+            />
+            <ToolBtn
+              icon={<Crosshair className="h-3.5 w-3.5" />}
+              label="Range Rings"
+              active={activeTool === "range-rings"}
+              onClick={() => {
+                onDrawModeChange("none");
+                onToolChange(activeTool === "range-rings" ? "none" : "range-rings");
+              }}
+            />
+            <ToolBtn
+              icon={<Eye className="h-3.5 w-3.5" />}
+              label="Line of Sight"
+              active={activeTool === "los"}
+              onClick={() => {
+                onDrawModeChange("none");
+                onToolChange(activeTool === "los" ? "none" : "los");
+              }}
+            />
+            <ToolBtn
+              icon={<Mountain className="h-3.5 w-3.5" />}
+              label="Elevation"
+              active={activeTool === "elevation"}
+              onClick={() => {
+                onDrawModeChange("none");
+                onToolChange(activeTool === "elevation" ? "none" : "elevation");
+              }}
+            />
+          </div>
+        )}
 
-        {/* Draw tools (admin+ only) */}
+        {/* Annotate group (admin+ only) */}
         {isAdmin && (
           <>
-            <ToolBtn icon={<Minus className="h-3.5 w-3.5" />} label="Line" active={drawMode === "line"}
-              onClick={() => { onToolChange("none"); onDrawModeChange(drawMode === "line" ? "none" : "line"); }} />
-            <ToolBtn icon={<Pentagon className="h-3.5 w-3.5" />} label="Area" active={drawMode === "polygon"}
-              onClick={() => { onToolChange("none"); onDrawModeChange(drawMode === "polygon" ? "none" : "polygon"); }} />
-            <ToolBtn icon={<Circle className="h-3.5 w-3.5" />} label="Circle" active={drawMode === "circle"}
-              onClick={() => { onToolChange("none"); onDrawModeChange(drawMode === "circle" ? "none" : "circle"); }} />
-            <ToolBtn icon={<ArrowRight className="h-3.5 w-3.5" />} label="Arrow" active={drawMode === "arrow"}
-              onClick={() => { onToolChange("none"); onDrawModeChange(drawMode === "arrow" ? "none" : "arrow"); }} />
-            <ToolBtn icon={<Pencil className="h-3.5 w-3.5" />} label="Draw" active={drawMode === "freehand"}
-              onClick={() => { onToolChange("none"); onDrawModeChange(drawMode === "freehand" ? "none" : "freehand"); }} />
-            <ToolBtn icon={<Type className="h-3.5 w-3.5" />} label="Label" active={drawMode === "text"}
-              onClick={() => { onToolChange("none"); onDrawModeChange(drawMode === "text" ? "none" : "text"); }} />
-
-            {/* Color swatches */}
-            {drawMode !== "none" && (
-              <>
-                <div className="w-px h-5 bg-white/10 mx-1" />
-                {DRAW_COLORS.map((c) => (
-                  <button key={c} onClick={() => onDrawColorChange(c)}
-                    className={`w-3.5 h-3.5 rounded-full border mx-px ${drawColor === c ? "border-white scale-125" : "border-white/20"}`}
-                    style={{ backgroundColor: c }} />
-                ))}
-              </>
-            )}
-
-            {/* Clear all */}
-            <div className="w-px h-5 bg-white/10 mx-1" />
-            <button onClick={onDrawClearAll} className="text-white/30 hover:text-red-400 transition-colors p-1" title="Clear all drawings">
-              <Trash2 className="h-3 w-3" />
+            <div className="w-px h-4 bg-white/10 mx-0.5" />
+            <button
+              type="button"
+              data-testid="map-tools-annotate-toggle"
+              onClick={handleToggleAnnotateMenu}
+              title={isAnnotateExpanded ? "Collapse annotation tools" : "Tactical drawing & annotations"}
+              aria-expanded={isAnnotateExpanded}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10px] font-mono uppercase tracking-wider transition-colors ${
+                isAnnotateExpanded
+                  ? "border text-white"
+                  : "text-white/65 hover:text-white hover:bg-white/5"
+              }`}
+              style={
+                isAnnotateExpanded
+                  ? {
+                      backgroundColor: "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, transparent)",
+                      color: "var(--brand-accent, #d59b3c)",
+                      borderColor: "color-mix(in srgb, var(--brand-accent, #d59b3c) 35%, transparent)",
+                    }
+                  : undefined
+              }
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              <span>Annotate</span>
             </button>
+
+            {isAnnotateExpanded && (
+              <div className="flex items-center gap-px pl-0.5 pr-1 border-l border-white/10">
+                <ToolBtn
+                  icon={<Minus className="h-3.5 w-3.5" />}
+                  label="Line"
+                  active={drawMode === "line"}
+                  onClick={() => {
+                    onToolChange("none");
+                    setConfirmingClear(false);
+                    onDrawModeChange(drawMode === "line" ? "none" : "line");
+                  }}
+                />
+                <ToolBtn
+                  icon={<Pentagon className="h-3.5 w-3.5" />}
+                  label="Area"
+                  active={drawMode === "polygon"}
+                  onClick={() => {
+                    onToolChange("none");
+                    setConfirmingClear(false);
+                    onDrawModeChange(drawMode === "polygon" ? "none" : "polygon");
+                  }}
+                />
+                <ToolBtn
+                  icon={<Circle className="h-3.5 w-3.5" />}
+                  label="Circle"
+                  active={drawMode === "circle"}
+                  onClick={() => {
+                    onToolChange("none");
+                    setConfirmingClear(false);
+                    onDrawModeChange(drawMode === "circle" ? "none" : "circle");
+                  }}
+                />
+                <ToolBtn
+                  icon={<ArrowRight className="h-3.5 w-3.5" />}
+                  label="Arrow"
+                  active={drawMode === "arrow"}
+                  onClick={() => {
+                    onToolChange("none");
+                    setConfirmingClear(false);
+                    onDrawModeChange(drawMode === "arrow" ? "none" : "arrow");
+                  }}
+                />
+                <ToolBtn
+                  icon={<Type className="h-3.5 w-3.5" />}
+                  label="Label"
+                  active={drawMode === "text"}
+                  onClick={() => {
+                    onToolChange("none");
+                    setConfirmingClear(false);
+                    onDrawModeChange(drawMode === "text" ? "none" : "text");
+                  }}
+                />
+
+                {/* Color swatches */}
+                {drawMode !== "none" && (
+                  <>
+                    <div className="w-px h-4 bg-white/10 mx-1" />
+                    {DRAW_COLORS.map((c) => (
+                      <button
+                        type="button"
+                        key={c}
+                        onClick={() => onDrawColorChange(c)}
+                        title={`Color ${c}`}
+                        className={`w-3.5 h-3.5 rounded-full border mx-px ${
+                          drawColor === c ? "border-white scale-125" : "border-white/20"
+                        }`}
+                        style={{ backgroundColor: c }}
+                      />
+                    ))}
+                  </>
+                )}
+
+                {/* Clear all with two-step inline confirmation */}
+                <div className="w-px h-4 bg-white/10 mx-1" />
+                {confirmingClear ? (
+                  <div
+                    data-testid="clear-annotations-confirm"
+                    className="flex items-center gap-1 px-1.5 py-0.5 text-[10px] font-mono"
+                  >
+                    <span className="text-red-300">Clear all?</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onDrawClearAll();
+                        setConfirmingClear(false);
+                      }}
+                      className="px-1.5 py-0.5 rounded bg-red-500/25 text-red-200 hover:bg-red-500/40 font-semibold"
+                    >
+                      Yes
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setConfirmingClear(false)}
+                      className="px-1.5 py-0.5 rounded bg-white/10 text-white/60 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setConfirmingClear(true)}
+                    className="text-white/35 hover:text-red-400 transition-colors p-1"
+                    title="Clear all drawings"
+                    aria-label="Clear all drawings"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            )}
           </>
         )}
       </div>
 
-      {/* Status panel — measure result, range info, or draw point count */}
+      {/* Status panel — measure result, range info, inline text label input, or draw point count */}
       {activeTool === "measure" && (
         <div className="rounded-xl backdrop-blur-sm border border-white/10 px-3 py-2 text-xs font-mono" style={{ backgroundColor: panelBg }}>
           {measureResult ? (
@@ -163,15 +365,65 @@ export function MapToolsBar({
         </div>
       )}
 
+      {/* Inline Label input when drawMode === "text" */}
+      {drawMode === "text" && (
+        <div
+          data-testid="map-tools-label-pill"
+          className="rounded-xl backdrop-blur-sm border border-white/10 px-2.5 py-1.5 flex items-center gap-2 text-[11px] font-mono text-white/80"
+          style={{ backgroundColor: panelBg }}
+        >
+          <input
+            type="text"
+            data-testid="map-tools-label-input"
+            value={drawLabel}
+            onChange={(e) => onDrawLabelChange?.(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && drawLabel.trim() && drawPointCount >= 1) {
+                e.preventDefault();
+                onDrawFinish();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                onDrawCancel();
+              }
+            }}
+            placeholder={
+              drawPointCount >= 1
+                ? "Enter label & press Enter…"
+                : "Type label, then click map…"
+            }
+            className="bg-black/30 border border-white/15 rounded px-2 py-0.5 text-[11px] text-white placeholder:text-white/35 focus:outline-none focus:border-white/40 w-44"
+          />
+          {drawPointCount >= 1 && drawLabel.trim() && (
+            <button
+              type="button"
+              onClick={onDrawFinish}
+              className="text-green-400 hover:text-green-300 flex items-center gap-0.5"
+              title="Place label"
+            >
+              <Check className="h-3 w-3 inline" /> Place
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={onDrawCancel}
+            className="text-red-400 hover:text-red-300"
+            title="Cancel label"
+            aria-label="Cancel label"
+          >
+            <X className="h-3.5 w-3.5 inline" />
+          </button>
+        </div>
+      )}
+
       {drawMode !== "none" && drawMode !== "text" && (
         <div className="rounded-xl backdrop-blur-sm border border-white/10 px-3 py-2 text-[10px] font-mono text-white/60" style={{ backgroundColor: panelBg }}>
           {drawPointCount} point{drawPointCount !== 1 ? "s" : ""}
           {drawPointCount >= 2 && (
-            <button onClick={onDrawFinish} className="ml-2 text-green-400 hover:text-green-300">
+            <button type="button" onClick={onDrawFinish} className="ml-2 text-green-400 hover:text-green-300">
               <Check className="h-3 w-3 inline" /> Done
             </button>
           )}
-          <button onClick={onDrawCancel} className="ml-2 text-red-400 hover:text-red-300">
+          <button type="button" onClick={onDrawCancel} className="ml-2 text-red-400 hover:text-red-300" aria-label="Cancel drawing">
             <X className="h-3 w-3 inline" />
           </button>
         </div>
@@ -182,9 +434,14 @@ export function MapToolsBar({
 
 function ToolBtn({ icon, label, active, onClick }: { icon: React.ReactNode; label: string; active: boolean; onClick: () => void }) {
   return (
-    <button onClick={onClick} title={label}
+    <button
+      type="button"
+      onClick={onClick}
+      title={label}
+      aria-label={label}
+      aria-pressed={active}
       className={`flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-medium transition-colors ${
-        active ? "border" : "text-white/50 hover:text-white/80 hover:bg-white/5"
+        active ? "border" : "text-white/55 hover:text-white/85 hover:bg-white/5"
       }`}
       style={active ? {
         backgroundColor: "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, transparent)",

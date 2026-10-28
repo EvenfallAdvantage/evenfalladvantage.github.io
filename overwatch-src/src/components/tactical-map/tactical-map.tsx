@@ -10,7 +10,8 @@ import { useRooftopWeather } from "./hooks/use-rooftop-weather";
 import { MapLayersPanelV2 } from "./map-layers-panel-v2";
 import { allGroups, applyPreset, classicLayers, defaultPresetFor, effectiveLayers, expandSharedLayers, flattenForClassic, matchingPreset, migrateLayers } from "@/lib/map/layer-registry";
 import { readPanelV2Choice, resolvePanelV2, writePanelV2Choice } from "@/lib/map/panel-flag";
-import { buildScopeFilters, resolveRadii, sitesFrom, type ViewRect } from "@/lib/map/site-proximity";
+import { buildScopeFilters, isActiveSiteStatus, resolveRadii, sitesFrom, type ViewRect } from "@/lib/map/site-proximity";
+import { classifyStaffFreshness } from "@/lib/map/map-ops-window";
 import { DEFAULT_COMPANY_MAP_DEFAULTS, getCompanyMapDefaults, getUserMapPrefs, saveUserMapPrefs, saveUserPanelChoice, type CompanyMapDefaults } from "@/lib/supabase/db-map-prefs";
 import { useSiteWatch } from "./hooks/use-site-watch";
 import { useOsmBuildingsLayer } from "./hooks/use-osm-buildings-layer";
@@ -238,6 +239,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     drawMode, setDrawMode,
     drawColor, setDrawColor,
     drawPoints, setDrawPoints,
+    drawLabel, setDrawLabel,
     annotations,
     handleDrawFinish,
     handleDrawCancel,
@@ -352,6 +354,29 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   });
   const siteWatch = useSiteWatch({ viewerRef, cesiumRef, entityGroupsRef, loading, enabled: panelV2 && layers.siteWatch !== false, sites, radii });
   const [sitePillOpen, setSitePillOpen] = useState(false);
+
+  // Operational metrics for the top-center GlobalStatusBar
+  const activeOpsCount = useMemo(
+    () => operations.filter((op) => isActiveSiteStatus(op.status)).length,
+    [operations],
+  );
+  const onDutyCount = useMemo(
+    () => effectiveStaff.filter((s) => classifyStaffFreshness(s.updatedAt) !== "hidden").length,
+    [effectiveStaff],
+  );
+  const openIncidents = useMemo(
+    () => effectiveIncidents.filter((inc) => !/^(resolved|closed|archived|cancel+ed)$/i.test((inc.status ?? "").trim())),
+    [effectiveIncidents],
+  );
+  const alertCount = openIncidents.length + siteWatch.alerts.length;
+  const alertTone = useMemo<"nominal" | "warning" | "critical">(() => {
+    if (alertCount === 0) return "nominal";
+    const hasCriticalIncident = openIncidents.some((inc) =>
+      /^(critical|high)$/i.test((inc.severity || inc.priority || "").trim()),
+    );
+    const hasWarningSiteAlert = siteWatch.alerts.some((a) => a.level === "warning");
+    return hasCriticalIncident || hasWarningSiteAlert ? "critical" : "warning";
+  }, [alertCount, openIncidents, siteWatch.alerts]);
 
   // Ref to hold setSelectedEntity — declared before the init effect but
   // assigned after useCesiumClickHandler, so the init effect can reference it
@@ -553,7 +578,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
     rangeCenter, setRangeCenter,
     losPoint1, setLosPoint1, setLosResult, losEntityIdsRef,
     elevPoint1, setElevPoint1, setElevationStatus,
-    drawMode, drawColor, drawPoints, setDrawPoints,
+    drawMode, setDrawMode, drawColor, drawPoints, setDrawPoints, drawLabel, setDrawLabel,
     dronePlannerOpen, droneWaypoints, setDroneWaypoints,
     aligningOp,
     companyId, isAdmin, onSelectOperation,
@@ -897,9 +922,17 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
           onResetNorth={handleResetNorth}
           onToggleFullscreen={handleFullscreen}
           onToggleTimeMachine={() => setTimeMachineOpen(!timeMachineOpen)}
-          onToggleDronePlanner={() => setDronePlannerOpen(!dronePlannerOpen)}
+          onToggleDronePlanner={() => {
+            const next = !dronePlannerOpen;
+            if (next) {
+              setActiveTool("none");
+              handleDrawCancel();
+            } else {
+              setDroneWaypoints([]);
+            }
+            setDronePlannerOpen(next);
+          }}
           onToggleIntelDrawer={() => setIntelDrawerOpen((o) => !o)}
-          onShare={() => void handleShare()}
           onOpsMode={handleOpsMode}
           searchOpen={searchOpen}
           onToggleSearch={() => setSearchOpen((o) => { if (o) setSearchPin(null); return !o; })}
@@ -938,10 +971,16 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
         onOpenLiveFeed={panelV2 ? setActiveLiveFeed : undefined}
       />
 
-      {/* Global status bar — bottom-center; admin-only by convention */}
-      {isAdmin && !opsMode && (
+      {/* Global operational status bar — top-center */}
+      {!opsMode && (
         <GlobalStatusBar
           enabled={!loading && !error}
+          offsetTop={Boolean(tracked && activeLayers.aircraft)}
+          activeOpsCount={activeOpsCount}
+          onDutyCount={onDutyCount}
+          alertCount={alertCount}
+          alertTone={alertTone}
+          onShare={() => void handleShare()}
           onOpenAttribution={() => setAttributionOpen(true)}
         />
       )}
@@ -1114,19 +1153,33 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       ) : (
         <MapLayersPanel layers={layers} onChange={setLayers} onFlyToAll={handleFlyToAll} operations={operations} isAdmin={isAdmin} s2ActiveLayers={s2Intel.activeLayers} onToggleS2Layer={s2Intel.toggleLayer} s2FeatureCount={s2Intel.featureCount} isReplaying={timeMachineOpen} onRealignSiteMap={handleRealignSiteMap} onAdjustSiteMap={handleAdjustSiteMap} savedBounds={savedBounds} onUseNewPanel={() => choosePanel(true)} />
       ))}
-      {!error && !loading && (
+      {!error && !loading && !opsMode && !timeMachineOpen && (
         <MapToolsBar
           activeTool={activeTool}
-          onToolChange={setActiveTool}
+          onToolChange={(tool) => {
+            if (tool !== "none" && dronePlannerOpen) {
+              setDronePlannerOpen(false);
+              setDroneWaypoints([]);
+            }
+            setActiveTool(tool);
+          }}
           measureResult={measureResult}
           rangeCenter={rangeCenter}
           losResult={losResult}
           elevationStatus={elevationStatus}
           drawMode={drawMode}
-          onDrawModeChange={setDrawMode}
+          onDrawModeChange={(mode) => {
+            if (mode !== "none" && dronePlannerOpen) {
+              setDronePlannerOpen(false);
+              setDroneWaypoints([]);
+            }
+            setDrawMode(mode);
+          }}
           drawColor={drawColor}
           onDrawColorChange={setDrawColor}
           drawPointCount={drawPoints.length}
+          drawLabel={drawLabel}
+          onDrawLabelChange={setDrawLabel}
           onDrawFinish={handleDrawFinish}
           onDrawCancel={handleDrawCancel}
           onDrawClearAll={handleClearAnnotations}
