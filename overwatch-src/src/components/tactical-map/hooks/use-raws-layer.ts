@@ -3,6 +3,7 @@ import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
 import { escapeHtml, safeHttpUrl } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
+import { getTacticalIcon } from "@/lib/map/tactical-icons";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 const ARCGIS_URL =
@@ -31,37 +32,8 @@ interface RawsStation {
   noaaUrl: string;
 }
 
-let arrowCache: HTMLCanvasElement | null = null;
-
 function buildArrowIcon(): HTMLCanvasElement {
-  if (arrowCache) return arrowCache;
-  const s = 22;
-  const c = document.createElement("canvas");
-  c.width = s; c.height = s;
-  const ctx = c.getContext("2d");
-  if (!ctx) return c;
-  const cx = s / 2;
-
-  ctx.strokeStyle = "#ffffff";
-  ctx.fillStyle = "#ffffff";
-  ctx.lineWidth = 2;
-  ctx.lineCap = "round";
-  ctx.lineJoin = "round";
-
-  ctx.beginPath();
-  ctx.moveTo(cx, 1);
-  ctx.lineTo(cx - 4, 7);
-  ctx.lineTo(cx + 4, 7);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.beginPath();
-  ctx.moveTo(cx, 7);
-  ctx.lineTo(cx, s - 2);
-  ctx.stroke();
-
-  arrowCache = c;
-  return c;
+  return getTacticalIcon("wind-arrow", "#ffffff");
 }
 
 function parseWindSpeed(speed: string): number {
@@ -120,8 +92,9 @@ export function useRawsLayer(params: {
   layers: LayerVisibility;
   debouncedReplayTime: number;
   timeMachineOpen: boolean;
+  filter?: (lat: number, lng: number) => boolean;
 }) {
-  const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen } = params;
+  const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, debouncedReplayTime, timeMachineOpen, filter } = params;
   const isReplaying = timeMachineOpen && debouncedReplayTime < Date.now() - 5_000;
   const allStationsRef = useRef<RawsStation[]>([]);
 
@@ -162,7 +135,7 @@ export function useRawsLayer(params: {
       if (!isZoomedIn) return;
 
       const visible = allStationsRef.current.filter(
-        (s) => s.lng >= west && s.lng <= east && s.lat >= south && s.lat <= north,
+        (s) => s.lng >= west && s.lng <= east && s.lat >= south && s.lat <= north && (!filter || filter(s.lat, s.lng)),
       );
 
       for (const station of visible) {
@@ -191,6 +164,7 @@ export function useRawsLayer(params: {
         });
         (entityGroupsRef.current.raws as Array<{ id: string }>).push(entity);
       }
+      viewer.scene.requestRender();
     }
 
     async function fetchAndRender() {
@@ -243,5 +217,5 @@ export function useRawsLayer(params: {
       if (stopPolling) stopPolling();
       removeMoveEnd();
     };
-  }, [layers.raws, loading, isReplaying, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [layers.raws, loading, isReplaying, viewerRef, cesiumRef, entityGroupsRef, filter]);
 }

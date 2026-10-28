@@ -26,7 +26,7 @@ export function SatPassesPanel({ target, onClose }: { target: { label: string; l
   const rows = state.status === "ok" ? state.passes.filter((p) => filter === "all" || p.kind === filter) : [];
 
   return (
-    <div className="w-72 max-w-full rounded-lg border border-white/10 bg-black/75 backdrop-blur-md text-white/90 shadow-lg pointer-events-auto" data-testid="sat-passes">
+    <div className="relative z-30 w-72 max-w-full rounded-lg border border-white/10 bg-black/75 backdrop-blur-md text-white/90 shadow-lg pointer-events-auto" data-testid="sat-passes">
       <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/10">
         <Satellite className="h-4 w-4 text-cyan-300 shrink-0" />
         <div className="flex-1 min-w-0">

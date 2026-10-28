@@ -27,35 +27,12 @@ import {
 } from "@/lib/map/cctv-viewport";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 import { CONE_MOUNT_M, cameraPose, coneArc } from "@/lib/map/camera-cone";
+import { getTacticalIcon } from "@/lib/map/tactical-icons";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
-let iconCacheValue: HTMLCanvasElement | null = null;
-
-function buildIcon(): HTMLCanvasElement {
-  if (iconCacheValue) return iconCacheValue;
-  const size = 12;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return canvas;
-  const r = size / 2;
-  const grad = ctx.createRadialGradient(r, r, 0.5, r, r, r);
-  grad.addColorStop(0, "#86efac");
-  grad.addColorStop(0.7, "#10b981");
-  grad.addColorStop(1, "rgba(0,0,0,0)");
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(r, r, r - 0.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.lineWidth = 0.8;
-  ctx.beginPath();
-  ctx.arc(r, r, r * 0.45, 0, Math.PI * 2);
-  ctx.stroke();
-  iconCacheValue = canvas;
-  return canvas;
+function buildIcon(highContrast: boolean): HTMLCanvasElement {
+  return getTacticalIcon("cctv", "#10b981", { highContrast });
 }
 
 const clusterIconCache = new Map<string, HTMLCanvasElement>();
@@ -165,6 +142,7 @@ export function useCctvLayer(params: {
   filter?: (lat: number, lng: number) => boolean;
 }) {
   const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenCamera, filter } = params;
+  const highContrast = !!(layers.nightVision || layers.nvgGoggles || layers.flirThermal);
 
   useEffect(() => {
     const viewer = viewerRef.current;
@@ -240,7 +218,7 @@ export function useCctvLayer(params: {
                 id, name: item.cam.name,
                 position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
                 billboard: {
-                  image: buildIcon(), scale: 1.0,
+                  image: buildIcon(highContrast), scale: 0.9,
                   heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
                   verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
                 },
@@ -347,5 +325,5 @@ export function useCctvLayer(params: {
         entityGroups.cctvClickHandler = null;
       }
     };
-  }, [layers.cctv, loading, onOpenCamera, filter, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [layers.cctv, highContrast, loading, onOpenCamera, filter, viewerRef, cesiumRef, entityGroupsRef]);
 }

@@ -382,19 +382,19 @@ export default function SchedulePage() {
       {/* ── Map Tab ── */}
       {tab === "map" && (
         <ErrorBoundary fallback={<div className="flex justify-center py-24 text-sm text-muted-foreground">Failed to load map. Try refreshing the page.</div>}>
-          {mapLoaded && (mapOps.length === 0 || mapStaff.length === 0 || mapIncidents.length === 0) && (
-            <div className="mb-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground space-y-0.5" data-testid="map-empty-hints">
-              {mapOps.length === 0 && <p>No operations with a location that are active, upcoming, or ended in the last 30 days. Add a location in Admin → Operations to pin one.</p>}
-              {mapStaff.length === 0 && <p>No staff positions in the last 12 hours. Staff appear while clocked in with location sharing on; positions older than 15 min show greyed.</p>}
-              {mapIncidents.length === 0 && <p>No incidents with a location. Incidents reported without GPS coordinates aren&apos;t shown on the map.</p>}
-            </div>
-          )}
           <TacticalMap
             operations={mapOps} staff={mapStaff} incidents={mapIncidents}
             companyId={activeCompanyId ?? ""} isAdmin={isAdmin}
             onSelectOperation={(id) => { window.location.href = `/overwatch/admin/events?expand=${id}`; }}
             onMessageStaff={(userId) => { window.location.href = `/overwatch/chat?dm=${userId}`; }}
           />
+          {mapLoaded && (mapOps.length === 0 || mapStaff.length === 0 || mapIncidents.length === 0) && (
+            <div className="mt-2 rounded-lg border border-border/60 bg-muted/40 px-3 py-2 text-[11px] text-muted-foreground space-y-0.5" data-testid="map-empty-hints">
+              {mapOps.length === 0 && <p>No operations with a location that are active, upcoming, or ended in the last 30 days. Add a location in Admin → Operations to pin one.</p>}
+              {mapStaff.length === 0 && <p>No staff positions in the last 12 hours. Staff appear while clocked in with location sharing on; positions older than 15 min show greyed.</p>}
+              {mapIncidents.length === 0 && <p>No incidents with a location. Incidents reported without GPS coordinates aren&apos;t shown on the map.</p>}
+            </div>
+          )}
         </ErrorBoundary>
       )}
 

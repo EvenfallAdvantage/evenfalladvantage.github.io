@@ -21,7 +21,7 @@ interface EntityPopupProps {
 export function EntityPopup({ entity, containerWidth, onClose, actions }: EntityPopupProps) {
   return (
     <div
-      className="absolute z-20 pointer-events-auto"
+      className="absolute z-30 pointer-events-auto"
       style={{
         left: Math.min(Math.max(entity.screenX - 140, 8), containerWidth - 296),
         top: Math.max(entity.screenY - 10, 8),

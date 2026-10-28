@@ -11,6 +11,7 @@ import { logger } from "@/lib/logger";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 import { isHighContrastLook } from "@/lib/map/contact-models";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
+import { getTacticalIcon } from "@/lib/map/tactical-icons";
 import { fetchStreetPhotos, mapillaryToken, streetBudget, STREET_CREDITS, STREET_MAX_CAMERA_HEIGHT_M, type BBox, type StreetPhoto } from "@/lib/map/street-level";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -21,8 +22,9 @@ const COLORS = { panoramax: "#38bdf8", kartaview: "#a78bfa", mapillary: "#34d399
 export function useStreetLevelLayer(params: {
   viewerRef: CesiumRef; cesiumRef: CesiumRef; entityGroupsRef: EntityGroupsRef; loading: boolean; layers: LayerVisibility;
   onOpenPhoto: (p: StreetPhoto) => void;
+  filter?: (lat: number, lng: number) => boolean;
 }) {
-  const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenPhoto } = params;
+  const { viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenPhoto, filter } = params;
   const dark = isHighContrastLook(layers);
 
   useEffect(() => {
@@ -46,15 +48,16 @@ export function useStreetLevelLayer(params: {
       ds.entities.suspendEvents();
       ds.entities.removeAll(); byId.clear();
       for (const p of photos) {
+        if (filter && !filter(p.lat, p.lng)) continue;
         const id = `${PREFIX}${p.provider}-${p.id}`;
         byId.set(id, p);
         ds.entities.add({
           id,
           position: C.Cartesian3.fromDegrees(p.lng, p.lat, 0),
-          point: {
-            pixelSize: constrained ? 9 : 8,
-            color: dark ? C.Color.BLACK.withAlpha(0.9) : C.Color.fromCssColorString(COLORS[p.provider]).withAlpha(0.95),
-            outlineColor: dark ? C.Color.WHITE.withAlpha(0.8) : C.Color.BLACK.withAlpha(0.6), outlineWidth: 1.5,
+          billboard: {
+            image: getTacticalIcon("street-photo", COLORS[p.provider], { highContrast: dark }),
+            scale: constrained ? 0.9 : 0.85,
+            verticalOrigin: C.VerticalOrigin.CENTER,
             heightReference: C.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: nearSideDepthProperty(viewer, C),
           },
@@ -95,5 +98,5 @@ export function useStreetLevelLayer(params: {
       groups.streetPhotos = null;
       viewer.scene?.requestRender?.();
     };
-  }, [layers.streetPhotos, dark, loading, onOpenPhoto, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [layers.streetPhotos, dark, loading, onOpenPhoto, viewerRef, cesiumRef, entityGroupsRef, filter]);
 }

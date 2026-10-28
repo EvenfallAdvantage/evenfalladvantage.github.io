@@ -120,6 +120,7 @@ export function useCesiumLayers(params: {
   const scopePoint = scopeFilters?.point;
   const newsFilter = useMemo(() => (scopePoint ? (n: { lat: number; lng: number }) => scopePoint(n.lat, n.lng, "news") : undefined), [scopePoint]);
   const cameraFilter = useMemo(() => (scopePoint ? (lat: number, lng: number) => scopePoint(lat, lng, "cameras") : undefined), [scopePoint]);
+  const weatherFilter = useMemo(() => (scopePoint ? (lat: number, lng: number) => scopePoint(lat, lng, "warnings") : undefined), [scopePoint]);
 
   // Site overlay / storyboard state remains here — shared between the
   // site overlay and storyboard pin effects and surfaced to callers so
@@ -265,12 +266,13 @@ export function useCesiumLayers(params: {
   // ─── Sub-hook: Rocket launches (Infrastructure → Space) ──
   useLaunchesLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenLaunch: onOpenLaunch ?? NOOP_LAUNCH });
   // ─── Sub-hook: Street-level photos (Cameras group) ──
-  useStreetLevelLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenPhoto: onOpenStreetPhoto ?? NOOP_PHOTO });
+  useStreetLevelLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers, onOpenPhoto: onOpenStreetPhoto ?? NOOP_PHOTO, filter: cameraFilter });
 
   // ─── Sub-hook: RAWS weather stations (ArcGIS, viewport-filtered) ──────
   useRawsLayer({
     viewerRef, cesiumRef, entityGroupsRef, loading, layers,
     debouncedReplayTime, timeMachineOpen,
+    filter: weatherFilter,
   });
 
   // ─── Sub-hook: Radio Frequencies (from Supabase, lat/lon) ──────────
@@ -582,6 +584,7 @@ export function useCesiumLayers(params: {
                 });
                 viewer.scene.primitives.add(primitive);
                 entityGroupsRef.current.siteOverlays.push({ kind: "primitive", layerRef: primitive, eventId: op.id });
+                viewer.scene.requestRender();
               } catch (e) {
                 logger.swallow("cesium-layers:build-grid", e, "warn");
               }
@@ -761,6 +764,7 @@ export function useCesiumLayers(params: {
           });
           entityGroupsRef.current.storyboardPins.push(entity);
         });
+        viewer.scene.requestRender();
       }).catch(() => {});
 
       // Incidents with their own lat/lng are already plotted by the incidents layer.

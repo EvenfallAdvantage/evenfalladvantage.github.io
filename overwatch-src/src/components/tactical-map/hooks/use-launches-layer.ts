@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { isHighContrastLook } from "@/lib/map/contact-models";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
+import { getTacticalIcon } from "@/lib/map/tactical-icons";
 import { ascentLabel, estimatedAscent, launchAzimuth, LL2_CREDIT, loadLaunches, REPLAY_SECONDS, typicalInclination, type Launch } from "@/lib/map/launches";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -40,8 +41,12 @@ export function useLaunchesLayer(params: {
         byId.set(id, l);
         ds.entities.add({
           id, position: C.Cartesian3.fromDegrees(l.lng, l.lat, 0),
-          point: { pixelSize: 9, color: dark ? C.Color.BLACK : C.Color.fromCssColorString(COLOR[l.outcome]), outlineColor: dark ? C.Color.WHITE : C.Color.BLACK.withAlpha(0.7), outlineWidth: 1.5, disableDepthTestDistance: nearSideDepthProperty(viewer, C) },
-          label: { text: "🚀", font: "14px sans-serif", pixelOffset: new C.Cartesian2(0, -14), disableDepthTestDistance: nearSideDepthProperty(viewer, C), distanceDisplayCondition: new C.DistanceDisplayCondition(0, 2.5e7) },
+          billboard: {
+            image: getTacticalIcon("rocket", COLOR[l.outcome], { highContrast: dark }),
+            verticalOrigin: C.VerticalOrigin.CENTER,
+            disableDepthTestDistance: nearSideDepthProperty(viewer, C),
+            distanceDisplayCondition: new C.DistanceDisplayCondition(0, 2.5e7),
+          },
         });
       }
       ds.entities.resumeEvents();

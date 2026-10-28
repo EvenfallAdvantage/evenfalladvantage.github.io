@@ -83,7 +83,7 @@ export function TimeMachine({ open, onClose, onTimeChange, maxHours = 168 }: Tim
   }
 
   return (
-    <div className="absolute bottom-14 left-3 right-3 z-20 rounded-xl backdrop-blur-md border border-white/10 overflow-hidden"
+    <div className="absolute bottom-14 left-3 right-3 z-30 rounded-xl backdrop-blur-md border border-white/10 overflow-hidden"
       style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 92%, transparent)" }}>
 
       {/* Header */}

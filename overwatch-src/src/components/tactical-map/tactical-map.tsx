@@ -285,11 +285,12 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
   const sites = useMemo(() => sitesFrom(operations, siteGeofences), [operations, siteGeofences]);
   const radii = useMemo(() => resolveRadii(companyDefaults.nearRadiiKm), [companyDefaults.nearRadiiKm]);
   const [viewRect, setViewRect] = useState<ViewRect | null>(null);
+  const effectiveViewRect = layers.scope === "view" ? viewRect : null;
   const scopeFilters = useMemo(() => {
     if (!panelV2) return undefined;
-    const f = buildScopeFilters(layers.scope ?? "sites", sites, viewRect, radii);
+    const f = buildScopeFilters(layers.scope ?? "sites", sites, effectiveViewRect, radii);
     return { hazard: f.hazard, point: f.point };
-  }, [panelV2, layers.scope, sites, viewRect, radii]);
+  }, [panelV2, layers.scope, sites, effectiveViewRect, radii]);
 
   // Cesium layer plotting/toggling effects
   const { nearbyPOIs: _nearbyPOIs, geofenceAlerts, aligningOp, setAligningOp, savedBounds, setSavedBounds, s2Intel, geofences: layerGeofences } = useCesiumLayers({
@@ -941,7 +942,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
       {/* Search box + satellite passes — beside the control column */}
       {!loading && !error && !opsMode && (searchOpen || passesTarget || imageryTarget) && (
-        <div className="absolute top-3 left-16 z-20 flex flex-col gap-2 max-w-[calc(100%-5rem)] pointer-events-none">
+        <div data-testid="map-left-popover-stack" className="absolute top-12 lg:top-3 left-14 sm:left-16 z-30 flex flex-col gap-2 max-w-[calc(100%-4.25rem)] sm:max-w-[calc(100%-5rem)] pointer-events-none">
           {searchOpen && (
             <MapSearch
               onPick={handleSearchPick}
@@ -1204,7 +1205,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
 
       {/* Site Watch pill on phones (the panel is a closed bottom sheet there) */}
       {constrained && panelV2 && !opsMode && !error && siteWatch.alerts.length > 0 && (
-        <div className="absolute top-14 right-3 z-10 flex flex-col items-end gap-1">
+        <div className="absolute top-14 right-3 z-30 flex flex-col items-end gap-1">
           <button
             onClick={() => setSitePillOpen((o) => !o)}
             className={`rounded-full px-2.5 py-1 text-[11px] font-bold font-mono text-white shadow ${siteWatch.alerts.some((a) => a.level === "warning") ? "bg-red-600" : "bg-amber-600"}`}

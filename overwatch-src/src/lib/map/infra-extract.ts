@@ -132,11 +132,13 @@ export interface InfraLimits {
   powerMaxHeightM: number;
   /** Most transmission lines drawn for one view. */
   maxLines: number;
+  /** Cap on point features drawn at once so dense cells stay smooth. */
+  maxPoints: number;
 }
 export function infraLimits(constrained: boolean): InfraLimits {
   return constrained
-    ? { maxCells: 4, maxHeightM: 800_000, labels: false, minSubstationKv: 230, powerMaxHeightM: 400_000, maxLines: 800 }
-    : { maxCells: INFRA_MAX_CELLS, maxHeightM: INFRA_MAX_HEIGHT_M, labels: true, minSubstationKv: 0, powerMaxHeightM: 1_000_000, maxLines: 3_000 };
+    ? { maxCells: 4, maxHeightM: 800_000, labels: false, minSubstationKv: 230, powerMaxHeightM: 400_000, maxLines: 800, maxPoints: 400 }
+    : { maxCells: INFRA_MAX_CELLS, maxHeightM: INFRA_MAX_HEIGHT_M, labels: true, minSubstationKv: 0, powerMaxHeightM: 1_000_000, maxLines: 3_000, maxPoints: 1_500 };
 }
 
 /** Whether a decoded row passes the device's limits at this camera height (only substations are filtered). */

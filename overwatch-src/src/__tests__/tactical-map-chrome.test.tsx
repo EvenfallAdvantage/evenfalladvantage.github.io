@@ -4,6 +4,20 @@ import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { GlobalStatusBar } from "@/components/intel/global-status-bar";
 import { MapToolsBar } from "@/components/tactical-map/map-tools";
 import { MapControlButtons } from "@/components/tactical-map/map-control-buttons";
+import { SiteImageryPanel } from "@/components/tactical-map/site-imagery-panel";
+import { SatPassesPanel } from "@/components/tactical-map/sat-passes-panel";
+
+vi.mock("@/lib/map/site-imagery", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/lib/map/site-imagery")>();
+  return {
+    ...actual,
+    siteBox: vi.fn().mockReturnValue(null),
+  };
+});
+
+vi.mock("@/components/tactical-map/orbit-tracker", () => ({
+  predictSitePasses: vi.fn().mockReturnValue(new Promise(() => {})),
+}));
 
 afterEach(() => {
   cleanup();
@@ -192,5 +206,31 @@ describe("MapControlButtons (left control column)", () => {
 
     expect(screen.getByTestId("drone-planner-icon")).toBeTruthy();
     expect(screen.queryByTitle("Copy a link to this view")).toBeNull();
+  });
+});
+
+describe("Floating popovers z-index stacking above GlobalStatusBar", () => {
+  it("renders GlobalStatusBar at z-10 and SiteImageryPanel / SatPassesPanel at z-30", () => {
+    render(<GlobalStatusBar enabled activeOpsCount={1} onDutyCount={2} alertCount={0} />);
+    expect(screen.getByTestId("global-status-bar").className).toContain("z-10");
+    expect(screen.getByTestId("global-status-bar").className).not.toContain("z-20");
+
+    render(
+      <SiteImageryPanel
+        target={{ label: "HQ", lat: 34.05, lng: -118.24 }}
+        selected={null}
+        onSelect={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("site-imagery").className).toContain("z-30");
+
+    render(
+      <SatPassesPanel
+        target={{ label: "HQ", lat: 34.05, lng: -118.24 }}
+        onClose={vi.fn()}
+      />,
+    );
+    expect(screen.getByTestId("sat-passes").className).toContain("z-30");
   });
 });

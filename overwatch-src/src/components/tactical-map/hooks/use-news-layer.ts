@@ -13,10 +13,9 @@ import { fetchIntelGdelt, fetchIntelNews } from "@/lib/intel-client";
 import { mergeNews, type MergedNewsItem } from "@/lib/map/news-merge";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
+import { getTacticalIcon } from "@/lib/map/tactical-icons";
 
 const REFRESH_INTERVAL_MS = 15 * 60_000;
-const iconCache = new Map<string, HTMLCanvasElement>();
-
 function riskColor(score: number): string {
   if (score >= 8) return "#ef4444";
   if (score >= 6) return "#f97316";
@@ -24,28 +23,7 @@ function riskColor(score: number): string {
 }
 
 function buildIcon(color: string): HTMLCanvasElement {
-  const hit = iconCache.get(color);
-  if (hit) return hit;
-  const size = 14;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (ctx) {
-    const r = size / 2;
-    ctx.fillStyle = color;
-    ctx.beginPath();
-    ctx.arc(r, r, r - 1.5, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.strokeStyle = "rgba(255,255,255,0.95)";
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    ctx.fillStyle = "#111";
-    ctx.fillRect(r - 2.5, r - 2, 5, 1.2);
-    ctx.fillRect(r - 2.5, r + 0.5, 5, 1.2);
-  }
-  iconCache.set(color, canvas);
-  return canvas;
+  return getTacticalIcon("news", color);
 }
 
 function buildPopup(item: MergedNewsItem): string {
@@ -108,6 +86,7 @@ export function useNewsLayer(params: {
           position: Cesium.Cartesian3.fromDegrees(item.lng, item.lat, 5),
           billboard: {
             image: buildIcon(riskColor(item.risk)),
+            scale: 0.9,
             heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
             verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
             disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),

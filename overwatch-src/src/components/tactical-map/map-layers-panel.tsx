@@ -295,7 +295,7 @@ export function MapLayersPanel({ layers, onChange, onFlyToAll, operations, onRea
   const groups = [...new Set(visibleToggles.map((t) => t.group))];
 
   return (
-    <div className={`absolute top-3 right-3 z-10 transition-all duration-200 ${open ? "w-56 max-w-[calc(100vw-1.5rem)]" : "w-9"}`}>
+    <div className={`absolute top-3 right-3 transition-all duration-200 ${open ? "z-30 w-56 max-w-[calc(100vw-1.5rem)]" : "z-20 w-9"}`}>
       {/* Toggle button */}
       <button
         onClick={() => setOpen(!open)}
