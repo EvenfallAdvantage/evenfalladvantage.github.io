@@ -3,9 +3,20 @@
     "id": "git-2026-10-28",
     "date": "Oct 28, 2026",
     "version": "git-2026.10.28",
-    "title": "Timesheets: Allow company admins to manage/delete own timesheets & surface toast errors & 5 more",
+    "title": "Map Updates: Tactical symbology atlas, map performance & z-index polish, and What's New sync & 6 more",
     "tier": "major",
     "highlights": [
+      {
+        "id": "git-da650c46",
+        "title": "Map Updates: Tactical symbology atlas, map performance & z-index polish, and What's New sync",
+        "summary": "Tactical symbology atlas, map performance & z-index polish, and What's New sync.",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/schedule",
+        "tryLabel": "Open Tactical Map",
+        "icon": "Compass"
+      },
       {
         "id": "git-a724f5f1",
         "title": "Timesheets: Allow company admins to manage/delete own timesheets & surface toast errors",

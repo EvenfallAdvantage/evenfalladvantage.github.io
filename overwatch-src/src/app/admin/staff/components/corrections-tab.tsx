@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import {
-  Clock, CheckCircle2, XCircle, Loader2,
+  Clock, CheckCircle2, XCircle, Loader2, UtensilsCrossed, Coffee,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { getCompanyTimeChangeRequests, reviewTimeChangeRequest } from "@/lib/supabase/db";
+import { getCompanyTimeChangeRequests, reviewTimeChangeRequest, parseTimeChangeReason } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
 import { isSameDay } from "@/components/timeclock/timeclock-utils";
 import { formatMemberName } from "@/lib/format-names";
@@ -85,6 +85,7 @@ export function CorrectionsTab({ activeCompanyId, canManage }: CorrectionsTabPro
         const u = r.users;
         const ts = r.timesheets;
         const statusColor = r.status === "approved" ? "bg-green-500/15 text-green-600" : r.status === "denied" ? "bg-red-500/15 text-red-500" : "bg-amber-500/15 text-amber-600";
+        const { reasonText, requestedBreaks } = parseTimeChangeReason(r.reason);
         return (
           <div key={r.id} className={`rounded-xl border bg-card px-4 py-3 space-y-2 ${
             r.status === "pending" ? "border-orange-500/30" : "border-border/50"
@@ -110,7 +111,43 @@ export function CorrectionsTab({ activeCompanyId, canManage }: CorrectionsTabPro
                   <span className="text-[10px]"><span className="text-muted-foreground">New Out:</span> <span className="font-mono font-medium text-blue-400">{(r.requested_clock_in ?? ts?.clock_in) && !isSameDay((r.requested_clock_in ?? ts?.clock_in) as string, r.requested_clock_out) ? parseUTC(r.requested_clock_out).toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" }) : parseUTC(r.requested_clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span></span>
                 )}
               </div>
-              {r.reason && <p className="text-[10px] text-muted-foreground/70 italic line-clamp-2">&ldquo;{r.reason}&rdquo;</p>}
+              {requestedBreaks !== null && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-0.5" data-testid="requested-breaks-summary">
+                  <span className="text-[10px] text-muted-foreground">Requested Breaks:</span>
+                  {requestedBreaks.length === 0 ? (
+                    <Badge variant="outline" className="text-[10px] border-amber-500/30 text-amber-500">
+                      No breaks (clear all breaks)
+                    </Badge>
+                  ) : (
+                    requestedBreaks.map((b, idx) => {
+                      const mins =
+                        b.durationMinutes ??
+                        Math.max(0, Math.round((parseUTC(b.endTime).getTime() - parseUTC(b.startTime).getTime()) / 60000));
+                      return (
+                        <Badge
+                          key={b.id ?? `req-brk-${idx}`}
+                          variant="outline"
+                          className={`text-[10px] gap-1 font-mono ${
+                            b.breakType === "meal"
+                              ? "border-amber-500/30 text-amber-600 dark:text-amber-400"
+                              : "border-sky-500/30 text-sky-600 dark:text-sky-400"
+                          }`}
+                        >
+                          {b.breakType === "meal" ? (
+                            <UtensilsCrossed className="h-2.5 w-2.5" />
+                          ) : (
+                            <Coffee className="h-2.5 w-2.5" />
+                          )}
+                          {b.breakType === "meal" ? "Lunch" : "Rest"}:{" "}
+                          {parseUTC(b.startTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –{" "}
+                          {parseUTC(b.endTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} ({mins}m)
+                        </Badge>
+                      );
+                    })
+                  )}
+                </div>
+              )}
+              {reasonText && <p className="text-[10px] text-muted-foreground/70 italic line-clamp-2">&ldquo;{reasonText}&rdquo;</p>}
               <p className="text-[10px] text-muted-foreground/50">Submitted {new Date(r.created_at).toLocaleDateString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</p>
             </div>
             {/* Row 3: Action buttons */}
