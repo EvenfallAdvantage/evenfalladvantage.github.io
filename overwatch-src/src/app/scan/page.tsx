@@ -584,14 +584,15 @@ export default function ScanPage({ embedded = false }: { embedded?: boolean } = 
                           </span>
                         </div>
                         {policy.breaksEnabled && (
-                          <div className="flex items-center gap-1.5">
+                          <div className="flex flex-wrap items-center justify-center gap-1.5" data-testid="scan-break-controls">
                             {activeBreak ? (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 disabled={isBusy}
+                                data-testid="end-break-button"
                                 onClick={() => handleStaffBreakEnd(entry.id, activeBreak.id, name)}
-                                className="h-6 px-2 text-[10px] gap-1 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                                className="h-6 rounded-full px-2.5 text-[10px] gap-1 border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
                               >
                                 <Square className="h-2.5 w-2.5 fill-current" />
                                 {activeBreak.breakType === "meal" ? "End Lunch" : "End Break"}
@@ -602,8 +603,9 @@ export default function ScanPage({ embedded = false }: { embedded?: boolean } = 
                                   size="sm"
                                   variant="outline"
                                   disabled={isBusy}
+                                  data-testid="start-meal-break-button"
                                   onClick={() => handleStaffBreakStart(entry.id, name, "meal")}
-                                  className="h-6 px-2 text-[10px] gap-1 border-amber-500/30 hover:bg-amber-500/10"
+                                  className="h-6 rounded-full px-2.5 text-[10px] gap-1 border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-amber-600 dark:text-amber-400"
                                 >
                                   <UtensilsCrossed className="h-2.5 w-2.5 text-amber-500" />
                                   Lunch ({policy.mealBreakMinutes}m)
@@ -612,8 +614,9 @@ export default function ScanPage({ embedded = false }: { embedded?: boolean } = 
                                   size="sm"
                                   variant="outline"
                                   disabled={isBusy}
+                                  data-testid="start-rest-break-button"
                                   onClick={() => handleStaffBreakStart(entry.id, name, "rest")}
-                                  className="h-6 px-2 text-[10px] gap-1 border-sky-500/30 hover:bg-sky-500/10"
+                                  className="h-6 rounded-full px-2.5 text-[10px] gap-1 border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/15 text-sky-600 dark:text-sky-400"
                                 >
                                   <Coffee className="h-2.5 w-2.5 text-sky-500" />
                                   Take {policy.restBreakMinutes}

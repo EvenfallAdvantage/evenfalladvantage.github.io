@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Coffee, UtensilsCrossed, Play, Square, Loader2, CheckCircle2 } from "lucide-react";
+import { Coffee, UtensilsCrossed, Square, Loader2, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -163,59 +163,55 @@ export function BreakTracker({ timesheetId, compact = false, policy: policyProp,
   const isOverTarget = activeBreak ? elapsed > activeTargetMinutes * 60 : false;
 
   return (
-    <div className={compact ? "space-y-2" : "space-y-2.5"}>
-      {/* Active break banner */}
+    <div data-testid="break-tracker" className={`flex flex-col items-center ${compact ? "gap-1.5" : "gap-2"} w-full`}>
+      {/* Active break compact pill */}
       {activeBreak ? (
         <div
-          className={`flex items-center justify-between gap-2 rounded-xl border px-3 py-2.5 animate-pulse ${
+          data-testid="active-break-pill"
+          className={`inline-flex flex-wrap items-center justify-center gap-2 rounded-full border px-3 py-1.5 max-w-full ${
             activeBreak.breakType === "meal"
               ? "border-amber-500/40 bg-amber-500/10"
               : "border-sky-500/40 bg-sky-500/10"
           }`}
         >
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
             {activeBreak.breakType === "meal" ? (
-              <UtensilsCrossed className="h-4 w-4 text-amber-500 shrink-0" />
+              <UtensilsCrossed className="h-3.5 w-3.5 text-amber-500 shrink-0" />
             ) : (
-              <Coffee className="h-4 w-4 text-sky-500 shrink-0" />
+              <Coffee className="h-3.5 w-3.5 text-sky-500 shrink-0" />
             )}
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <p
-                  className={`text-xs font-semibold ${
-                    activeBreak.breakType === "meal"
-                      ? "text-amber-600 dark:text-amber-400"
-                      : "text-sky-600 dark:text-sky-400"
-                  }`}
-                >
-                  {activeBreak.breakType === "meal" ? "On Lunch Break" : `On Take ${policy.restBreakMinutes} (Rest)`}
-                </p>
-                <Badge
-                  variant="outline"
-                  className={`text-[9px] px-1.5 py-0 ${
-                    activeIsPaid
-                      ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/10"
-                      : "border-amber-500/30 text-amber-500 bg-amber-500/10"
-                  }`}
-                >
-                  {activeIsPaid ? "Paid" : "Unpaid"}
-                </Badge>
-              </div>
-              <p className="text-sm font-mono font-bold">
-                {formatTimer(elapsed)}{" "}
-                <span className="text-[10px] font-normal text-muted-foreground">
-                  / {activeTargetMinutes}:00 target
-                </span>
-                {isOverTarget && (
-                  <span className="ml-1.5 text-[10px] font-semibold text-red-500">Over target</span>
-                )}
-              </p>
-            </div>
+            <span
+              className={`text-xs font-semibold whitespace-nowrap ${
+                activeBreak.breakType === "meal"
+                  ? "text-amber-600 dark:text-amber-400"
+                  : "text-sky-600 dark:text-sky-400"
+              }`}
+            >
+              {activeBreak.breakType === "meal" ? "On Lunch" : `On Take ${policy.restBreakMinutes}`}
+            </span>
+            <Badge
+              variant="outline"
+              className={`text-[9px] px-1.5 py-0 ${
+                activeIsPaid
+                  ? "border-emerald-500/30 text-emerald-500 bg-emerald-500/10"
+                  : "border-amber-500/30 text-amber-500 bg-amber-500/10"
+              }`}
+            >
+              {activeIsPaid ? "Paid" : "Unpaid"}
+            </Badge>
+            <span className="text-xs font-mono font-bold whitespace-nowrap">
+              {formatTimer(elapsed)}
+              <span className="text-[10px] font-normal text-muted-foreground">/{activeTargetMinutes}:00</span>
+            </span>
+            {isOverTarget && (
+              <span className="text-[10px] font-semibold text-red-500 whitespace-nowrap">Over</span>
+            )}
           </div>
           <Button
             size="sm"
             variant="outline"
-            className={`h-8 gap-1.5 shrink-0 ${
+            data-testid="end-break-button"
+            className={`h-6 rounded-full px-2.5 text-[11px] font-semibold gap-1 shrink-0 ${
               activeBreak.breakType === "meal"
                 ? "border-amber-500/40 text-amber-600 hover:bg-amber-500/20"
                 : "border-sky-500/40 text-sky-600 hover:bg-sky-500/20"
@@ -223,34 +219,30 @@ export function BreakTracker({ timesheetId, compact = false, policy: policyProp,
             onClick={handleEnd}
             disabled={busy}
           >
-            {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Square className="h-3.5 w-3.5" />}
+            {busy ? <Loader2 className="h-3 w-3 animate-spin" /> : <Square className="h-3 w-3" />}
             {activeBreak.breakType === "meal" ? "End Lunch" : "End Break"}
           </Button>
         </div>
       ) : policy.breaksEnabled ? (
-        /* Start break buttons */
-        <div className="grid grid-cols-2 gap-2">
+        /* Start break compact inline pill cluster */
+        <div data-testid="break-controls-cluster" className="flex flex-wrap items-center justify-center gap-2">
           <Button
             size="sm"
             variant="outline"
-            className={`${compact ? "h-9" : "h-10"} flex items-center justify-center gap-1.5 text-xs border-amber-500/30 bg-amber-500/5 hover:bg-amber-500/15 text-amber-600 dark:text-amber-400`}
+            data-testid="start-meal-break-button"
+            className={`${compact ? "h-7 px-3" : "h-8 px-3.5"} rounded-full inline-flex items-center justify-center gap-1.5 text-xs border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 text-amber-600 dark:text-amber-400`}
             onClick={() => handleStart("meal")}
             disabled={busy}
           >
             <UtensilsCrossed className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate font-semibold">Take Lunch ({policy.mealBreakMinutes}m)</span>
-            <Badge
-              variant="outline"
-              className="hidden sm:inline-flex text-[9px] px-1 py-0 border-amber-500/30 text-amber-500"
-            >
-              {policy.mealBreakPaid ? "Paid" : "Unpaid"}
-            </Badge>
-            {!compact && <Play className="hidden sm:block h-2.5 w-2.5 ml-auto opacity-50 shrink-0" />}
+            <span className="font-semibold whitespace-nowrap">Take Lunch ({policy.mealBreakMinutes}m)</span>
+            <span className="text-[10px] opacity-80 whitespace-nowrap">· {policy.mealBreakPaid ? "Paid" : "Unpaid"}</span>
           </Button>
           <Button
             size="sm"
             variant="outline"
-            className={`${compact ? "h-9" : "h-10"} flex items-center justify-center gap-1.5 text-xs border-sky-500/30 bg-sky-500/5 hover:bg-sky-500/15 text-sky-600 dark:text-sky-400`}
+            data-testid="start-rest-break-button"
+            className={`${compact ? "h-7 px-3" : "h-8 px-3.5"} rounded-full inline-flex items-center justify-center gap-1.5 text-xs border-sky-500/30 bg-sky-500/10 hover:bg-sky-500/20 text-sky-600 dark:text-sky-400`}
             onClick={() => handleStart("rest")}
             disabled={busy || restLimitReached}
             title={
@@ -260,22 +252,18 @@ export function BreakTracker({ timesheetId, compact = false, policy: policyProp,
             }
           >
             <Coffee className="h-3.5 w-3.5 shrink-0" />
-            <span className="truncate font-semibold">Take {policy.restBreakMinutes} (Rest)</span>
-            <Badge
-              variant="outline"
-              className="hidden sm:inline-flex text-[9px] px-1 py-0 border-sky-500/30 text-sky-500"
-            >
-              {policy.restBreakPaid ? "Paid" : "Unpaid"}
-              {policy.maxRestBreaksPerShift > 0 ? ` · ${restBreaksTaken}/${policy.maxRestBreaksPerShift}` : ""}
-            </Badge>
-            {!compact && <Play className="hidden sm:block h-2.5 w-2.5 ml-auto opacity-50 shrink-0" />}
+            <span className="font-semibold whitespace-nowrap">Take {policy.restBreakMinutes} (Rest)</span>
+            <span className="text-[10px] opacity-80 whitespace-nowrap">
+              · {policy.restBreakPaid ? "Paid" : "Unpaid"}
+              {policy.maxRestBreaksPerShift > 0 ? ` (${restBreaksTaken}/${policy.maxRestBreaksPerShift})` : ""}
+            </span>
           </Button>
         </div>
       ) : null}
 
       {/* Completed breaks summary */}
       {completedBreaks.length > 0 && (
-        <div className="flex flex-wrap items-center gap-1.5">
+        <div className="flex flex-wrap items-center justify-center gap-1.5">
           {mealBreaksTaken > 0 && (
             <Badge
               variant="outline"

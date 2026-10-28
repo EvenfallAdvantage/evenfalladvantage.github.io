@@ -8,6 +8,7 @@ import { useAuthStore } from "@/stores/auth-store";
 import { usePageHeader } from "@/stores/page-header-store";
 import { useEffect, useState } from "react";
 import { getUnreadNotificationCount } from "@/lib/supabase/db";
+import { WhatsNewTriggerPill } from "@/components/updates/whats-new-modal";
 
 interface TopbarProps {
   sidebarCollapsed: boolean;
@@ -72,6 +73,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
       {actions && <div className="hidden sm:flex items-center gap-2">{actions}</div>}
 
       <div className="flex items-center gap-2">
+        <WhatsNewTriggerPill variant="topbar" />
         {/* Notifications */}
         <Link
           href="/notifications"

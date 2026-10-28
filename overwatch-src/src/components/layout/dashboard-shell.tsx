@@ -13,6 +13,7 @@ import { ErrorBoundary } from "@/components/error-boundary";
 import { SyncIndicator } from "@/components/sync-indicator";
 import { ServiceWorkerRegistration } from "@/components/sw-registration";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { WhatsNewModal } from "@/components/updates/whats-new-modal";
 
 const STORAGE_KEY = "overwatch-sidebar-collapsed";
 
@@ -79,6 +80,9 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {/* Offline sync indicator (only visible when there's something to show) */}
         <SyncIndicator />
+
+        {/* Role-filtered What's New single roll-up modal */}
+        <WhatsNewModal />
 
         {/* Service worker registration (mount-once, no UI). */}
         <ServiceWorkerRegistration />

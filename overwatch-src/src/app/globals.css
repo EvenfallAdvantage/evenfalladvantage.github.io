@@ -375,3 +375,20 @@ main#main-content {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+/* ── Tactical map bottom-left Cesium credits: keep compact so they never collide with MapLegalFooter ── */
+.map-credit-container .cesium-widget-credits {
+  position: static !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  max-width: 175px;
+  padding: 2px 6px;
+  font-size: 9px !important;
+  line-height: 1.1 !important;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.map-credit-container .cesium-credit-textContainer {
+  display: none !important;
+}
