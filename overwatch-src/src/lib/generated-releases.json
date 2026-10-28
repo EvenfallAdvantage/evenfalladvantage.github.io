@@ -3,9 +3,21 @@
     "id": "git-2026-10-28",
     "date": "Oct 28, 2026",
     "version": "git-2026.10.28",
-    "title": "Map Updates: Tactical symbology atlas, map performance & z-index polish, and What's New sync & 6 more",
+    "title": "Timesheets: Expand CSV export columns and allow break edits in time change requests & 7 more",
     "tier": "major",
     "highlights": [
+      {
+        "id": "git-0c91d17d",
+        "title": "Timesheets: Expand CSV export columns and allow break edits in time change requests",
+        "summary": "Expand CSV export columns and allow break edits in time change requests.",
+        "roles": [
+          "supervisor",
+          "admin"
+        ],
+        "tryHref": "/timeclock",
+        "tryLabel": "Open Timeclock",
+        "icon": "Coffee"
+      },
       {
         "id": "git-da650c46",
         "title": "Map Updates: Tactical symbology atlas, map performance & z-index polish, and What's New sync",

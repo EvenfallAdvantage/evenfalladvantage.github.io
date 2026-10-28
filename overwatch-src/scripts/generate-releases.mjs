@@ -12,7 +12,7 @@
  */
 
 import { execSync } from "node:child_process";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -189,15 +189,12 @@ export function generateReleasesFile(outputPath = OUTPUT_PATH) {
     writeFileSync(outputPath, `${JSON.stringify(releases, null, 2)}\n`, "utf8");
     return releases;
   } catch {
-    if (existsSync(outputPath)) {
-      try {
-        return JSON.parse(readFileSync(outputPath, "utf8"));
-      } catch {
-        // fall through
-      }
+    try {
+      return JSON.parse(readFileSync(outputPath, "utf8"));
+    } catch {
+      writeFileSync(outputPath, "[]\n", "utf8");
+      return [];
     }
-    writeFileSync(outputPath, "[]\n", "utf8");
-    return [];
   }
 }
 
