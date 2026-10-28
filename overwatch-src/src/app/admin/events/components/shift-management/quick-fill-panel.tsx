@@ -8,6 +8,39 @@ import { Badge } from "@/components/ui/badge";
 import { getEventShifts, createShift } from "@/lib/supabase/db";
 import { type Shift, type ShiftPeriod, PATTERNS, toISO, pad2, isOvernight, parseHHMM } from "../shared";
 
+export interface QuickFillPost {
+  name: string;
+  count: number;
+}
+
+export function clampPostCount(value: number | string): number {
+  const parsed = typeof value === "number" ? value : parseInt(String(value), 10);
+  if (!Number.isFinite(parsed) || parsed < 1) return 1;
+  return Math.min(99, Math.floor(parsed));
+}
+
+/**
+ * Expands Quick Fill post definitions into concrete post names:
+ * - count <= 1 keeps the post name as-is (e.g. "Front Gate")
+ * - count > 1 expands into numbered posts 1..count (e.g. "Agent 1" .. "Agent 10")
+ */
+export function expandQuickFillPosts(posts: QuickFillPost[]): string[] {
+  const expanded: string[] = [];
+  for (const post of posts) {
+    const trimmed = post.name.trim();
+    if (!trimmed) continue;
+    const count = clampPostCount(post.count);
+    if (count === 1) {
+      expanded.push(trimmed);
+    } else {
+      for (let i = 1; i <= count; i++) {
+        expanded.push(`${trimmed} ${i}`);
+      }
+    }
+  }
+  return expanded;
+}
+
 interface QuickFillPanelProps {
   eventId: string;
   opDays: string[];
@@ -40,16 +73,18 @@ export function QuickFillPanel({
   onClose,
 }: QuickFillPanelProps) {
   /* ── State ── */
-  const [posts, setPosts] = useState<string[]>([]);
+  const [posts, setPosts] = useState<QuickFillPost[]>([]);
   const [newPost, setNewPost] = useState("");
+  const [newPostCount, setNewPostCount] = useState<string>("1");
   const [presetKey, setPresetKey] = useState<PresetKey>("8");
   const [periods, setPeriods] = useState<ShiftPeriod[]>(() => clonePattern("8"));
   const [editing, setEditing] = useState(false);
   const [selectedDays, setSelectedDays] = useState<Set<string>>(new Set());
   const [generating, setGenerating] = useState(false);
 
+  const expandedPosts = expandQuickFillPosts(posts);
   const validPeriods = periods.filter(p => p.label.trim().length > 0);
-  const previewCount = posts.length * validPeriods.length * selectedDays.size;
+  const previewCount = expandedPosts.length * validPeriods.length * selectedDays.size;
 
   /* ── Preset / period management ── */
   function selectPreset(key: PresetKey) {
@@ -110,13 +145,13 @@ export function QuickFillPanel({
 
   /* ── Generate ── */
   async function handleGenerate() {
-    if (posts.length === 0 || selectedDays.size === 0 || validPeriods.length === 0) return;
+    if (expandedPosts.length === 0 || selectedDays.size === 0 || validPeriods.length === 0) return;
     setGenerating(true);
     try {
       const batch: { eventId: string; role: string; startTime: string; endTime: string }[] = [];
       for (const day of Array.from(selectedDays).sort()) {
         for (const p of validPeriods) {
-          for (const post of posts) {
+          for (const post of expandedPosts) {
             batch.push({
               eventId,
               role: `${post} — ${p.label.trim()}`,
@@ -141,9 +176,23 @@ export function QuickFillPanel({
   }
 
   function addPost() {
-    if (!newPost.trim() || posts.includes(newPost.trim())) return;
-    setPosts([...posts, newPost.trim()]);
+    const trimmed = newPost.trim();
+    if (!trimmed) return;
+    const count = clampPostCount(newPostCount);
+    setPosts(prev => {
+      const existingIdx = prev.findIndex(p => p.name.toLowerCase() === trimmed.toLowerCase());
+      if (existingIdx >= 0) {
+        return prev.map((p, i) => (i === existingIdx ? { ...p, count } : p));
+      }
+      return [...prev, { name: trimmed, count }];
+    });
     setNewPost("");
+    setNewPostCount("1");
+  }
+
+  function updatePostCount(name: string, rawValue: string) {
+    const count = clampPostCount(rawValue);
+    setPosts(prev => prev.map(p => (p.name === name ? { ...p, count } : p)));
   }
 
   function toggleDay(d: string) {
@@ -157,17 +206,59 @@ export function QuickFillPanel({
     <div className="px-3 sm:px-4 py-3 space-y-3 border-b border-border/20 bg-primary/[0.02]">
       {/* Posts */}
       <div>
-        <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Posts / Positions</label>
+        <div className="flex items-center justify-between gap-2">
+          <label className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">Posts / Positions</label>
+          <span className="text-[10px] text-muted-foreground">Count &gt; 1 numbers posts (e.g. 10 × Agent → Agent 1–10)</span>
+        </div>
         <div className="flex flex-wrap items-center gap-1.5 mt-1">
           {posts.map(p => (
-            <Badge key={p} variant="secondary" className="gap-1 text-xs pr-1">
-              {p}
-              <button onClick={() => setPosts(posts.filter(x => x !== p))} className="hover:text-red-400" aria-label={`Remove ${p}`}><X className="h-2.5 w-2.5" /></button>
+            <Badge key={p.name} variant="secondary" className="gap-1.5 text-xs pl-1.5 pr-1 py-0.5">
+              <input
+                type="number"
+                min={1}
+                max={99}
+                value={p.count}
+                onChange={(e) => updatePostCount(p.name, e.target.value)}
+                aria-label={`Count for ${p.name}`}
+                title="Number of duplicate posts (1–99)"
+                className="h-4 w-9 rounded border border-border/50 bg-background/80 px-1 text-center font-mono text-[10px] text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+              />
+              <span>{p.name}</span>
+              {p.count > 1 && (
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  ({p.name} 1–{p.count})
+                </span>
+              )}
+              <button onClick={() => setPosts(posts.filter(x => x.name !== p.name))} className="hover:text-red-400" aria-label={`Remove ${p.name}`}>
+                <X className="h-2.5 w-2.5" />
+              </button>
             </Badge>
           ))}
-          <div className="flex gap-1">
-            <Input value={newPost} onChange={(e) => setNewPost(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addPost()} placeholder="e.g. Front Gate" className="h-6 w-32 text-xs" />
-            <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={addPost} disabled={!newPost.trim()} aria-label="Add post"><Plus className="h-3 w-3" /></Button>
+          <div className="flex items-center gap-1">
+            <Input
+              type="number"
+              min={1}
+              max={99}
+              value={newPostCount}
+              onChange={(e) => setNewPostCount(e.target.value)}
+              onBlur={() => setNewPostCount(String(clampPostCount(newPostCount)))}
+              onKeyDown={(e) => e.key === "Enter" && addPost()}
+              placeholder="1"
+              aria-label="Post count"
+              title="Count — e.g. 10 with 'Agent' creates Agent 1 through Agent 10"
+              className="h-7 w-14 text-xs text-center font-mono px-1.5"
+            />
+            <Input
+              value={newPost}
+              onChange={(e) => setNewPost(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && addPost()}
+              placeholder="e.g. Agent or Front Gate"
+              aria-label="Post or position name"
+              className="h-7 w-36 text-xs"
+            />
+            <Button size="sm" variant="outline" className="h-7 w-7 p-0" onClick={addPost} disabled={!newPost.trim()} aria-label="Add post">
+              <Plus className="h-3 w-3" />
+            </Button>
           </div>
         </div>
       </div>
@@ -303,12 +394,12 @@ export function QuickFillPanel({
 
       {/* Generate */}
       <div className="flex items-center gap-3 pt-1 flex-wrap">
-        <Button size="sm" className="gap-1.5" onClick={handleGenerate} disabled={posts.length === 0 || selectedDays.size === 0 || validPeriods.length === 0 || generating}>
+        <Button size="sm" className="gap-1.5" onClick={handleGenerate} disabled={expandedPosts.length === 0 || selectedDays.size === 0 || validPeriods.length === 0 || generating}>
           {generating ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Zap className="h-3.5 w-3.5" />} Generate {previewCount} Shift{previewCount !== 1 ? "s" : ""}
         </Button>
         {previewCount > 0 && (
           <span className="text-[10px] text-muted-foreground font-mono">
-            {posts.length} post{posts.length > 1 ? "s" : ""} × {validPeriods.length} period{validPeriods.length > 1 ? "s" : ""} × {selectedDays.size} day{selectedDays.size > 1 ? "s" : ""}
+            {expandedPosts.length} post{expandedPosts.length > 1 ? "s" : ""} × {validPeriods.length} period{validPeriods.length > 1 ? "s" : ""} × {selectedDays.size} day{selectedDays.size > 1 ? "s" : ""}
           </span>
         )}
       </div>

@@ -116,9 +116,9 @@ export function ShiftDetailModal({ entry, companyId, onClose }: ShiftDetailModal
             </div>
           )}
           {breakSummary.totalMinutes > 0 && (
-            <div className="flex items-center justify-between">
-              <span className="text-muted-foreground">Breaks Logged</span>
-              <span className="font-mono">
+            <div className="flex items-start justify-between gap-2">
+              <span className="text-muted-foreground shrink-0">Breaks Logged</span>
+              <span className="font-mono text-right">
                 {breakSummary.mealMinutes > 0 ? `${breakSummary.mealMinutes}m lunch (${policy.mealBreakPaid ? "paid" : "unpaid"})` : ""}
                 {breakSummary.mealMinutes > 0 && breakSummary.restMinutes > 0 ? " · " : ""}
                 {breakSummary.restMinutes > 0 ? `${breakSummary.restMinutes}m rest (${policy.restBreakPaid ? "paid" : "unpaid"})` : ""}

@@ -245,7 +245,7 @@ export function BreakTracker({ timesheetId, compact = false, policy: policyProp,
             >
               {policy.mealBreakPaid ? "Paid" : "Unpaid"}
             </Badge>
-            {!compact && <Play className="h-2.5 w-2.5 ml-auto opacity-50 shrink-0" />}
+            {!compact && <Play className="hidden sm:block h-2.5 w-2.5 ml-auto opacity-50 shrink-0" />}
           </Button>
           <Button
             size="sm"
@@ -268,7 +268,7 @@ export function BreakTracker({ timesheetId, compact = false, policy: policyProp,
               {policy.restBreakPaid ? "Paid" : "Unpaid"}
               {policy.maxRestBreaksPerShift > 0 ? ` · ${restBreaksTaken}/${policy.maxRestBreaksPerShift}` : ""}
             </Badge>
-            {!compact && <Play className="h-2.5 w-2.5 ml-auto opacity-50 shrink-0" />}
+            {!compact && <Play className="hidden sm:block h-2.5 w-2.5 ml-auto opacity-50 shrink-0" />}
           </Button>
         </div>
       ) : null}
@@ -276,7 +276,7 @@ export function BreakTracker({ timesheetId, compact = false, policy: policyProp,
       {/* Completed breaks summary */}
       {completedBreaks.length > 0 && (
         <div className="flex flex-wrap items-center gap-1.5">
-          {totalMealMins > 0 && (
+          {mealBreaksTaken > 0 && (
             <Badge
               variant="outline"
               className="text-[9px] gap-1 py-0 border-amber-500/30 bg-amber-500/5 text-amber-600 dark:text-amber-400"
@@ -286,7 +286,7 @@ export function BreakTracker({ timesheetId, compact = false, policy: policyProp,
               {mealBreaksTaken > 1 ? ` ×${mealBreaksTaken}` : ""}
             </Badge>
           )}
-          {totalRestMins > 0 && (
+          {restBreaksTaken > 0 && (
             <Badge
               variant="outline"
               className="text-[9px] gap-1 py-0 border-sky-500/30 bg-sky-500/5 text-sky-600 dark:text-sky-400"

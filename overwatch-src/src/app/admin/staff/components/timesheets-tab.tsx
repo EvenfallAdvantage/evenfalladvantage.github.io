@@ -24,7 +24,7 @@ import { clockInFlag } from "@/lib/supabase/db-timesheets";
 function ClockInFlagBadge({ notes }: { notes?: string | null }) {
   const f = clockInFlag(notes);
   if (!f) return null;
-  return <Badge className="ml-1 text-[10px] bg-amber-500/15 text-amber-600" title={notes ?? undefined}>{f === "late" ? "Late clock-in" : "Early clock-in"}</Badge>;
+  return <Badge className="text-[10px] bg-amber-500/15 text-amber-600" title={notes ?? undefined}>{f === "late" ? "Late clock-in" : "Early clock-in"}</Badge>;
 }
 import { DarSignoffView } from "@/components/timeclock/dar-signoff-view";
 import { getSignedTimesheetIds } from "@/lib/supabase/db-dar";
@@ -189,46 +189,52 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
               const netOpenHrs = Math.max(0, (Date.now() - parseUTC(t.clock_in).getTime() - summary.unpaidMinutes * 60000) / 3600000).toFixed(1);
               const isBusy = breakActingId === t.id;
               return (
-                <div key={t.id} className="flex items-center gap-3 rounded-lg border border-border/30 bg-background/50 px-4 py-2.5 flex-wrap">
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-500/10 text-xs font-bold text-green-600">
-                    {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">
-                      {formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /><ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} />
-                      {activeBreak && (
-                        <Badge className={`ml-1 text-[10px] ${activeBreak.breakType === "meal" ? "bg-amber-500/15 text-amber-600" : "bg-sky-500/15 text-sky-600"}`}>
-                          {activeBreak.breakType === "meal" ? "On Lunch" : "On Break"}
-                        </Badge>
-                      )}
-                      {isLikelyAccidental(t) && <Badge className="ml-1 text-[10px] bg-muted text-muted-foreground" title="Under a minute; probably a test or mis-tap. Not counted as pending.">Under 1 min · likely accidental</Badge>}
-                    </p>
-                    <p className="text-xs text-muted-foreground truncate">
-                      {op ? `${op} · ` : ""}In since {!isSameDay(t.clock_in, new Date().toISOString()) ? `${parseUTC(t.clock_in).toLocaleDateString()} ` : ""}{parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                      {summary.mealMinutes > 0 && ` · Lunch ${summary.mealMinutes}m`}
-                      {summary.restMinutes > 0 && ` · Rest ${summary.restMinutes}m`}
-                    </p>
-                  </div>
-                  {canManage && policy.breaksEnabled && (
-                    <div className="flex items-center gap-1">
-                      {activeBreak ? (
-                        <Button size="sm" variant="outline" disabled={isBusy} onClick={() => handleManagerBreakEnd(t.id, activeBreak.id)} className="h-6 px-2 text-[10px] gap-1 border-amber-500/30 text-amber-600">
-                          <Square className="h-2.5 w-2.5 fill-current" />
-                          {activeBreak.breakType === "meal" ? "End Lunch" : "End Break"}
-                        </Button>
-                      ) : (
-                        <>
-                          <Button size="sm" variant="outline" disabled={isBusy} onClick={() => handleManagerBreakStart(t.id, "meal")} className="h-6 px-2 text-[10px] gap-1 border-amber-500/30 hover:bg-amber-500/10">
-                            <UtensilsCrossed className="h-2.5 w-2.5 text-amber-500" /> Lunch ({policy.mealBreakMinutes}m)
-                          </Button>
-                          <Button size="sm" variant="outline" disabled={isBusy} onClick={() => handleManagerBreakStart(t.id, "rest")} className="h-6 px-2 text-[10px] gap-1 border-sky-500/30 hover:bg-sky-500/10">
-                            <Coffee className="h-2.5 w-2.5 text-sky-500" /> Take {policy.restBreakMinutes}
-                          </Button>
-                        </>
-                      )}
+                <div key={t.id} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3 rounded-lg border border-border/30 bg-background/50 px-3 sm:px-4 py-2.5">
+                  <div className="flex items-start gap-3 min-w-0 flex-1">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-500/10 text-xs font-bold text-green-600">
+                      {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                     </div>
-                  )}
-                  <span className="font-mono text-sm font-semibold">{netOpenHrs}h</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="font-medium text-sm">{formatMemberName(u ?? {})}</span>
+                        <TimesheetVerifyBadge t={t} />
+                        <ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} />
+                        {activeBreak && (
+                          <Badge className={`text-[10px] ${activeBreak.breakType === "meal" ? "bg-amber-500/15 text-amber-600" : "bg-sky-500/15 text-sky-600"}`}>
+                            {activeBreak.breakType === "meal" ? "On Lunch" : "On Break"}
+                          </Badge>
+                        )}
+                        {isLikelyAccidental(t) && <Badge className="text-[10px] bg-muted text-muted-foreground" title="Under a minute; probably a test or mis-tap. Not counted as pending.">Under 1 min · likely accidental</Badge>}
+                      </div>
+                      <p className="mt-0.5 text-xs text-muted-foreground break-words">
+                        {op ? `${op} · ` : ""}In since {!isSameDay(t.clock_in, new Date().toISOString()) ? `${parseUTC(t.clock_in).toLocaleDateString()} ` : ""}{parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                        {summary.mealMinutes > 0 && ` · Lunch ${summary.mealMinutes}m`}
+                        {summary.restMinutes > 0 && ` · Rest ${summary.restMinutes}m`}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center justify-end gap-2 pl-12 sm:pl-0 shrink-0">
+                    {canManage && policy.breaksEnabled && (
+                      <div className="flex flex-wrap items-center gap-1">
+                        {activeBreak ? (
+                          <Button size="sm" variant="outline" disabled={isBusy} onClick={() => handleManagerBreakEnd(t.id, activeBreak.id)} className="h-6 px-2 text-[10px] gap-1 border-amber-500/30 text-amber-600">
+                            <Square className="h-2.5 w-2.5 fill-current" />
+                            {activeBreak.breakType === "meal" ? "End Lunch" : "End Break"}
+                          </Button>
+                        ) : (
+                          <>
+                            <Button size="sm" variant="outline" disabled={isBusy} onClick={() => handleManagerBreakStart(t.id, "meal")} className="h-6 px-2 text-[10px] gap-1 border-amber-500/30 hover:bg-amber-500/10">
+                              <UtensilsCrossed className="h-2.5 w-2.5 text-amber-500" /> Lunch ({policy.mealBreakMinutes}m)
+                            </Button>
+                            <Button size="sm" variant="outline" disabled={isBusy} onClick={() => handleManagerBreakStart(t.id, "rest")} className="h-6 px-2 text-[10px] gap-1 border-sky-500/30 hover:bg-sky-500/10">
+                              <Coffee className="h-2.5 w-2.5 text-sky-500" /> Take {policy.restBreakMinutes}
+                            </Button>
+                          </>
+                        )}
+                      </div>
+                    )}
+                    <span className="font-mono text-sm font-semibold ml-auto sm:ml-0">{netOpenHrs}h</span>
+                  </div>
                 </div>
               );
             })}
@@ -260,19 +266,19 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
               const unapproved = items.filter((t: Sheet) => countsAsPending(t)).length;
               return (
                 <div key={opName} className="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
-                  <button onClick={() => toggleOp(opName)} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors">
+                  <button onClick={() => toggleOp(opName)} className="flex w-full items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 text-left hover:bg-muted/30 transition-colors">
                     {opName === "Other" ? (
-                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <Clock className="h-4 w-4 shrink-0 text-muted-foreground" />
                     ) : (
-                      <Flag className="h-4 w-4 text-green-500" />
+                      <Flag className="h-4 w-4 shrink-0 text-green-500" />
                     )}
-                    <span className="font-semibold text-sm flex-1">{opName}</span>
-                    <span className="text-xs text-muted-foreground font-mono">{items.length} entries · {totalHrs}h</span>
-                    {unapproved > 0 && <Badge className="text-[10px] bg-amber-500/15 text-amber-500">{unapproved} pending</Badge>}
-                    {isCollapsed ? <ChevronDown className="h-4 w-4 text-muted-foreground" /> : <ChevronUp className="h-4 w-4 text-muted-foreground" />}
+                    <span className="font-semibold text-sm flex-1 min-w-0 truncate">{opName}</span>
+                    <span className="text-xs text-muted-foreground font-mono shrink-0 whitespace-nowrap">{items.length} entries · {totalHrs}h</span>
+                    {unapproved > 0 && <Badge className="text-[10px] bg-amber-500/15 text-amber-500 shrink-0">{unapproved} pending</Badge>}
+                    {isCollapsed ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronUp className="h-4 w-4 shrink-0 text-muted-foreground" />}
                   </button>
                   {!isCollapsed && (
-                    <div className="space-y-1 px-3 pb-3">
+                    <div className="space-y-1.5 px-3 pb-3">
                       {items.map((t: Sheet) => {
                         const breakSummary = calcBreakSummary(t, policy);
                         const hours = calcPayableHoursNum(t.clock_in, t.clock_out, t, policy);
@@ -286,67 +292,80 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                         );
                         const u = t.users;
                         return (
-                          <div key={t.id} className="flex items-center gap-4 rounded-lg border border-border/30 bg-background/50 px-4 py-2.5 flex-wrap">
-                            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-500/10 text-xs font-bold text-green-600">
-                              {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
-                            </div>
-                            <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm">
-                                {formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /><ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} />
-                                {breakSummary.mealCount > 0 && (
-                                  <Badge variant="outline" className="ml-1 text-[10px] gap-0.5 border-amber-500/30 text-amber-600 dark:text-amber-400">
-                                    <UtensilsCrossed className="h-2.5 w-2.5" /> {breakSummary.mealMinutes}m lunch
-                                  </Badge>
+                          <div key={t.id} className="rounded-lg border border-border/30 bg-background/50 px-3 sm:px-4 py-2.5">
+                            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+                              <div className="flex items-start gap-3 min-w-0 flex-1">
+                                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-green-500/10 text-xs font-bold text-green-600">
+                                  {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex flex-wrap items-center gap-1.5">
+                                    <span className="font-medium text-sm">{formatMemberName(u ?? {})}</span>
+                                    <TimesheetVerifyBadge t={t} />
+                                    <ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} />
+                                    {isLikelyAccidental(t) && (
+                                      <Badge className="text-[10px] bg-muted text-muted-foreground" title="Under a minute; probably a test or mis-tap. Not counted as pending.">
+                                        Under 1 min · likely accidental
+                                      </Badge>
+                                    )}
+                                    {breakSummary.mealCount > 0 && (
+                                      <Badge variant="outline" className="text-[10px] gap-0.5 border-amber-500/30 text-amber-600 dark:text-amber-400">
+                                        <UtensilsCrossed className="h-2.5 w-2.5" /> {breakSummary.mealMinutes}m lunch
+                                      </Badge>
+                                    )}
+                                    {breakSummary.restCount > 0 && (
+                                      <Badge variant="outline" className="text-[10px] gap-0.5 border-sky-500/30 text-sky-600 dark:text-sky-400">
+                                        <Coffee className="h-2.5 w-2.5" /> {breakSummary.restCount}× rest ({breakSummary.restMinutes}m)
+                                      </Badge>
+                                    )}
+                                    {compliance.mealBreakViolation && (
+                                      <Badge variant="outline" className="text-[10px] gap-0.5 border-red-500/30 text-red-600 dark:text-red-400" title={`Shift was ${compliance.shiftHours}h; ${compliance.mealBreaksTaken}/${compliance.mealBreaksRequired} required meal break(s) logged`}>
+                                        <AlertTriangle className="h-2.5 w-2.5" /> No meal break (&gt;{policy.firstMealAfterHours}h)
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="mt-0.5 text-xs text-muted-foreground break-words">
+                                    {formatLocaleDateRange(t.clock_in, t.clock_out)} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                    {breakSummary.unpaidMinutes > 0 && ` (-${breakSummary.unpaidMinutes}m unpaid)`}
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex items-center justify-end gap-2 pl-12 sm:pl-0 shrink-0">
+                                {signedIds.has(t.id) && (
+                                  <button type="button" onClick={() => setOpenReport(openReport === t.id ? null : t.id)}
+                                    aria-expanded={openReport === t.id}
+                                    className="inline-flex items-center gap-1 rounded bg-emerald-500/15 px-2 py-1 text-[10px] font-medium text-emerald-500 hover:bg-emerald-500/25"
+                                    title="View the officer's signed shift notes" aria-label="Shift notes">
+                                    <FileSignature className="h-3 w-3" /> <span className="hidden sm:inline">Shift Notes</span><span className="sm:hidden">Notes</span>
+                                  </button>
                                 )}
-                                {breakSummary.restCount > 0 && (
-                                  <Badge variant="outline" className="ml-1 text-[10px] gap-0.5 border-sky-500/30 text-sky-600 dark:text-sky-400">
-                                    <Coffee className="h-2.5 w-2.5" /> {breakSummary.restCount}× rest ({breakSummary.restMinutes}m)
-                                  </Badge>
-                                )}
-                                {compliance.mealBreakViolation && (
-                                  <Badge variant="outline" className="ml-1 text-[10px] gap-0.5 border-red-500/30 text-red-600 dark:text-red-400" title={`Shift was ${compliance.shiftHours}h; ${compliance.mealBreaksTaken}/${compliance.mealBreaksRequired} required meal break(s) logged`}>
-                                    <AlertTriangle className="h-2.5 w-2.5" /> No meal break (&gt;{policy.firstMealAfterHours}h)
-                                  </Badge>
-                                )}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {formatLocaleDateRange(t.clock_in, t.clock_out)} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                {breakSummary.unpaidMinutes > 0 && ` (-${breakSummary.unpaidMinutes}m unpaid)`}
-                              </p>
-                            </div>
-                            {signedIds.has(t.id) && (
-                              <button type="button" onClick={() => setOpenReport(openReport === t.id ? null : t.id)}
-                                aria-expanded={openReport === t.id}
-                                className="inline-flex items-center gap-1 rounded bg-emerald-500/15 px-2 py-1 text-[10px] font-medium text-emerald-500 hover:bg-emerald-500/25"
-                                title="View the officer's signed shift notes" aria-label="Shift notes">
-                                <FileSignature className="h-3 w-3" /> <span className="hidden sm:inline">Shift Notes</span><span className="sm:hidden">Notes</span>
-                              </button>
-                            )}
-                            <span className="font-mono text-sm font-semibold">{hrs}h</span>
-                            <div className="flex items-center gap-1">
-                              {t.approved ? (
-                                canManage ? (
-                                  <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-amber-500 border-amber-500/30 hover:bg-amber-500/10"
-                                    onClick={() => handleUnapprove(t.id)}>
-                                    Unapprove
-                                  </Button>
-                                ) : (
-                                  <Badge className="text-[10px] bg-green-500/15 text-green-600">Approved</Badge>
-                                )
-                              ) : (
-                                <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
-                                  onClick={() => handleApprove(t.id)} disabled={approving === t.id}>
-                                  {approving === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
-                                </Button>
-                              )}
-                              {canManage && (
-                                <button onClick={() => handleDelete(t.id)} className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete timesheet">
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </button>
-                              )}
+                                <span className="font-mono text-sm font-semibold mr-auto sm:mr-0">{hrs}h</span>
+                                <div className="flex items-center gap-1">
+                                  {t.approved ? (
+                                    canManage ? (
+                                      <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-amber-500 border-amber-500/30 hover:bg-amber-500/10"
+                                        onClick={() => handleUnapprove(t.id)}>
+                                        Unapprove
+                                      </Button>
+                                    ) : (
+                                      <Badge className="text-[10px] bg-green-500/15 text-green-600">Approved</Badge>
+                                    )
+                                  ) : (
+                                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
+                                      onClick={() => handleApprove(t.id)} disabled={approving === t.id}>
+                                      {approving === t.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
+                                    </Button>
+                                  )}
+                                  {canManage && (
+                                    <button onClick={() => handleDelete(t.id)} className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10 transition-colors" title="Delete timesheet">
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
                             </div>
                             {openReport === t.id && (
-                              <div className="basis-full"><DarSignoffView timesheetId={t.id} showEmpty /></div>
+                              <div className="mt-2"><DarSignoffView timesheetId={t.id} showEmpty /></div>
                             )}
                           </div>
                         );
@@ -361,7 +380,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
       })()}
       {/* Gusto Sync Button */}
       {canManage && timesheets.filter((t: Sheet) => t.approved).length > 0 && (
-        <div className="mt-4 flex items-center gap-3">
+        <div className="mt-4 flex flex-wrap items-center gap-2 sm:gap-3">
           <Button size="sm" variant="outline" className="h-8 gap-1.5 text-xs font-mono"
             onClick={async () => {
               if (!activeCompanyId) return;

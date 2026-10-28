@@ -98,24 +98,24 @@ describe("getWeekDates", () => {
     const days = getWeekDates(0);
     for (let i = 1; i < days.length; i++) {
       const diff = days[i].getTime() - days[i - 1].getTime();
-      // 24 hours in ms
-      expect(diff).toBe(86400000);
+      // 1 calendar day (23h–25h across DST transitions)
+      expect(Math.round(diff / 86400000)).toBe(1);
     }
   });
 
   it("offset -1 returns previous week", () => {
     const current = getWeekDates(0);
     const prev = getWeekDates(-1);
-    // Previous week's Monday should be 7 days before current week's Monday
+    // Previous week's Monday should be 7 calendar days before current week's Monday
     const diffMs = current[0].getTime() - prev[0].getTime();
-    expect(diffMs).toBe(7 * 86400000);
+    expect(Math.round(diffMs / 86400000)).toBe(7);
   });
 
   it("offset +1 returns next week", () => {
     const current = getWeekDates(0);
     const next = getWeekDates(1);
     const diffMs = next[0].getTime() - current[0].getTime();
-    expect(diffMs).toBe(7 * 86400000);
+    expect(Math.round(diffMs / 86400000)).toBe(7);
   });
 });
 
