@@ -241,6 +241,18 @@ SELECT rls_test.login('a5');  -- breaker
 SELECT rls_test.t('2.18 breaker approves a staff timesheet (0 rows)', '0',
   $q$WITH u AS (UPDATE timesheets SET approved = false WHERE id = '40000000-0000-0000-0000-000000000001' RETURNING 1) SELECT count(*) FROM u$q$);
 
+SELECT rls_test.login('a2');  -- admin A
+SELECT rls_test.t('2.19 admin clocks self in, edits/approves and deletes own timesheet [legit]', '1',
+  $q$WITH i AS (
+       INSERT INTO timesheets (id, user_id, clock_in, company_id, updated_at)
+       VALUES ('40000000-0000-0000-0000-000000000012', get_my_user_id(), now(), '20000000-0000-0000-0000-00000000000a', now())
+       RETURNING id
+     ),
+     d AS (
+       DELETE FROM timesheets WHERE id IN (SELECT id FROM i) RETURNING 1
+     )
+     SELECT count(*) FROM d$q$);
+
 -- ============================ 3. Join codes ================================
 SELECT rls_test.login('c3');
 SELECT rls_test.t('3.01 brute force: wrong code #1 returns an error object', 'Invalid company code', $q$SELECT join_company_by_code('AAAAAA') ->> 'error'$q$);

@@ -112,15 +112,20 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
         }).catch(() => {});
       }
       await refetch();
-    } catch (err) { console.error(err); }
-    finally { setApproving(null); }
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to approve timesheet");
+    } finally { setApproving(null); }
   }
 
   async function handleUnapprove(id: string) {
     try {
       await unapproveTimesheet(id);
       await refetch();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to unapprove timesheet");
+    }
   }
 
   async function handleDelete(id: string) {
@@ -133,8 +138,12 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
     if (!await confirm({ description: msg, variant: "destructive", confirmLabel: "Delete" })) return;
     try {
       await deleteTimesheet(id);
+      toast.success("Timesheet deleted");
       await refetch();
-    } catch (err) { console.error(err); }
+    } catch (err) {
+      console.error(err);
+      toast.error(err instanceof Error ? err.message : "Failed to delete timesheet");
+    }
   }
 
   async function handleManagerBreakStart(timesheetId: string, type: "meal" | "rest") {
