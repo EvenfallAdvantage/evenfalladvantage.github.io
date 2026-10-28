@@ -52,6 +52,7 @@ issues, PR descriptions or commit messages. The repo is **public**.
 |---|---|---|
 | `cctv_ingest_secret` | migration `20261016224117_cctv_ingest_secret_rpc` | pg_cron → `intel-cctv-ingest` (`x-ingest-secret`) |
 | `integrations_cron_secret` | migration `20261018004108_integration_cron_secret_vault` | pg_cron → `integration-token-refresh` / `integration-jobs-worker` |
+| `TOMTOM_API_KEY` | migration `20261028174112_tomtom_api_key_vault` | `intel-traffic` (`get_tomtom_api_key()` service_role RPC) |
 | `integration:<company_id>:<provider>` | `integration-save-credentials` | integration adapters, `airtable-proxy` |
 | `overwatch.email.smtp.<company_id>` (and the Resend/SMS equivalents) | `email-save-credentials`, `sms-save-credentials` | `_shared/email`, `_shared/sms` |
 

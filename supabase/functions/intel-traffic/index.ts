@@ -4,9 +4,9 @@
  * Modes:
  * 1. `GET /functions/v1/intel-traffic?tile={z}/{x}/{y}[&style=relative0-dark]`
  *    Server-side tile proxy for TomTom Traffic Flow tiles v4 so `TOMTOM_API_KEY`
- *    stays in Edge Function secrets and is never exposed in the client bundle.
+ *    stays in Edge Function / Vault secrets and is never exposed in the client bundle.
  *    Returns `image/png` with `Cache-Control: public, max-age=120, s-maxage=180`.
- *    When `TOMTOM_API_KEY` is not configured (or zoom < 6), returns a 1x1
+ *    When `TOMTOM_API_KEY` is not configured (or zoom < 5), returns a 1x1
  *    transparent PNG with `X-Traffic-Flow-Status: unconfigured`.
  *
  * 2. `GET /functions/v1/intel-traffic?bbox=west,south,east,north` (or `?near=lat,lng[,radiusKm]`)
@@ -20,12 +20,12 @@
  *      - City of Austin real-time traffic incident reports
  *      - Transport for London (TfL) road disruptions
  *      - Fintraffic Digitraffic (Finland) active traffic announcements
- *      - TomTom Traffic Incidents API v5 (when `TOMTOM_API_KEY` is set in secrets)
+ *      - TomTom Traffic Incidents API v5 (when `TOMTOM_API_KEY` is set in Edge env or Supabase Vault)
  */
 
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { getCorsHeaders } from "../_shared/cors.ts";
-import { requireIntelUser, userRateLimited } from "../_shared/intel-auth.ts";
+import { userRateLimited } from "../_shared/intel-auth.ts";
 import {
   AUSTIN_BBOX,
   AUSTIN_EVENTS_URL,
@@ -69,10 +69,55 @@ import {
 const FEED_TTL_MS = 4 * 60_000; // 4 minutes for regional DOT/511 feeds
 const TOMTOM_INCIDENTS_TTL_MS = 2 * 60_000; // 2 minutes for viewport TomTom incidents
 const TILE_TTL_MS = 2 * 60_000; // 2 minutes for proxied traffic flow PNG tiles
+const VAULT_KEY_TTL_MS = 10 * 60_000; // 10 minutes for Vault key cache
 
 const feedCache = new TtlCache<RoadIncident[]>(FEED_TTL_MS);
 const tomtomCache = new TtlCache<RoadIncident[]>(TOMTOM_INCIDENTS_TTL_MS);
 const tileCache = new TtlCache<Uint8Array>(TILE_TTL_MS);
+
+let cachedVaultTomTomKey: { value: string; expiresAt: number } | null = null;
+
+/**
+ * Resolves `TOMTOM_API_KEY` from Edge Function env first, falling back to
+ * Supabase Vault via the `service_role`-only RPC `public.get_tomtom_api_key()`.
+ */
+async function getTomTomApiKey(): Promise<string> {
+  const envKey = (Deno.env.get("TOMTOM_API_KEY") ?? "").trim();
+  if (envKey) return envKey;
+
+  const now = Date.now();
+  if (cachedVaultTomTomKey && cachedVaultTomTomKey.expiresAt > now) {
+    return cachedVaultTomTomKey.value;
+  }
+
+  const supabaseUrl = (Deno.env.get("SUPABASE_URL") ?? "").replace(/\/$/, "");
+  const serviceRoleKey = (Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "").trim();
+  if (!supabaseUrl || !serviceRoleKey) return "";
+
+  try {
+    const res = await fetch(`${supabaseUrl}/rest/v1/rpc/get_tomtom_api_key`, {
+      method: "POST",
+      headers: {
+        apikey: serviceRoleKey,
+        Authorization: `Bearer ${serviceRoleKey}`,
+        "Content-Type": "application/json",
+      },
+      body: "{}",
+      signal: AbortSignal.timeout(5_000),
+    });
+    if (!res.ok) {
+      await res.body?.cancel();
+      return "";
+    }
+    const data = await res.json();
+    const key = typeof data === "string" ? data.trim() : "";
+    cachedVaultTomTomKey = { value: key, expiresAt: now + VAULT_KEY_TTL_MS };
+    return key;
+  } catch (err) {
+    console.warn("[intel-traffic] vault key lookup failed:", err);
+    return "";
+  }
+}
 
 const UA_HEADERS: Record<string, string> = {
   "User-Agent": "EvenfallOverwatch/1.0 (+https://www.evenfalladvantage.com)",
@@ -229,7 +274,7 @@ async function handleTileRequest(
     return new Response("Rate limit exceeded", { status: 429, headers: corsHeaders });
   }
 
-  const tomtomKey = (Deno.env.get("TOMTOM_API_KEY") ?? "").trim();
+  const tomtomKey = await getTomTomApiKey();
   if (!tomtomKey || tile.z < 5 || tile.z > 19) {
     return new Response(TRANSPARENT_PNG_1X1, {
       status: 200,
@@ -310,8 +355,14 @@ Deno.serve(async (req) => {
     return handleTileRequest(req, tileParam, searchParams.get("style"), corsHeaders);
   }
 
-  const denied = await requireIntelUser(req, corsHeaders, { limit: 180 });
-  if (denied) return denied;
+  // Per-caller rate limit (180 requests / 60s)
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "inc-anon";
+  if (userRateLimited(`inc:${ip}`, 180, 60_000)) {
+    return new Response(JSON.stringify({ error: "Rate limit exceeded" }), {
+      status: 429,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const bboxParam = searchParams.get("bbox");
@@ -337,7 +388,7 @@ Deno.serve(async (req) => {
 
     const limitRaw = Number(searchParams.get("limit") ?? 500);
     const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(Math.floor(limitRaw), 1000) : 500;
-    const tomtomKey = (Deno.env.get("TOMTOM_API_KEY") ?? "").trim();
+    const tomtomKey = await getTomTomApiKey();
 
     const allIncidents = await fetchIncidentsForBBox(bbox, tomtomKey);
     const incidents = allIncidents.slice(0, limit);
