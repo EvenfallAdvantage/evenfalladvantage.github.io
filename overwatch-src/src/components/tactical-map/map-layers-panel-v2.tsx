@@ -48,6 +48,19 @@ const SCOPE_SHORT = { sites: "Near my sites", view: "Map view", everywhere: "Eve
 const PANEL_BG = { backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 92%, transparent)" };
 const ACCENT = "var(--brand-accent, #d59b3c)";
 
+export const TRAFFIC_FLOW_LEGEND_ITEMS = [
+  { color: "#22c55e", label: "Free flow" },
+  { color: "#eab308", label: "Slow" },
+  { color: "#f97316", label: "Heavy" },
+  { color: "#ef4444", label: "Standstill / Closed" },
+] as const;
+
+export const ROAD_INCIDENTS_LEGEND_ITEMS = [
+  { color: "#ef4444", label: "Crash / Hazard" },
+  { color: "#dc2626", label: "Closure" },
+  { color: "#f59e0b", label: "Construction / Lane restriction" },
+] as const;
+
 export interface MapLayersPanelV2Props {
   layers: LayerVisibility;
   onChange: (layers: LayerVisibility) => void;
@@ -263,6 +276,16 @@ function PanelBody(props: MapLayersPanelV2Props) {
                           <div className="ml-6 mb-1">
                             <Segmented value={layers.shipFilter ?? "all"} options={["all", "military", "emergency"] as const} labels={SHIP_FILTER_LABELS} onPick={(f) => onChange({ ...layers, shipFilter: f })} />
                             <ColorLegend testId="legend-ships" items={SHIP_CATEGORIES.map((c) => ({ color: CATEGORY_COLOR[c], label: CATEGORY_LABEL[c] }))} />
+                          </div>
+                        )}
+                        {g.id === "cameras" && s.id === "trafficFlow" && checked && (
+                          <div className="ml-6 mb-1">
+                            <ColorLegend testId="legend-traffic-flow" items={TRAFFIC_FLOW_LEGEND_ITEMS} />
+                          </div>
+                        )}
+                        {g.id === "cameras" && s.id === "roadIncidents" && checked && (
+                          <div className="ml-6 mb-1">
+                            <ColorLegend testId="legend-road-incidents" items={ROAD_INCIDENTS_LEGEND_ITEMS} />
                           </div>
                         )}
                         {g.id === "security" && s.id === "events" && checked && s2ActiveLayers && onToggleS2Layer && (

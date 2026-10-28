@@ -50,7 +50,9 @@ export type IntelLayerKey =
   | "satellite_clouds"
   | "surface_wind"
   | "gnss_interference"
-  | "osm_3d_buildings";
+  | "osm_3d_buildings"
+  | "traffic_flow"
+  | "road_incidents";
 
 export interface IntelFlag {
   enabled: boolean;
@@ -110,6 +112,16 @@ export const INTEL_LAYER_FLAGS: Record<IntelLayerKey, IntelFlag> = {
   osm_3d_buildings: {
     enabled: true,
     attribution: "3D buildings: © OpenMapTiles © OpenStreetMap contributors (ODbL 1.0), tiles by OpenFreeMap",
+    attributionRequired: true,
+  },
+  traffic_flow: {
+    enabled: true,
+    attribution: "Traffic flow tiles: © TomTom",
+    attributionRequired: true,
+  },
+  road_incidents: {
+    enabled: true,
+    attribution: "Road closures & incidents: Caltrans CWWP2, State/Provincial 511 feeds, Iowa DOT, DriveBC (OGL-BC), City of Austin, TfL Open Data, Fintraffic / digitraffic.fi (CC BY 4.0), © TomTom",
     attributionRequired: true,
   },
   space_weather: {

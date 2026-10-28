@@ -29,7 +29,6 @@ import { ClockWidget } from "@/components/timeclock/clock-widget";
 import { WeeklyHoursCalendar } from "@/components/timeclock/weekly-hours-calendar";
 import { RecentWatchLog } from "@/components/timeclock/recent-watch-log";
 import { ShiftDetailModal } from "@/components/timeclock/shift-detail-modal";
-import { BreakTracker } from "@/components/timeclock/break-tracker";
 import { ClockInModal } from "@/components/timeclock/clock-in-modal";
 import { DarSignoffModal } from "@/components/dar-signoff-modal";
 import { logger } from "@/lib/logger";
@@ -269,9 +268,7 @@ function TimeClockInner() {
         {/* Clock Tab Content */}
         {watchTab === "clock" && <>
           {nextShift && <UpcomingShiftCard shift={nextShift} />}
-          <ClockWidget active={active} loading={loading} acting={acting} elapsed={elapsed} onClockIn={handleClockIn} onClockOut={handleClockOut} />
-          {/* Break tracker — visible when clocked in */}
-          {active?.id && !String(active.id).startsWith("offline-") && <BreakTracker timesheetId={active.id} onChange={load} />}
+          <ClockWidget active={active} loading={loading} acting={acting} elapsed={elapsed} onClockIn={handleClockIn} onClockOut={handleClockOut} onBreakChange={load} />
           <WeeklyHoursCalendar
             weekDates={weekDates} weekHours={weekHours} weekTotal={weekTotal}
             weekOffset={weekOffset} isCurrentWeek={isCurrentWeek}

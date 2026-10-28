@@ -30,7 +30,8 @@ export type FlatKey =
   | "aircraft" | "satelliteOrbits" | "maritime" | "s2Intel"
   | "satellite" | "hybrid" | "nightVision" | "sentinel1" | "sentinel2" | "terrain" | "buildings"
   | "flirThermal" | "crtMode" | "nvgGoggles" | "noir" | "bloom" | "sharpen" | "hud" | "sonarSweep" | "scopeMask" | "cityLights" | "streetPhotos" | "rocketLaunches"
-  | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss" | "osmInfrastructure" | "ships";
+  | "nwsWarnings" | "naturalHazards" | "tropical" | "clouds" | "wind" | "gnss" | "osmInfrastructure" | "ships"
+  | "trafficFlow" | "roadIncidents";
 
 /** Minimal shape the registry needs; LayerVisibility satisfies it. */
 export type RegistryState = Record<FlatKey, boolean> & {
@@ -102,8 +103,10 @@ export const GROUPS: readonly GroupDef[] = [
     ],
   },
   {
-    id: "cameras", label: "Cameras", blurb: "Traffic cameras, street-level photos",
+    id: "cameras", label: "Roads & Cameras", blurb: "Live traffic flow, road closures, traffic cameras",
     subs: [
+      { id: "trafficFlow", label: "Live traffic flow", keys: ["trafficFlow"], hint: "Live road congestion speeds (green / yellow / orange / red) when zoomed in to regional or city scale" },
+      { id: "roadIncidents", label: "Road closures & crashes", keys: ["roadIncidents"], hint: "Live crashes, road closures, lane restrictions and work zones from state DOT & 511 feeds" },
       { id: "cctv", label: "Traffic cameras", keys: ["cctv"] },
       { id: "street", label: "Street-level photos", keys: ["streetPhotos"], hint: "Crowd-sourced street photos (Panoramax, KartaView, Mapillary), faces and plates blurred by each provider. Shown when zoomed in to street level" },
     ],
@@ -376,6 +379,8 @@ export function migrateLayers<T extends RegistryState>(defaults: T, saved: Parti
   if (saved.naturalHazards === undefined) merged.naturalHazards = !!(saved.earthquakes || saved.fires);
   // Launches joined the Space sub later: anyone who had orbits on gets the full sub.
   if (saved.rocketLaunches === undefined) merged.rocketLaunches = !!saved.satelliteOrbits;
+  if (saved.trafficFlow === undefined) merged.trafficFlow = false;
+  if (saved.roadIncidents === undefined) merged.roadIncidents = false;
   if (!["all", "military", "emergency"].includes(merged.aircraftFilter as string)) merged.aircraftFilter = "all";
   if (!["all", "military", "emergency"].includes(merged.shipFilter as string)) merged.shipFilter = "all";
   const m = merged as RegistryState & { scope?: string; siteWatch?: unknown };

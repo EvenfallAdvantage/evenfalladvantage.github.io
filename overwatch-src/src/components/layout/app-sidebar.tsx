@@ -14,6 +14,7 @@ import { formatMemberName, memberInitials } from "@/lib/format-names";
 import { isSuperAdmin } from "@/lib/security/super-admin";
 import type { NavItem } from "@/types";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { WhatsNewTriggerPill } from "@/components/updates/whats-new-modal";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -548,7 +549,8 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
       </div>
 
       {/* Theme Toggle + Branding */}
-      <div className={cn("shrink-0 border-t border-sidebar-border", collapsed ? "flex justify-center py-2" : "px-4 py-2 space-y-2")}>
+      <div className={cn("shrink-0 border-t border-sidebar-border", collapsed ? "flex flex-col items-center gap-1 py-2" : "px-4 py-2 space-y-2")}>
+        <WhatsNewTriggerPill variant="sidebar" collapsed={collapsed} />
         <ThemeToggle collapsed={collapsed} />
         {!collapsed && (
           <div className="flex flex-col items-center space-y-1">

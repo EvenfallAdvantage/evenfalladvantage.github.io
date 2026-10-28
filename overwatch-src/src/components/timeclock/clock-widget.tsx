@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useActiveCompany } from "@/stores/auth-store";
+import { BreakTracker } from "./break-tracker";
 import { calcBreakSummary, formatDuration, formatTime, type Timesheet } from "./timeclock-utils";
 
 interface ClockWidgetProps {
@@ -14,13 +15,15 @@ interface ClockWidgetProps {
   elapsed: number;
   onClockIn: () => void;
   onClockOut: () => void;
+  onBreakChange?: () => void;
 }
 
-export function ClockWidget({ active, loading, acting, elapsed, onClockIn, onClockOut }: ClockWidgetProps) {
+export function ClockWidget({ active, loading, acting, elapsed, onClockIn, onClockOut, onBreakChange }: ClockWidgetProps) {
   const isClockedIn = !!active;
   const activeCompany = useActiveCompany();
   const breakSummary = active ? calcBreakSummary(active, activeCompany?.settings) : null;
   const activeBreak = breakSummary?.activeBreak ?? null;
+  const isOnlineTimesheet = Boolean(active?.id && !String(active.id).startsWith("offline-"));
   const netElapsedMs = breakSummary
     ? Math.max(0, elapsed - breakSummary.unpaidMinutes * 60000)
     : elapsed;
@@ -41,7 +44,7 @@ export function ClockWidget({ active, loading, acting, elapsed, onClockIn, onClo
                 Net payable ({breakSummary.unpaidMinutes}m unpaid break deducted)
               </p>
             )}
-            {activeBreak && (
+            {activeBreak && !isOnlineTimesheet && (
               <Badge
                 variant="outline"
                 className={`mt-1.5 gap-1 text-[10px] ${
@@ -71,6 +74,12 @@ export function ClockWidget({ active, loading, acting, elapsed, onClockIn, onClo
                 <span className="text-xs font-medium text-amber-600">Admin / Off-Shift</span>
               </div>
             ) : null}
+            {/* Compact break controls right inside the clock pane above Clock Out */}
+            {isOnlineTimesheet && active?.id && (
+              <div className="mt-4 w-full flex justify-center">
+                <BreakTracker timesheetId={active.id} onChange={onBreakChange} />
+              </div>
+            )}
           </>
         ) : (
           <p className="mb-3 text-2xl font-bold text-muted-foreground">Off Duty</p>

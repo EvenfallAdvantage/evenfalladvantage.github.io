@@ -900,7 +900,7 @@ export function TacticalMap({ operations, staff, incidents, companyId, isAdmin, 
       <div ref={containerRef} className="w-full h-full" />
 
       {/* Persistent legal footer + Cesium provider credits */}
-      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} osmBuildings={osmBuildingsStatus.state !== "off"} placeLabels={hybridPlaceLabels} models={modelsShown || shipsLayer.modelsShown} ais={!!activeLayers.ships} />
+      <MapLegalFooter creditRef={creditRef} onOpenSources={() => setAttributionOpen(true)} osmBuildings={osmBuildingsStatus.state !== "off"} placeLabels={hybridPlaceLabels} models={modelsShown || shipsLayer.modelsShown} ais={!!activeLayers.ships} traffic={Boolean(activeLayers.trafficFlow || activeLayers.roadIncidents)} />
 
       {/* Ops Mode bar — top right, above other overlays, so the top-centre
           tracking chip (Phase 1A) can never cover Share / Exit. */}
