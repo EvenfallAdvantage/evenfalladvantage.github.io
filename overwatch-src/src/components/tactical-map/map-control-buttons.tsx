@@ -1,8 +1,8 @@
 "use client";
 
-import { Maximize2, Minimize2, Loader2, Radar, Link2, MonitorPlay, Search } from "lucide-react";
+import { Maximize2, Minimize2, Radar, MonitorPlay, Search } from "lucide-react";
 
-interface MapControlButtonsProps {
+export interface MapControlButtonsProps {
   cameraHeading: number;
   isFullscreen: boolean;
   timeMachineOpen: boolean;
@@ -14,8 +14,6 @@ interface MapControlButtonsProps {
   onToggleTimeMachine: () => void;
   onToggleDronePlanner: () => void;
   onToggleIntelDrawer: () => void;
-  /** Copy a link to the current view. */
-  onShare?: () => void;
   /** Enter full-screen Ops Mode. */
   onOpsMode?: () => void;
   /** Toggle the map search box. */
@@ -30,7 +28,7 @@ const btnBgActive = "color-mix(in srgb, var(--brand-accent, #d59b3c) 20%, color-
 export function MapControlButtons({
   cameraHeading, isFullscreen, timeMachineOpen, dronePlannerOpen, intelDrawerOpen, isAdmin,
   onResetNorth, onToggleFullscreen, onToggleTimeMachine, onToggleDronePlanner, onToggleIntelDrawer,
-  onShare, onOpsMode, searchOpen, onToggleSearch,
+  onOpsMode, searchOpen, onToggleSearch,
 }: MapControlButtonsProps) {
   return (
     <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5">
@@ -62,7 +60,7 @@ export function MapControlButtons({
       </button>
 
       {/* Time Machine */}
-      <button onClick={onToggleTimeMachine} title="Time Machine — replay past events"
+      <button onClick={onToggleTimeMachine} title="Time Machine — replay past events" aria-pressed={timeMachineOpen}
         className={`${btnBase} ${timeMachineOpen ? "text-white border-white/30" : "text-white/60 hover:text-white hover:border-white/30"}`}
         style={{ backgroundColor: timeMachineOpen ? btnBgActive : btnBg }}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5">
@@ -70,17 +68,34 @@ export function MapControlButtons({
         </svg>
       </button>
 
-      {/* Drone Planner (admin only) */}
+      {/* Drone Planner (admin only) — quadcopter icon */}
       {isAdmin && (
-        <button onClick={onToggleDronePlanner} title="Drone Flight Planner"
+        <button onClick={onToggleDronePlanner} title="Drone Flight Planner" aria-pressed={dronePlannerOpen}
           className={`${btnBase} ${dronePlannerOpen ? "text-white border-white/30" : "text-white/60 hover:text-white hover:border-white/30"}`}
           style={{ backgroundColor: dronePlannerOpen ? btnBgActive : btnBg }}>
-          <Loader2 className="h-4 w-4" style={{ animation: "none", transform: "rotate(45deg)" }} />
+          <svg
+            data-testid="drone-planner-icon"
+            width="16"
+            height="16"
+            viewBox="0 0 16 16"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <path d="M4.5 4.5L11.5 11.5M11.5 4.5L4.5 11.5" />
+            <circle cx="3.5" cy="3.5" r="2" />
+            <circle cx="12.5" cy="3.5" r="2" />
+            <circle cx="3.5" cy="12.5" r="2" />
+            <circle cx="12.5" cy="12.5" r="2" />
+            <rect x="6.5" y="6.5" width="3" height="3" rx="0.75" fill="currentColor" />
+          </svg>
         </button>
       )}
 
       {/* Intel drawer (RECON + alerts + sources) */}
-      <button onClick={onToggleIntelDrawer} title="Intel — recon, alerts, sources"
+      <button onClick={onToggleIntelDrawer} title="Intel — recon, alerts, sources" aria-pressed={intelDrawerOpen}
         className={`${btnBase} ${intelDrawerOpen ? "text-white border-white/30" : "text-white/60 hover:text-white hover:border-white/30"}`}
         style={{ backgroundColor: intelDrawerOpen ? btnBgActive : btnBg }}>
         <Radar className="h-4 w-4" />
@@ -91,14 +106,6 @@ export function MapControlButtons({
         <button onClick={onOpsMode} title="Ops Mode — full-screen map (O)"
           className={btnBase + " text-white/60 hover:text-white hover:border-white/30"} style={{ backgroundColor: btnBg }}>
           <MonitorPlay className="h-4 w-4" />
-        </button>
-      )}
-
-      {/* Share view link */}
-      {onShare && (
-        <button onClick={onShare} title="Copy a link to this view"
-          className={btnBase + " text-white/60 hover:text-white hover:border-white/30"} style={{ backgroundColor: btnBg }}>
-          <Link2 className="h-4 w-4" />
         </button>
       )}
     </div>

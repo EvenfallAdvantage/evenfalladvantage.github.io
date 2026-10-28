@@ -17,6 +17,7 @@ export function useAnnotations(
   const [drawMode, setDrawMode] = useState<DrawMode>("none");
   const [drawColor, setDrawColor] = useState("#ef4444");
   const [drawPoints, setDrawPoints] = useState<[number, number][]>([]); // [lng, lat]
+  const [drawLabel, setDrawLabel] = useState("");
   const [annotations, setAnnotations] = useState<MapAnnotation[]>([]);
 
   // Annotation subscription — load + subscribe to real-time changes
@@ -32,7 +33,26 @@ export function useAnnotations(
 
   // Draw finish handler — save annotation to DB
   const handleDrawFinish = useCallback(() => {
-    if (drawPoints.length < 2 && drawMode !== "text") return;
+    if (drawMode === "text") {
+      const trimmed = drawLabel.trim();
+      if (!trimmed || drawPoints.length < 1) return;
+      createAnnotation(companyId, {
+        eventId: null,
+        type: "text",
+        geometry: { positions: [drawPoints[0]] },
+        label: trimmed,
+        color: drawColor,
+        style: "solid",
+      });
+      const viewer = viewerRef.current;
+      drawPoints.forEach((_, i) => { try { viewer?.entities.removeById(`draw-pt-${i}`); } catch (e) { logger.swallow("annotations:remove-draw-pt", e); } });
+      setDrawPoints([]);
+      setDrawLabel("");
+      setDrawMode("none");
+      return;
+    }
+
+    if (drawPoints.length < 2) return;
     const type = drawMode === "none" ? "line" : drawMode;
 
     // For circles, compute radius from first to last point
@@ -64,13 +84,15 @@ export function useAnnotations(
     const viewer = viewerRef.current;
     drawPoints.forEach((_, i) => { try { viewer?.entities.removeById(`draw-pt-${i}`); } catch (e) { logger.swallow("annotations:remove-draw-pt", e); } });
     setDrawPoints([]);
+    setDrawLabel("");
     setDrawMode("none");
-  }, [drawPoints, drawMode, drawColor, companyId, viewerRef]);
+  }, [drawPoints, drawMode, drawColor, drawLabel, companyId, viewerRef]);
 
   const handleDrawCancel = useCallback(() => {
     const viewer = viewerRef.current;
     drawPoints.forEach((_, i) => { try { viewer?.entities.removeById(`draw-pt-${i}`); } catch (e) { logger.swallow("annotations:remove-draw-pt-cancel", e); } });
     setDrawPoints([]);
+    setDrawLabel("");
     setDrawMode("none");
   }, [drawPoints, viewerRef]);
 
@@ -84,6 +106,7 @@ export function useAnnotations(
     drawMode, setDrawMode,
     drawColor, setDrawColor,
     drawPoints, setDrawPoints,
+    drawLabel, setDrawLabel,
     annotations,
     handleDrawFinish,
     handleDrawCancel,

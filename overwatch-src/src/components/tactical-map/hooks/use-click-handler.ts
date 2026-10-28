@@ -34,9 +34,12 @@ export function useCesiumClickHandler(params: {
   setElevationStatus: (v: string | null) => void;
   // Drawing state from useAnnotations
   drawMode: DrawMode;
+  setDrawMode?: (v: DrawMode) => void;
   drawColor: string;
   drawPoints: [number, number][];
   setDrawPoints: (v: [number, number][] | ((prev: [number, number][]) => [number, number][])) => void;
+  drawLabel?: string;
+  setDrawLabel?: (v: string) => void;
   // Drone state from useDronePlanner
   dronePlannerOpen: boolean;
   droneWaypoints: Waypoint[];
@@ -54,7 +57,7 @@ export function useCesiumClickHandler(params: {
     rangeCenter: _rangeCenter, setRangeCenter,
     losPoint1, setLosPoint1, setLosResult, losEntityIdsRef,
     elevPoint1, setElevPoint1, setElevationStatus,
-    drawMode, drawColor, drawPoints, setDrawPoints,
+    drawMode, setDrawMode, drawColor, drawPoints, setDrawPoints, drawLabel, setDrawLabel,
     dronePlannerOpen, droneWaypoints, setDroneWaypoints,
     aligningOp,
     companyId, isAdmin, onSelectOperation,
@@ -173,15 +176,34 @@ export function useCesiumClickHandler(params: {
       // Drawing mode — collect points
       if (drawMode !== "none") {
         if (drawMode === "text") {
-          const label = prompt("Enter label text:");
-          if (label) {
+          const trimmedLabel = (drawLabel ?? "").trim();
+          if (trimmedLabel) {
             createAnnotation(companyId, {
               eventId: null,
               type: "text",
               geometry: { positions: [[lng, lat]] },
-              label,
+              label: trimmedLabel,
               color: drawColor,
               style: "solid",
+            });
+            try { viewer.entities.removeById("draw-pt-0"); } catch { /* ignore */ }
+            setDrawPoints([]);
+            setDrawLabel?.("");
+            setDrawMode?.("none");
+          } else {
+            try { viewer.entities.removeById("draw-pt-0"); } catch { /* ignore */ }
+            setDrawPoints([[lng, lat]]);
+            viewer.entities.add({
+              id: "draw-pt-0",
+              position: Cesium.Cartesian3.fromDegrees(lng, lat),
+              point: {
+                pixelSize: 6,
+                color: Cesium.Color.fromCssColorString(drawColor),
+                outlineColor: Cesium.Color.WHITE,
+                outlineWidth: 1,
+                heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
+                disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
+              },
             });
           }
           return;
@@ -386,7 +408,7 @@ export function useCesiumClickHandler(params: {
     }, Cesium.ScreenSpaceEventType.LEFT_DOUBLE_CLICK);
 
     return () => handler.destroy();
-  }, [loading, onSelectOperation, activeTool, measurePoint1, losPoint1, elevPoint1, aligningOp, drawMode, drawColor, drawPoints, companyId, dronePlannerOpen, droneWaypoints, viewerRef, cesiumRef, isAdmin, losEntityIdsRef, setDrawPoints, setDroneWaypoints, setElevPoint1, setElevationStatus, setLosPoint1, setLosResult, setMeasurePoint1, setMeasureResult, setRangeCenter]);
+  }, [loading, onSelectOperation, activeTool, measurePoint1, losPoint1, elevPoint1, aligningOp, drawMode, setDrawMode, drawColor, drawPoints, drawLabel, setDrawLabel, companyId, dronePlannerOpen, droneWaypoints, viewerRef, cesiumRef, isAdmin, losEntityIdsRef, setDrawPoints, setDroneWaypoints, setElevPoint1, setElevationStatus, setLosPoint1, setLosResult, setMeasurePoint1, setMeasureResult, setRangeCenter]);
 
   // Dismiss popup when camera moves (user is navigating away)
   // Use a short delay to avoid dismissing immediately on click (which can

@@ -65,7 +65,7 @@ export const CCTV_SOURCES: CctvSource[] = [
   },
   {
     id: "Iowa DOT",
-    attribution: "Iowa DOT traffic cameras",
+    attribution: "Source: Iowa DOT",
     fetch: async ({ json }) => parseIowa(await fetchArcgisAll(json,
       "https://services.arcgis.com/8lRhdTsQyJpO52F1/arcgis/rest/services/Traffic_Cameras_View/FeatureServer/0")),
   },

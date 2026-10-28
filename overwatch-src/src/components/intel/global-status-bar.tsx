@@ -1,159 +1,152 @@
 "use client";
 
 /**
- * Global status bar — fixed bottom-center ribbon on the tactical map.
- * Surfaces three at-a-glance signals refreshed every 30 minutes:
+ * Global operational status bar — fixed top-center pill on the tactical map.
+ * Surfaces three live operational signals derived from the active company's map state:
  *
- *   - Exchanges open / total (market hours indicator)
- *   - CISA KEV CVE count + threat level
- *   - Top 3 country risk codes (with severity color dot)
+ *   - Active operations count
+ *   - On-duty staff count (live GPS pins on shift)
+ *   - Active alerts count (open company incidents + site-watch proximity alerts)
  *
- * Self-fetches; no parent state. Render gated by an `enabled` prop so the
- * tactical-map shell can hide it for non-admin users if needed.
+ * Also houses quick-action buttons for sharing the current map view and opening
+ * the Data Sources & Attribution modal. Shifts down automatically when the
+ * aircraft TrackingChip occupies the top-center slot.
  */
 
-import { useEffect, useState } from "react";
-import { setVisibleInterval } from "@/lib/visible-interval";
-import { Loader2, Info } from "lucide-react";
-import {
-  fetchIntelCountryRisk,
-  fetchIntelCyberThreats,
-} from "@/lib/intel-client";
-import type {
-  IntelCountryRiskResponse,
-  IntelCyberThreatsResponse,
-} from "@/lib/intel-types";
-import { logger } from "@/lib/logger";
+import { Info, Link2 } from "lucide-react";
 
-interface GlobalStatusBarProps {
+export type GlobalAlertTone = "nominal" | "warning" | "critical";
+
+export interface GlobalStatusBarProps {
   enabled?: boolean;
+  /** Shift down from top-3 to top-12 when the aircraft TrackingChip is active. */
+  offsetTop?: boolean;
+  activeOpsCount?: number;
+  onDutyCount?: number;
+  alertCount?: number;
+  alertTone?: GlobalAlertTone;
+  onShare?: () => void;
   onOpenAttribution?: () => void;
 }
 
-const riskColors: Record<string, string> = {
-  CRITICAL: "#ef4444",
-  HIGH: "#f97316",
-  ELEVATED: "#fbbf24",
-  LOW: "#10b981",
-};
-const threatColors: Record<string, string> = {
-  CRITICAL: "#ef4444",
-  HIGH: "#f97316",
-  ELEVATED: "#fbbf24",
-};
-
-const REFRESH_MS = 30 * 60_000;
-
-export function GlobalStatusBar({ enabled = true, onOpenAttribution }: GlobalStatusBarProps) {
-  const [risk, setRisk] = useState<IntelCountryRiskResponse | null>(null);
-  const [cyber, setCyber] = useState<IntelCyberThreatsResponse | null>(null);
-  const [busy, setBusy] = useState(false);
-
-  useEffect(() => {
-    if (!enabled) return;
-    let cancelled = false;
-    async function load() {
-      setBusy(true);
-      try {
-        const [r, c] = await Promise.all([
-          fetchIntelCountryRisk().catch((e) => {
-            logger.swallow("intel:global-status:risk", e, "debug");
-            return null;
-          }),
-          fetchIntelCyberThreats().catch((e) => {
-            logger.swallow("intel:global-status:cyber", e, "debug");
-            return null;
-          }),
-        ]);
-        if (cancelled) return;
-        if (r) setRisk(r);
-        if (c) setCyber(c);
-      } finally {
-        if (!cancelled) setBusy(false);
-      }
-    }
-    load();
-    const stopPolling = setVisibleInterval(load, REFRESH_MS);
-    return () => {
-      cancelled = true;
-      stopPolling();
-    };
-  }, [enabled]);
-
+export function GlobalStatusBar({
+  enabled = true,
+  offsetTop = false,
+  activeOpsCount = 0,
+  onDutyCount = 0,
+  alertCount = 0,
+  alertTone = "nominal",
+  onShare,
+  onOpenAttribution,
+}: GlobalStatusBarProps) {
   if (!enabled) return null;
 
-  const topCountries = risk?.countries.slice(0, 3) ?? [];
+  const alertDotColor =
+    alertCount === 0
+      ? "#10b981"
+      : alertTone === "critical"
+        ? "#ef4444"
+        : "#f59e0b";
 
   return (
     <div
-      className="absolute bottom-16 left-1/2 -translate-x-1/2 z-10 pointer-events-auto rounded-full px-3 py-1.5 flex items-center gap-3 backdrop-blur-sm border border-white/10 text-[10px] font-mono uppercase tracking-wider"
+      data-testid="global-status-bar"
+      className={`absolute ${
+        offsetTop ? "top-24 lg:top-12" : "top-3"
+      } left-1/2 -translate-x-1/2 z-20 pointer-events-auto rounded-full px-3 py-1.5 flex items-center gap-2.5 sm:gap-3 backdrop-blur-sm border border-white/10 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap transition-[top] duration-150`}
       style={{
         backgroundColor:
           "color-mix(in srgb, var(--brand-primary, #0f1a2e) 88%, transparent)",
         color: "rgba(255,255,255,0.7)",
       }}
     >
-      {/* Exchanges */}
-      {risk && (
-        <div className="flex items-center gap-1">
-          <span
-            className="inline-block w-1.5 h-1.5 rounded-full"
-            style={{
-              backgroundColor: risk.open_exchanges > 0 ? "#10b981" : "#64748b",
-            }}
-          />
-          <span className="text-white/80">
-            {risk.open_exchanges}/{risk.total_exchanges}
-          </span>
-          <span className="text-white/40">exch</span>
-        </div>
-      )}
-
-      <span className="text-white/20">·</span>
-
-      {/* CVE / threat */}
-      {cyber && (
-        <div className="flex items-center gap-1" title={`${cyber.stats.cisa_total ?? "?"} total CISA KEV`}>
-          <span
-            className="inline-block w-1.5 h-1.5 rounded-full"
-            style={{ backgroundColor: threatColors[cyber.stats.threat_level] ?? "#64748b" }}
-          />
-          <span className="text-white/80">
-            {cyber.stats.active_cves}
-          </span>
-          <span className="text-white/40">cves · {cyber.stats.threat_level}</span>
-        </div>
-      )}
-
-      <span className="text-white/20">·</span>
-
-      {/* Top 3 country risks */}
-      {topCountries.length > 0 && (
-        <div className="flex items-center gap-2">
-          {topCountries.map((c) => (
-            <div key={c.code} className="flex items-center gap-1" title={`${c.code} risk ${c.risk_score} (${c.tags.join(", ")})`}>
-              <span
-                className="inline-block w-1.5 h-1.5 rounded-full"
-                style={{ backgroundColor: riskColors[c.risk_level] ?? "#64748b" }}
-              />
-              <span className="text-white/80">{c.code}</span>
-              <span className="text-white/40">{c.risk_score}</span>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {busy && (
-        <span className="text-white/30">
-          <Loader2 className="h-3 w-3 animate-spin inline" />
+      {/* Active Ops */}
+      <div
+        className="flex items-center gap-1.5"
+        title={`${activeOpsCount} active operation${activeOpsCount === 1 ? "" : "s"}`}
+        data-testid="status-active-ops"
+      >
+        <span
+          className="inline-block w-1.5 h-1.5 rounded-full"
+          style={{ backgroundColor: activeOpsCount > 0 ? "#10b981" : "#64748b" }}
+        />
+        <span className="text-white/85 font-semibold">{activeOpsCount}</span>
+        <span className="text-white/45">
+          {activeOpsCount === 1 ? "active op" : "active ops"}
         </span>
+      </div>
+
+      <span className="text-white/20">·</span>
+
+      {/* On-Duty Staff */}
+      <div
+        className="flex items-center gap-1.5"
+        title={`${onDutyCount} staff on duty`}
+        data-testid="status-on-duty"
+      >
+        <span
+          className="inline-block w-1.5 h-1.5 rounded-full"
+          style={{ backgroundColor: onDutyCount > 0 ? "#22d3ee" : "#64748b" }}
+        />
+        <span className="text-white/85 font-semibold">{onDutyCount}</span>
+        <span className="text-white/45">on duty</span>
+      </div>
+
+      <span className="text-white/20">·</span>
+
+      {/* Active Alerts (Open Incidents + Site Watch Alerts) */}
+      <div
+        className="flex items-center gap-1.5"
+        title={
+          alertCount > 0
+            ? `${alertCount} active alert${alertCount === 1 ? "" : "s"}`
+            : "No active alerts"
+        }
+        data-testid="status-alerts"
+      >
+        <span
+          className="inline-block w-1.5 h-1.5 rounded-full"
+          style={{ backgroundColor: alertDotColor }}
+        />
+        <span
+          className={
+            alertCount > 0
+              ? alertTone === "critical"
+                ? "text-red-300 font-semibold"
+                : "text-amber-300 font-semibold"
+              : "text-white/85 font-semibold"
+          }
+        >
+          {alertCount}
+        </span>
+        <span className="text-white/45">
+          {alertCount === 1 ? "alert" : "alerts"}
+        </span>
+      </div>
+
+      {(onShare || onOpenAttribution) && (
+        <span className="text-white/15">|</span>
+      )}
+
+      {onShare && (
+        <button
+          type="button"
+          onClick={onShare}
+          className="text-white/40 hover:text-white/85 transition-colors"
+          title="Copy a link to this view"
+          aria-label="Copy a link to this view"
+        >
+          <Link2 className="h-3 w-3" />
+        </button>
       )}
 
       {onOpenAttribution && (
         <button
+          type="button"
           onClick={onOpenAttribution}
-          className="text-white/30 hover:text-white/80 ml-1"
+          className="text-white/40 hover:text-white/85 transition-colors"
           title="Data sources"
+          aria-label="Data sources"
         >
           <Info className="h-3 w-3" />
         </button>
