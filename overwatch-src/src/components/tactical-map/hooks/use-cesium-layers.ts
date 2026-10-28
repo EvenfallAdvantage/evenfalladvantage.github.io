@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { iconSize } from "@/lib/map/tactical-icons";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import { createTerrainProvider, ionAssetsEnabled, OSM_STREETS_CREDIT, OSM_STREETS_URL } from "@/lib/map/basemap-sources";
 import { logger } from "@/lib/logger";
@@ -742,6 +743,7 @@ export function useCesiumLayers(params: {
             position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
             billboard: {
               image: createPinCanvas(pinColor, linkedIncident ? "alert" : "flag"),
+              ...iconSize(createPinCanvas(pinColor, linkedIncident ? "alert" : "flag")),
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               scale: linkedIncident ? 0.55 : 0.5,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,

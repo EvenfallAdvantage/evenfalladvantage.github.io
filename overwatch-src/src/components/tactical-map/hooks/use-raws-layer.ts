@@ -3,7 +3,7 @@ import { setVisibleInterval } from "@/lib/visible-interval";
 import { logger } from "@/lib/logger";
 import { escapeHtml, safeHttpUrl } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
-import { getTacticalIcon } from "@/lib/map/tactical-icons";
+import { getTacticalIcon, iconSize } from "@/lib/map/tactical-icons";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 const ARCGIS_URL =
@@ -33,7 +33,7 @@ interface RawsStation {
 }
 
 function buildArrowIcon(): HTMLCanvasElement {
-  return getTacticalIcon("wind-arrow", "#ffffff");
+  return getTacticalIcon("wind-arrow", "#ffffff", { size: 22 });
 }
 
 function parseWindSpeed(speed: string): number {
@@ -154,6 +154,7 @@ export function useRawsLayer(params: {
           position: Cesium.Cartesian3.fromDegrees(station.lng, station.lat, 5),
           billboard: {
             image: buildArrowIcon(),
+            ...iconSize(buildArrowIcon()),
             scale,
             rotation,
             alignedAxis: Cesium.Cartesian3.UNIT_Z,

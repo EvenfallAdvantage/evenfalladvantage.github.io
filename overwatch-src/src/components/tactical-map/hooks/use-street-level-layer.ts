@@ -11,7 +11,7 @@ import { logger } from "@/lib/logger";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 import { isHighContrastLook } from "@/lib/map/contact-models";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
-import { getTacticalIcon } from "@/lib/map/tactical-icons";
+import { getTacticalIcon, iconSize } from "@/lib/map/tactical-icons";
 import { fetchStreetPhotos, mapillaryToken, streetBudget, STREET_CREDITS, STREET_MAX_CAMERA_HEIGHT_M, type BBox, type StreetPhoto } from "@/lib/map/street-level";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -56,7 +56,9 @@ export function useStreetLevelLayer(params: {
           position: C.Cartesian3.fromDegrees(p.lng, p.lat, 0),
           billboard: {
             image: getTacticalIcon("street-photo", COLORS[p.provider], { highContrast: dark }),
-            scale: constrained ? 0.9 : 0.85,
+            ...iconSize(getTacticalIcon("street-photo", COLORS[p.provider], { highContrast: dark })),
+            // 18 px × 0.5 / 0.45 = 9 / 8.1 px (pre-#215 dots: 9 / 8 px).
+            scale: constrained ? 0.5 : 0.45,
             verticalOrigin: C.VerticalOrigin.CENTER,
             heightReference: C.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: nearSideDepthProperty(viewer, C),

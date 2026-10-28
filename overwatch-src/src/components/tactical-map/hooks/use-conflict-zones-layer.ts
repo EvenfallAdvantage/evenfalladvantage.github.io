@@ -12,7 +12,7 @@ import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelConflictZones } from "@/lib/intel-client";
 import type { IntelConflictZone } from "@/lib/intel-types";
-import { getTacticalIcon } from "@/lib/map/tactical-icons";
+import { getTacticalIcon, iconSize } from "@/lib/map/tactical-icons";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 function severityColor(severity: IntelConflictZone["severity"]): string {
@@ -27,7 +27,7 @@ function severityColor(severity: IntelConflictZone["severity"]): string {
 }
 
 function buildIcon(severity: IntelConflictZone["severity"]): HTMLCanvasElement {
-  return getTacticalIcon("conflict", severityColor(severity));
+  return getTacticalIcon("conflict", severityColor(severity), { size: 32 });
 }
 
 function buildPopup(z: IntelConflictZone): string {
@@ -83,6 +83,7 @@ export function useConflictZonesLayer(params: {
             position: Cesium.Cartesian3.fromDegrees(z.lng, z.lat, 5),
             billboard: {
               image: buildIcon(z.severity),
+              ...iconSize(buildIcon(z.severity)),
               scale: 1.0,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,

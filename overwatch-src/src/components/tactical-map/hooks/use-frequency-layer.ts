@@ -1,5 +1,6 @@
 "use client";
 
+import { iconSize } from "@/lib/map/tactical-icons";
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
@@ -89,6 +90,7 @@ export function useFrequencyLayer(params: {
             position: Cesium.Cartesian3.fromDegrees(f.longitude, f.latitude, 5),
             billboard: {
               image: createPinCanvas(color, "alert"),
+              ...iconSize(createPinCanvas(color, "alert")),
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
               scale: 0.5,
               heightReference: constrained ? Cesium.HeightReference.NONE : Cesium.HeightReference.RELATIVE_TO_GROUND,

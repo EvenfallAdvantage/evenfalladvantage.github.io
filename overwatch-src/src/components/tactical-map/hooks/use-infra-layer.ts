@@ -14,7 +14,7 @@ import {
   decodeInfraLine, decodeInfraRow, INFRA_KINDS, infraCellsForView, infraContrastStyle, infraLimits, keepInfraFeature, lineInView, lineStyle, nearestLines,
   type InfraCell, type InfraFeature, type InfraIndex,
 } from "@/lib/map/infra-extract";
-import { getInfraIcon } from "@/lib/map/tactical-icons";
+import { getInfraIcon, iconSize } from "@/lib/map/tactical-icons";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -134,7 +134,9 @@ export function useInfraLayer(params: {
           position: Cesium.Cartesian3.fromDegrees(f.lng, f.lat, 5),
           billboard: {
             image: getInfraIcon(f.kind, meta.color, { highContrast }),
-            scale: f.kind === "s" ? 0.8 : 0.9,
+            ...iconSize(getInfraIcon(f.kind, meta.color, { highContrast })),
+            // ~8–9 px on screen, close to the pre-#215 4–7 px dots while keeping glyphs legible.
+            scale: f.kind === "s" ? 0.45 : 0.4,
             verticalOrigin: Cesium.VerticalOrigin.CENTER,
             heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
             disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),

@@ -12,7 +12,7 @@ import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelInfrastructure } from "@/lib/intel-client";
 import type { IntelNuclearFacility } from "@/lib/intel-types";
-import { getTacticalIcon } from "@/lib/map/tactical-icons";
+import { getTacticalIcon, iconSize } from "@/lib/map/tactical-icons";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 function statusColor(status: string): string {
@@ -24,7 +24,7 @@ function statusColor(status: string): string {
 }
 
 function buildIcon(color: string): HTMLCanvasElement {
-  return getTacticalIcon("nuclear", color);
+  return getTacticalIcon("nuclear", color, { size: 22 });
 }
 
 function buildPopup(f: IntelNuclearFacility): string {
@@ -77,6 +77,7 @@ export function useNuclearInfrastructureLayer(params: {
             position: Cesium.Cartesian3.fromDegrees(f.lng, f.lat, 5),
             billboard: {
               image: buildIcon(color),
+              ...iconSize(buildIcon(color)),
               scale: 1.0,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,

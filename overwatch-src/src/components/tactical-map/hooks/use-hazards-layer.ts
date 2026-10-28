@@ -18,7 +18,7 @@ import { pointBudget, topN, withSuspendedEvents } from "@/lib/map/device-profile
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef } from "./cesium-layer-types";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
-import { getHazardIcon } from "@/lib/map/tactical-icons";
+import { getHazardIcon, iconSize } from "@/lib/map/tactical-icons";
 
 const REFRESH_MS = 5 * 60_000;
 const NO_HAZARDS: IntelHazard[] = [];
@@ -108,12 +108,16 @@ export function useHazardsLayer(params: {
             const [lng, lat] = g.coordinates;
             const hzKind = h.kind === "quake" || h.kind === "fire" || h.kind === "volcano" || h.kind === "cyclone" ? h.kind : "fire";
             const mag = h.kind === "quake" ? Number(h.props?.mag ?? 0) || undefined : undefined;
+            // Pre-#215 dot diameters (quake 6+3·sev, cyclone 16, volcano 10, fire 4+sev), floored at 10 px for glyph legibility.
+            const hzSize = Math.max(10, h.kind === "quake" ? 6 + h.severity * 3 : h.kind === "cyclone" ? 16 : h.kind === "volcano" ? 10 : 4 + h.severity);
+            const hzIcon = getHazardIcon(hzKind, hazardColor(h), { severity: h.severity, magnitude: mag, size: hzSize });
             ds.entities.add({
               id: `hz-${h.id}`,
               name: h.title,
               position: C.Cartesian3.fromDegrees(lng, lat),
               billboard: {
-                image: getHazardIcon(hzKind, hazardColor(h), { severity: h.severity, magnitude: mag }),
+                image: hzIcon,
+                ...iconSize(hzIcon),
                 verticalOrigin: C.VerticalOrigin.CENTER,
                 disableDepthTestDistance: nearSideDepthProperty(viewer, C),
                 heightReference: C.HeightReference.CLAMP_TO_GROUND,

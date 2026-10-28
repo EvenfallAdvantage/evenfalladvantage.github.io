@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { iconSize } from "@/lib/map/tactical-icons";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { escapeHtml } from "@/lib/security";
@@ -43,6 +44,7 @@ export function useStaffLayer(params: {
         position: Cesium.Cartesian3.fromDegrees(s.lng, s.lat, 5),
         billboard: {
           image: createPinCanvas(stale ? "#6b7280" : "#22d3ee", "person"),
+          ...iconSize(createPinCanvas(stale ? "#6b7280" : "#22d3ee", "person")),
           color: stale ? Cesium.Color.WHITE.withAlpha(0.55) : Cesium.Color.WHITE,
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           scale: 0.6,

@@ -11,7 +11,7 @@ import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelMaritime } from "@/lib/intel-client";
 import type { IntelMaritimePort, IntelMaritimeChokepoint } from "@/lib/intel-types";
-import { getTacticalIcon } from "@/lib/map/tactical-icons";
+import { getTacticalIcon, iconSize } from "@/lib/map/tactical-icons";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
 function portColor(type: IntelMaritimePort["type"]): string {
@@ -33,11 +33,11 @@ function chokepointColor(risk: IntelMaritimeChokepoint["risk"]): string {
 }
 
 function buildPortIcon(color: string): HTMLCanvasElement {
-  return getTacticalIcon("port", color);
+  return getTacticalIcon("port", color, { size: 16 });
 }
 
 function buildChokepointIcon(color: string): HTMLCanvasElement {
-  return getTacticalIcon("chokepoint", color);
+  return getTacticalIcon("chokepoint", color, { size: 22 });
 }
 
 function buildPortPopup(p: IntelMaritimePort): string {
@@ -101,6 +101,7 @@ export function useMaritimeLayer(params: {
             position: Cesium.Cartesian3.fromDegrees(p.lng, p.lat, 5),
             billboard: {
               image: buildPortIcon(color),
+              ...iconSize(buildPortIcon(color)),
               scale: 1.0,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
@@ -131,6 +132,7 @@ export function useMaritimeLayer(params: {
             position: Cesium.Cartesian3.fromDegrees(c.lng, c.lat, 5),
             billboard: {
               image: buildChokepointIcon(color),
+              ...iconSize(buildChokepointIcon(color)),
               scale: 1.0,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
