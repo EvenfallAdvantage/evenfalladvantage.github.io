@@ -12,6 +12,8 @@ import { createClient } from "./client";
 import { logDbReadError } from "./db-error";
 import { formatMemberName } from "@/lib/format-names";
 import { updateCompanySettings } from "./db-users";
+import { getBreakPolicy } from "./db-breaks";
+import { calcPayableHoursNum } from "@/components/timeclock/timeclock-utils";
 
 // ─── Configuration ────────────────────────────────────────
 
@@ -91,7 +93,7 @@ export interface WeeklyHours {
  * Uses approved timesheets for the current pay week.
  */
 export async function getWeeklyHoursReport(companyId: string): Promise<WeeklyHours[]> {
-  const config = await getOvertimeConfig(companyId);
+  const [config, breakPolicy] = await Promise.all([getOvertimeConfig(companyId), getBreakPolicy(companyId)]);
   const supabase = createClient();
 
   // Determine current week boundaries
@@ -108,7 +110,7 @@ export async function getWeeklyHoursReport(companyId: string): Promise<WeeklyHou
   // Get all timesheets for this week
   const { data: timesheets, error } = await supabase
     .from("timesheets")
-    .select("user_id, clock_in, clock_out, users!timesheets_user_id_fkey(first_name, last_name, callsign)")
+    .select("user_id, clock_in, clock_out, break_minutes, timesheet_breaks(id, break_type, start_time, end_time, duration_minutes), users!timesheets_user_id_fkey(first_name, last_name, callsign)")
     .eq("company_id", companyId)
     .not("clock_out", "is", null)
     .gte("clock_in", weekStart.toISOString())
@@ -123,8 +125,7 @@ export async function getWeeklyHoursReport(companyId: string): Promise<WeeklyHou
   for (const ts of timesheets as any[]) {
     const userId = ts.user_id;
     const clockIn = new Date(ts.clock_in);
-    const clockOut = new Date(ts.clock_out);
-    const hours = (clockOut.getTime() - clockIn.getTime()) / 3600000;
+    const hours = calcPayableHoursNum(ts.clock_in, ts.clock_out, ts, breakPolicy);
     const u = ts.users;
     const name = formatMemberName(u ?? {}) || "Unknown";
 
@@ -260,12 +261,12 @@ export async function getPayrollHours(
   startDate: string,
   endDate: string
 ): Promise<PayrollHoursEntry[]> {
-  const config = await getOvertimeConfig(companyId);
+  const [config, breakPolicy] = await Promise.all([getOvertimeConfig(companyId), getBreakPolicy(companyId)]);
   const supabase = createClient();
 
   const { data: timesheets, error } = await supabase
     .from("timesheets")
-    .select("user_id, clock_in, clock_out, approved, users!timesheets_user_id_fkey(email)")
+    .select("user_id, clock_in, clock_out, break_minutes, timesheet_breaks(id, break_type, start_time, end_time, duration_minutes), approved, users!timesheets_user_id_fkey(email)")
     .eq("company_id", companyId)
     .eq("approved", true)
     .not("clock_out", "is", null)
@@ -281,7 +282,7 @@ export async function getPayrollHours(
   for (const ts of (timesheets ?? []) as any[]) {
     const email = ts.users?.email ?? "";
     if (!email) continue;
-    const hours = (new Date(ts.clock_out).getTime() - new Date(ts.clock_in).getTime()) / 3600000;
+    const hours = calcPayableHoursNum(ts.clock_in, ts.clock_out, ts, breakPolicy);
     const date = localDayKey(new Date(ts.clock_in));
     const existing = byUser.get(ts.user_id) ?? { email, entries: [] as TimesheetEntry[] };
     existing.entries.push({ date, hours });

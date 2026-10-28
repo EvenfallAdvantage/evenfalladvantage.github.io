@@ -1,5 +1,6 @@
 import { createClient } from "./client";
 import { ensureInternalUser } from "./db-helpers";
+import { calcPayableHoursNum } from "@/components/timeclock/timeclock-utils";
 
 /**
  * Get the effective pay rate for a user, resolving the cascade:
@@ -135,10 +136,10 @@ export async function getMyPaySummary(companyId: string): Promise<{
     .maybeSingle();
   const memberRate = membership?.pay_rate_override != null ? Number(membership.pay_rate_override) : null;
   
-  // Get company default
+  // Get company default + break policy settings
   const { data: company } = await supabase
     .from("companies")
-    .select("default_pay_rate")
+    .select("default_pay_rate, settings")
     .eq("id", companyId)
     .maybeSingle();
   const companyRate = company?.default_pay_rate != null ? Number(company.default_pay_rate) : null;
@@ -146,7 +147,7 @@ export async function getMyPaySummary(companyId: string): Promise<{
   // Get recent closed timesheets with event info
   const { data: sheets } = await supabase
     .from("timesheets")
-    .select("id, clock_in, clock_out, event_id, events(name)")
+    .select("id, clock_in, clock_out, break_minutes, timesheet_breaks(id, break_type, start_time, end_time, duration_minutes), event_id, events(name)")
     .eq("user_id", userId)
     .eq("company_id", companyId)
     .not("clock_out", "is", null)
@@ -158,7 +159,7 @@ export async function getMyPaySummary(companyId: string): Promise<{
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const timesheets = (sheets ?? []).map((s: any) => {
-    const hours = (new Date(s.clock_out).getTime() - new Date(s.clock_in).getTime()) / 3600000;
+    const hours = calcPayableHoursNum(s.clock_in, s.clock_out, s, company?.settings);
     // Resolve rate: member override → company default
     const rate = memberRate ?? companyRate;
     const pay = rate != null ? Math.round(hours * rate * 100) / 100 : null;

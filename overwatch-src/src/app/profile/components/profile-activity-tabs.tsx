@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FileText, Activity, FolderOpen, Loader2, Clock } from "lucide-react";
 import { getUserFormSubmissions, getRecentTimesheets, getUserQuizAttempts } from "@/lib/supabase/db";
-import { parseUTC } from "@/lib/parse-utc";
-import { formatLocaleDateRange } from "@/components/timeclock/timeclock-utils";
+import { formatLocaleDateRange, calcPayableHours } from "@/components/timeclock/timeclock-utils";
+import { useActiveCompany } from "@/stores/auth-store";
 import type { Sub, Sheet, Attempt } from "./types";
 import { logger } from "@/lib/logger";
 
@@ -16,6 +16,7 @@ interface Props {
 }
 
 export function ProfileActivityTabs({ activeCompanyId }: Props) {
+  const activeCompany = useActiveCompany();
   const [submissions, setSubmissions] = useState<Sub[]>([]);
   const [timesheets, setTimesheets] = useState<Sheet[]>([]);
   const [quizAttempts, setQuizAttempts] = useState<Attempt[]>([]);
@@ -119,7 +120,7 @@ export function ProfileActivityTabs({ activeCompanyId }: Props) {
             ) : (
               <div className="space-y-2">
                 {timesheets.map((t: Sheet) => {
-                  const hrs = ((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(1);
+                  const hrs = calcPayableHours(t.clock_in, t.clock_out, t, activeCompany?.settings);
                   return (
                     <div key={t.id} className="flex items-center gap-3 rounded-lg border border-border/40 px-3 py-2.5">
                       <Clock className="h-4 w-4 text-green-500 shrink-0" />

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client";
 import { ensureInternalUser } from "./db-helpers";
+import { closeActiveBreaksForTimesheet } from "./db-breaks";
 
 export interface StaffBadge {
   id: string;
@@ -178,9 +179,11 @@ export async function qrClockOut(userId: string, companyId: string): Promise<voi
 
   if (!active) throw new Error("No active timesheet found");
 
+  const outISO = new Date().toISOString();
+  await closeActiveBreaksForTimesheet(active.id, outISO);
   const { error } = await supabase
     .from("timesheets")
-    .update({ clock_out: new Date().toISOString() })
+    .update({ clock_out: outISO })
     .eq("id", active.id);
 
   if (error) throw error;
@@ -212,12 +215,14 @@ export async function getClockedInStaff(companyId: string): Promise<{
   user_id: string;
   clock_in: string;
   event_id: string | null;
+  break_minutes?: number | null;
+  timesheet_breaks?: { id: string; break_type: "meal" | "rest"; start_time: string; end_time: string | null; duration_minutes: number | null }[];
   users: { first_name: string; last_name: string };
 }[]> {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("timesheets")
-    .select("id, user_id, clock_in, event_id, users!timesheets_user_id_fkey(first_name, last_name)")
+    .select("id, user_id, clock_in, event_id, break_minutes, timesheet_breaks(id, break_type, start_time, end_time, duration_minutes), users!timesheets_user_id_fkey(first_name, last_name)")
     .eq("company_id", companyId)
     .is("clock_out", null)
     .order("clock_in", { ascending: false });
@@ -244,5 +249,8 @@ export async function massClockOut(companyId: string, eventId?: string | null): 
   if (eventId) query = query.eq("event_id", eventId);
   const { data, error } = await query.select("id");
   if (error) throw error;
+  for (const row of data ?? []) {
+    await closeActiveBreaksForTimesheet(row.id, now);
+  }
   return data?.length ?? 0;
 }

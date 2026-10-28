@@ -4,13 +4,16 @@ import { useState, useMemo, useEffect } from "react";
 import { isLikelyAccidental, countsAsPending } from "@/lib/timesheets/accidental";
 import Link from "next/link";
 import {
-  Clock, Loader2, ChevronDown, ChevronUp, Flag, Download, Trash2, FileSignature,
+  Clock, Loader2, ChevronDown, ChevronUp, Flag, Download, Trash2, FileSignature, UtensilsCrossed, Coffee, AlertTriangle, Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { getCompanyTimesheets, approveTimesheet, unapproveTimesheet, deleteTimesheet } from "@/lib/supabase/db";
 import { parseUTC } from "@/lib/parse-utc";
-import { formatLocaleDateRange, isSameDay } from "@/components/timeclock/timeclock-utils";
+import { formatLocaleDateRange, isSameDay, calcBreakSummary, calcPayableHoursNum } from "@/components/timeclock/timeclock-utils";
+import { calculateBreakCompliance, resolveBreakPolicy, startBreak, endBreak } from "@/lib/supabase/db-breaks";
+import { useActiveCompany } from "@/stores/auth-store";
+import { toast } from "sonner";
 import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
 import { formatMemberName } from "@/lib/format-names";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -52,6 +55,9 @@ interface TimesheetsTabProps {
 
 export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
+  const activeCompany = useActiveCompany();
+  const policy = resolveBreakPolicy(activeCompany?.settings);
+  const [breakActingId, setBreakActingId] = useState<string | null>(null);
   const { data: allTimesheets = [], isLoading: loading, refetch } = useCompanyQuery<Sheet[]>(
     "company-timesheets",
     (cid) => getCompanyTimesheets(cid),
@@ -131,6 +137,32 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
     } catch (err) { console.error(err); }
   }
 
+  async function handleManagerBreakStart(timesheetId: string, type: "meal" | "rest") {
+    setBreakActingId(timesheetId);
+    try {
+      await startBreak(timesheetId, type);
+      toast.success(type === "meal" ? "Lunch break started" : "Rest break started");
+      await refetch();
+    } catch {
+      toast.error("Failed to start break");
+    } finally {
+      setBreakActingId(null);
+    }
+  }
+
+  async function handleManagerBreakEnd(timesheetId: string, breakId: string) {
+    setBreakActingId(timesheetId);
+    try {
+      await endBreak(breakId);
+      toast.success("Break ended");
+      await refetch();
+    } catch {
+      toast.error("Failed to end break");
+    } finally {
+      setBreakActingId(null);
+    }
+  }
+
   const toggleOp = (key: string) => setCollapsedOps(prev => { const next = new Set(prev); if (next.has(key)) { next.delete(key); } else { next.add(key); } return next; });
 
   return (
@@ -152,18 +184,51 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
             {openSheets.map((t: Sheet) => {
               const u = t.users;
               const op = t.events?.name ?? t.shifts?.events?.name ?? null;
+              const summary = calcBreakSummary(t, policy);
+              const activeBreak = summary.activeBreak;
+              const netOpenHrs = Math.max(0, (Date.now() - parseUTC(t.clock_in).getTime() - summary.unpaidMinutes * 60000) / 3600000).toFixed(1);
+              const isBusy = breakActingId === t.id;
               return (
                 <div key={t.id} className="flex items-center gap-3 rounded-lg border border-border/30 bg-background/50 px-4 py-2.5 flex-wrap">
                   <div className="flex h-9 w-9 items-center justify-center rounded-full bg-green-500/10 text-xs font-bold text-green-600">
                     {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /><ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} />{isLikelyAccidental(t) && <Badge className="ml-1 text-[10px] bg-muted text-muted-foreground" title="Under a minute; probably a test or mis-tap. Not counted as pending.">Under 1 min · likely accidental</Badge>}</p>
+                    <p className="font-medium text-sm">
+                      {formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /><ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} />
+                      {activeBreak && (
+                        <Badge className={`ml-1 text-[10px] ${activeBreak.breakType === "meal" ? "bg-amber-500/15 text-amber-600" : "bg-sky-500/15 text-sky-600"}`}>
+                          {activeBreak.breakType === "meal" ? "On Lunch" : "On Break"}
+                        </Badge>
+                      )}
+                      {isLikelyAccidental(t) && <Badge className="ml-1 text-[10px] bg-muted text-muted-foreground" title="Under a minute; probably a test or mis-tap. Not counted as pending.">Under 1 min · likely accidental</Badge>}
+                    </p>
                     <p className="text-xs text-muted-foreground truncate">
                       {op ? `${op} · ` : ""}In since {!isSameDay(t.clock_in, new Date().toISOString()) ? `${parseUTC(t.clock_in).toLocaleDateString()} ` : ""}{parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      {summary.mealMinutes > 0 && ` · Lunch ${summary.mealMinutes}m`}
+                      {summary.restMinutes > 0 && ` · Rest ${summary.restMinutes}m`}
                     </p>
                   </div>
-                  <span className="font-mono text-sm font-semibold">{((Date.now() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(1)}h</span>
+                  {canManage && policy.breaksEnabled && (
+                    <div className="flex items-center gap-1">
+                      {activeBreak ? (
+                        <Button size="sm" variant="outline" disabled={isBusy} onClick={() => handleManagerBreakEnd(t.id, activeBreak.id)} className="h-6 px-2 text-[10px] gap-1 border-amber-500/30 text-amber-600">
+                          <Square className="h-2.5 w-2.5 fill-current" />
+                          {activeBreak.breakType === "meal" ? "End Lunch" : "End Break"}
+                        </Button>
+                      ) : (
+                        <>
+                          <Button size="sm" variant="outline" disabled={isBusy} onClick={() => handleManagerBreakStart(t.id, "meal")} className="h-6 px-2 text-[10px] gap-1 border-amber-500/30 hover:bg-amber-500/10">
+                            <UtensilsCrossed className="h-2.5 w-2.5 text-amber-500" /> Lunch ({policy.mealBreakMinutes}m)
+                          </Button>
+                          <Button size="sm" variant="outline" disabled={isBusy} onClick={() => handleManagerBreakStart(t.id, "rest")} className="h-6 px-2 text-[10px] gap-1 border-sky-500/30 hover:bg-sky-500/10">
+                            <Coffee className="h-2.5 w-2.5 text-sky-500" /> Take {policy.restBreakMinutes}
+                          </Button>
+                        </>
+                      )}
+                    </div>
+                  )}
+                  <span className="font-mono text-sm font-semibold">{netOpenHrs}h</span>
                 </div>
               );
             })}
@@ -191,7 +256,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
             {sortedKeys.map(opName => {
               const items = grouped[opName];
               const isCollapsed = collapsedOps.has(opName);
-              const totalHrs = items.reduce((sum: number, t: Sheet) => sum + (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000, 0).toFixed(1);
+              const totalHrs = items.reduce((sum: number, t: Sheet) => sum + calcPayableHoursNum(t.clock_in, t.clock_out, t, policy), 0).toFixed(1);
               const unapproved = items.filter((t: Sheet) => countsAsPending(t)).length;
               return (
                 <div key={opName} className="rounded-xl border border-border/50 bg-card/50 overflow-hidden">
@@ -209,8 +274,16 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                   {!isCollapsed && (
                     <div className="space-y-1 px-3 pb-3">
                       {items.map((t: Sheet) => {
-                        const hours = (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000;
+                        const breakSummary = calcBreakSummary(t, policy);
+                        const hours = calcPayableHoursNum(t.clock_in, t.clock_out, t, policy);
                         const hrs = hours.toFixed(1);
+                        const compliance = calculateBreakCompliance(
+                          t.clock_in,
+                          t.clock_out,
+                          Array.isArray(t.timesheet_breaks) ? (t.timesheet_breaks as never[]) : [],
+                          policy,
+                          t.id,
+                        );
                         const u = t.users;
                         return (
                           <div key={t.id} className="flex items-center gap-4 rounded-lg border border-border/30 bg-background/50 px-4 py-2.5 flex-wrap">
@@ -218,9 +291,27 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                               {(u?.first_name?.[0] ?? "")}{(u?.last_name?.[0] ?? "")}
                             </div>
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-sm">{formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /><ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} /></p>
+                              <p className="font-medium text-sm">
+                                {formatMemberName(u ?? {})} <TimesheetVerifyBadge t={t} /><ClockInFlagBadge notes={typeof t.notes === "string" ? t.notes : null} />
+                                {breakSummary.mealCount > 0 && (
+                                  <Badge variant="outline" className="ml-1 text-[10px] gap-0.5 border-amber-500/30 text-amber-600 dark:text-amber-400">
+                                    <UtensilsCrossed className="h-2.5 w-2.5" /> {breakSummary.mealMinutes}m lunch
+                                  </Badge>
+                                )}
+                                {breakSummary.restCount > 0 && (
+                                  <Badge variant="outline" className="ml-1 text-[10px] gap-0.5 border-sky-500/30 text-sky-600 dark:text-sky-400">
+                                    <Coffee className="h-2.5 w-2.5" /> {breakSummary.restCount}× rest ({breakSummary.restMinutes}m)
+                                  </Badge>
+                                )}
+                                {compliance.mealBreakViolation && (
+                                  <Badge variant="outline" className="ml-1 text-[10px] gap-0.5 border-red-500/30 text-red-600 dark:text-red-400" title={`Shift was ${compliance.shiftHours}h; ${compliance.mealBreaksTaken}/${compliance.mealBreaksRequired} required meal break(s) logged`}>
+                                    <AlertTriangle className="h-2.5 w-2.5" /> No meal break (&gt;{policy.firstMealAfterHours}h)
+                                  </Badge>
+                                )}
+                              </p>
                               <p className="text-xs text-muted-foreground">
                                 {formatLocaleDateRange(t.clock_in, t.clock_out)} · {parseUTC(t.clock_in).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} — {parseUTC(t.clock_out).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                                {breakSummary.unpaidMinutes > 0 && ` (-${breakSummary.unpaidMinutes}m unpaid)`}
                               </p>
                             </div>
                             {signedIds.has(t.id) && (
@@ -281,7 +372,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                 const mapped = approved.map((t: Sheet) => ({
                   employeeEmail: t.users?.email ?? "",
                   date: parseUTC(t.clock_in).toISOString().split("T")[0],
-                  hours: parseFloat(((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(2)),
+                  hours: parseFloat(calcPayableHoursNum(t.clock_in, t.clock_out, t, policy).toFixed(2)),
                 }));
                 const result = await syncTimesheetsToGusto(activeCompanyId, mapped);
                 setGustoResult(result);
@@ -308,7 +399,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                 const mapped = approved.map((t: Sheet) => ({
                   employeeEmail: t.users?.email ?? "",
                   date: parseUTC(t.clock_in).toISOString().split("T")[0],
-                  hours: parseFloat(((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(2)),
+                  hours: parseFloat(calcPayableHoursNum(t.clock_in, t.clock_out, t, policy).toFixed(2)),
                   eventName: t.events?.name,
                 }));
                 const result = await syncTimesheetsToQuickBooks(activeCompanyId, mapped);
@@ -336,7 +427,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                 const mapped = approved.map((t: Sheet) => ({
                   employeeEmail: t.users?.email ?? "",
                   date: parseUTC(t.clock_in).toISOString().split("T")[0],
-                  hours: parseFloat(((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(2)),
+                  hours: parseFloat(calcPayableHoursNum(t.clock_in, t.clock_out, t, policy).toFixed(2)),
                   eventName: t.events?.name,
                 }));
                 const result = await syncTimesheetsToADP(activeCompanyId, mapped);
@@ -364,7 +455,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
                 const mapped = approved.map((t: Sheet) => ({
                   employeeEmail: t.users?.email ?? "",
                   date: parseUTC(t.clock_in).toISOString().split("T")[0],
-                  hours: parseFloat(((parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime()) / 3600000).toFixed(2)),
+                  hours: parseFloat(calcPayableHoursNum(t.clock_in, t.clock_out, t, policy).toFixed(2)),
                   eventName: t.events?.name,
                 }));
                 const result = await syncTimesheetsToPaychex(activeCompanyId, mapped);

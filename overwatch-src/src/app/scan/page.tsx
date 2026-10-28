@@ -4,10 +4,12 @@ import { useEffect, useRef, useState, useCallback, type ReactNode } from "react"
 import { setVisibleInterval } from "@/lib/visible-interval";
 import {
   Camera, XCircle, LogIn, LogOut,
-  ChevronDown, ChevronUp, Users, Clock, WifiOff, AlertTriangle, ScanLine,
+  ChevronDown, ChevronUp, Users, Clock, WifiOff, AlertTriangle, ScanLine, UtensilsCrossed, Coffee, Square,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore, useActiveCompany } from "@/stores/auth-store";
+import { startBreak, endBreak, resolveBreakPolicy } from "@/lib/supabase/db-breaks";
+import { calcBreakSummary } from "@/components/timeclock/timeclock-utils";
 import { PageShell } from "@/components/layout/page-shell";
 import {
   lookupBadge, isUserClockedIn, qrClockIn, qrClockOut,
@@ -33,6 +35,8 @@ type ClockedInEntry = {
   user_id: string;
   clock_in: string;
   event_id: string | null;
+  break_minutes?: number | null;
+  timesheet_breaks?: { id: string; break_type: "meal" | "rest"; start_time: string; end_time: string | null; duration_minutes: number | null }[];
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   users: any;
 };
@@ -91,7 +95,10 @@ function ScanBoundary({ embedded, title, subtitle, children }: { embedded: boole
 
 export default function ScanPage({ embedded = false }: { embedded?: boolean } = {}) {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+  const activeCompany = useActiveCompany();
+  const policy = resolveBreakPolicy(activeCompany?.settings);
   const { confirm, ConfirmDialog } = useConfirmDialog();
+  const [breakActingId, setBreakActingId] = useState<string | null>(null);
 
   // Camera refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -360,6 +367,36 @@ export default function ScanPage({ embedded = false }: { embedded?: boolean } = 
     }
   }
 
+  async function handleStaffBreakStart(timesheetId: string, name: string, type: "meal" | "rest") {
+    setBreakActingId(timesheetId);
+    try {
+      await startBreak(timesheetId, type);
+      toast.success(
+        type === "meal"
+          ? `${name} started lunch break (${policy.mealBreakMinutes}m)`
+          : `${name} started ${policy.restBreakMinutes}m rest break`,
+      );
+      await refreshClockedIn();
+    } catch {
+      toast.error("Failed to start break");
+    } finally {
+      setBreakActingId(null);
+    }
+  }
+
+  async function handleStaffBreakEnd(timesheetId: string, breakId: string, name: string) {
+    setBreakActingId(timesheetId);
+    try {
+      await endBreak(breakId);
+      toast.success(`${name} ended break`);
+      await refreshClockedIn();
+    } catch {
+      toast.error("Failed to end break");
+    } finally {
+      setBreakActingId(null);
+    }
+  }
+
   // ── Mass clock-out handler ──
   async function handleMassClockOut() {
     if (!activeCompanyId) return;
@@ -512,20 +549,79 @@ export default function ScanPage({ embedded = false }: { embedded?: boolean } = 
                     const u = entry.users;
                     const name = `${u?.first_name ?? ""} ${u?.last_name ?? ""}`.trim() || "Unknown";
                     const clockInDate = new Date(entry.clock_in);
-                    const elapsedMs = Date.now() - clockInDate.getTime();
+                    const summary = calcBreakSummary(entry, policy);
+                    const activeBreak = summary.activeBreak;
+                    const elapsedMs = Math.max(0, Date.now() - clockInDate.getTime() - summary.unpaidMinutes * 60000);
                     const hrs = Math.floor(elapsedMs / 3600000);
                     const mins = Math.floor((elapsedMs % 3600000) / 60000);
+                    const isBusy = breakActingId === entry.id;
                     return (
-                      <div key={entry.id} className="flex items-center justify-between px-4 py-2.5">
-                        <div>
-                          <p className="text-sm font-medium">{name}</p>
-                          <p className="text-[10px] text-muted-foreground">
-                            In at {clockInDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                          </p>
+                      <div key={entry.id} className="flex flex-col gap-1.5 px-4 py-2.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <p className="text-sm font-medium">{name}</p>
+                              {activeBreak && (
+                                <span
+                                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-semibold ${
+                                    activeBreak.breakType === "meal"
+                                      ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
+                                      : "bg-sky-500/15 text-sky-600 dark:text-sky-400"
+                                  }`}
+                                >
+                                  {activeBreak.breakType === "meal" ? "On Lunch" : "On Break"}
+                                </span>
+                              )}
+                            </div>
+                            <p className="text-[10px] text-muted-foreground">
+                              In at {clockInDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              {summary.mealMinutes > 0 && ` · Lunch ${summary.mealMinutes}m`}
+                              {summary.restMinutes > 0 && ` · Rest ${summary.restMinutes}m`}
+                            </p>
+                          </div>
+                          <span className="text-xs font-mono text-muted-foreground">
+                            {hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`}
+                          </span>
                         </div>
-                        <span className="text-xs font-mono text-muted-foreground">
-                          {hrs > 0 ? `${hrs}h ${mins}m` : `${mins}m`}
-                        </span>
+                        {policy.breaksEnabled && (
+                          <div className="flex items-center gap-1.5">
+                            {activeBreak ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={isBusy}
+                                onClick={() => handleStaffBreakEnd(entry.id, activeBreak.id, name)}
+                                className="h-6 px-2 text-[10px] gap-1 border-amber-500/30 text-amber-600 dark:text-amber-400"
+                              >
+                                <Square className="h-2.5 w-2.5 fill-current" />
+                                {activeBreak.breakType === "meal" ? "End Lunch" : "End Break"}
+                              </Button>
+                            ) : (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={isBusy}
+                                  onClick={() => handleStaffBreakStart(entry.id, name, "meal")}
+                                  className="h-6 px-2 text-[10px] gap-1 border-amber-500/30 hover:bg-amber-500/10"
+                                >
+                                  <UtensilsCrossed className="h-2.5 w-2.5 text-amber-500" />
+                                  Lunch ({policy.mealBreakMinutes}m)
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={isBusy}
+                                  onClick={() => handleStaffBreakStart(entry.id, name, "rest")}
+                                  className="h-6 px-2 text-[10px] gap-1 border-sky-500/30 hover:bg-sky-500/10"
+                                >
+                                  <Coffee className="h-2.5 w-2.5 text-sky-500" />
+                                  Take {policy.restBreakMinutes}
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        )}
                       </div>
                     );
                   })}

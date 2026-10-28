@@ -10,8 +10,13 @@ export type NavItem = {
   children?: NavItem[];
 };
 
+import type { BreakPolicyConfig } from "@/lib/supabase/db-breaks";
+
 export type CompanySettings = {
   hiddenTabs?: string[];
+  overtime_config?: Record<string, unknown>;
+  break_policy?: Partial<BreakPolicyConfig> | Record<string, unknown>;
+  [key: string]: unknown;
 };
 
 // Single source of truth for CompanyRole lives in @/lib/permissions to

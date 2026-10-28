@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import {
-  Clock, LogIn, LogOut, Loader2, Zap,
+  Clock, LogIn, LogOut, Loader2, Zap, UtensilsCrossed, Coffee,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,12 +12,14 @@ import {
 } from "@/lib/supabase/db";
 import { getActiveShiftsForClockIn } from "@/lib/supabase/db-timesheets";
 import { ClockInModal } from "@/components/timeclock/clock-in-modal";
+import { BreakTracker } from "@/components/timeclock/break-tracker";
+import { calcBreakSummary, calcPayableHoursNum } from "@/components/timeclock/timeclock-utils";
 import { cachedRead, isOffline, writeCache } from "@/lib/offline/cached-read";
 import { clockInOffline, clockOutOffline, isPendingSync } from "@/lib/offline/with-offline";
 import { toast } from "sonner";
 import { parseUTC } from "@/lib/parse-utc";
 import { DarSignoffModal } from "@/components/dar-signoff-modal";
-import { useAuthStore } from "@/stores/auth-store";
+import { useAuthStore, useActiveCompany } from "@/stores/auth-store";
 import { formatDuration, type Timesheet } from "./shared";
 
 /** Thrown after an offline clock-in so callers skip the live reload. */
@@ -39,6 +41,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
   const [showClockInModal, setShowClockInModal] = useState(false);
   const [darTimesheetId, setDarTimesheetId] = useState<string | null>(null);
   const authUser = useAuthStore((s) => s.user);
+  const activeCompany = useActiveCompany();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [detectedShifts, setDetectedShifts] = useState<any[]>([]);
   const [loadingShifts, setLoadingShifts] = useState(false);
@@ -88,6 +91,11 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
   }, [active]);
 
   const isClockedIn = !!active;
+  const breakSummary = active ? calcBreakSummary(active, activeCompany?.settings) : null;
+  const activeBreak = breakSummary?.activeBreak ?? null;
+  const netElapsedMs = breakSummary
+    ? Math.max(0, elapsed - breakSummary.unpaidMinutes * 60000)
+    : elapsed;
 
   const todayHours = recentShifts
     .filter((t: Timesheet) => {
@@ -96,7 +104,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
       return d.toDateString() === now.toDateString();
     })
     .reduce((sum: number, t: Timesheet) => {
-      return sum + (parseUTC(t.clock_out).getTime() - parseUTC(t.clock_in).getTime());
+      return sum + calcPayableHoursNum(t.clock_in, t.clock_out, t, activeCompany?.settings) * 3600000;
     }, 0);
 
   /** Clock in live, or queue it (with the real tap time) when there's no signal. */
@@ -214,15 +222,31 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${isClockedIn ? "bg-green-500/20 text-green-600" : "bg-muted text-muted-foreground"}`}>
                   <Zap className="h-3 w-3" />
                   {isClockedIn ? "ON DUTY" : "OFF DUTY"}
                 </span>
+                {isClockedIn && activeBreak && (
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                      activeBreak.breakType === "meal"
+                        ? "bg-amber-500/20 text-amber-600 dark:text-amber-400"
+                        : "bg-sky-500/20 text-sky-600 dark:text-sky-400"
+                    }`}
+                  >
+                    {activeBreak.breakType === "meal" ? (
+                      <UtensilsCrossed className="h-2.5 w-2.5" />
+                    ) : (
+                      <Coffee className="h-2.5 w-2.5" />
+                    )}
+                    {activeBreak.breakType === "meal" ? "ON LUNCH" : "ON BREAK"}
+                  </span>
+                )}
               </div>
               {isClockedIn ? (
                 <p className="mt-1 font-mono text-xl sm:text-2xl font-bold tracking-wider text-green-600">
-                  {formatDuration(elapsed)}
+                  {formatDuration(netElapsedMs)}
                 </p>
               ) : (
                 <p className="mt-1 text-sm text-muted-foreground">
@@ -244,6 +268,11 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
               </Button>
             )}
           </div>
+          {isClockedIn && active?.id && !String(active.id).startsWith("offline-") && (
+            <div className="border-t border-border/30 bg-muted/10 px-4 py-2.5 sm:px-5">
+              <BreakTracker timesheetId={active.id} compact onChange={load} />
+            </div>
+          )}
         </CardContent>
       </Card>
 
