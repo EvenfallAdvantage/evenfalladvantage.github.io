@@ -32,10 +32,10 @@ export function RecentWatchLog({ recent, onSelectEntry }: RecentWatchLogProps) {
                 <button
                   key={t.id}
                   onClick={() => onSelectEntry(t)}
-                  className="flex w-full items-center justify-between rounded-lg border border-border/40 px-3 py-2 text-sm hover:bg-muted/30 transition-colors text-left"
+                  className="flex w-full items-start sm:items-center justify-between gap-3 rounded-lg border border-border/40 px-3 py-2 text-sm hover:bg-muted/30 transition-colors text-left"
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <div>
+                  <div className="flex items-center gap-2 min-w-0 flex-1">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-medium">{formatDate(t.clock_in)}</span>
                         {t.events?.name ? (
@@ -58,7 +58,7 @@ export function RecentWatchLog({ recent, onSelectEntry }: RecentWatchLogProps) {
                           </Badge>
                         )}
                       </div>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-muted-foreground break-words">
                         {formatTime(t.clock_in)} — {t.clock_out ? formatTime(t.clock_out) : "Active"}
                         {breakSummary.unpaidMinutes > 0 && ` (-${breakSummary.unpaidMinutes}m unpaid)`}
                         {t.notes && !t.events?.name && ` · ${t.notes}`}
