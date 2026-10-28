@@ -194,11 +194,15 @@ export async function clockOut(timesheetId: string, at?: string, fixIn?: Fix | n
  */
 export async function deleteTimesheet(timesheetId: string): Promise<void> {
   const supabase = createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("timesheets")
     .delete()
-    .eq("id", timesheetId);
+    .eq("id", timesheetId)
+    .select("id");
   if (error) throw error;
+  if (!data || data.length === 0) {
+    throw new Error("Timesheet could not be deleted (permission denied or already removed)");
+  }
 }
 
 export async function getRecentTimesheets(limit = 10, companyId?: string) {
