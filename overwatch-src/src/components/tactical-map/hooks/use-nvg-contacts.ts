@@ -4,7 +4,7 @@ import { NVG_CONTACT, contactKind } from "@/lib/map/nvg-contacts";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import type { CesiumRef } from "./cesium-layer-types";
 
-const TICK_MS = 1_000;
+const TICK_MS = 2_500;
 
 /* eslint-disable @typescript-eslint/no-explicit-any -- Cesium entities have no published types */
 function categoryColor(e: any): string | undefined {

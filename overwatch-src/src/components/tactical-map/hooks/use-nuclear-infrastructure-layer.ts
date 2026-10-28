@@ -12,9 +12,8 @@ import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelInfrastructure } from "@/lib/intel-client";
 import type { IntelNuclearFacility } from "@/lib/intel-types";
+import { getTacticalIcon } from "@/lib/map/tactical-icons";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
-
-const iconCache = new Map<string, HTMLCanvasElement>();
 
 function statusColor(status: string): string {
   const s = status.toLowerCase();
@@ -25,46 +24,7 @@ function statusColor(status: string): string {
 }
 
 function buildIcon(color: string): HTMLCanvasElement {
-  const cached = iconCache.get(color);
-  if (cached) return cached;
-
-  const size = 22;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return canvas;
-  const r = size / 2;
-
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur = 3;
-
-  // Trefoil-style hexagon for nuclear
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const a = (Math.PI / 3) * i - Math.PI / 2;
-    const x = r + (r - 3) * Math.cos(a);
-    const y = r + (r - 3) * Math.sin(a);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.shadowColor = "transparent";
-  ctx.strokeStyle = "rgba(255,255,255,0.9)";
-  ctx.lineWidth = 1.2;
-  ctx.stroke();
-
-  // Inner dot
-  ctx.fillStyle = "rgba(255,255,255,0.95)";
-  ctx.beginPath();
-  ctx.arc(r, r, 2.5, 0, Math.PI * 2);
-  ctx.fill();
-
-  iconCache.set(color, canvas);
-  return canvas;
+  return getTacticalIcon("nuclear", color);
 }
 
 function buildPopup(f: IntelNuclearFacility): string {

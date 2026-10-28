@@ -29,6 +29,16 @@ const CONFLICT_KEYWORDS = [
   "protest", "riot", "police", "clash", "bomb", "killed", "forces",
 ];
 
+/** Deterministic offset in [-1.0, 1.0] derived from article key so pins don't jump on refresh. */
+function deterministicOffset(seed: string, salt: number): number {
+  let h = (2166136261 ^ salt) >>> 0;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619) >>> 0;
+  }
+  return ((h % 2000) / 1000) - 1.0;
+}
+
 Deno.serve(async (req) => {
   const corsHeaders = getCorsHeaders(req.headers.get("origin"));
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
@@ -74,8 +84,9 @@ Deno.serve(async (req) => {
           for (const [location, point] of Object.entries(GEO_DICT)) {
             const regex = new RegExp(`\\b${location}\\b`, "i");
             if (regex.test(textToSearch)) {
-              const jitterLng = (Math.random() - 0.5) * 2.0;
-              const jitterLat = (Math.random() - 0.5) * 2.0;
+              const seedKey = `${title}|${link}`;
+              const jitterLng = deterministicOffset(seedKey, 1);
+              const jitterLat = deterministicOffset(seedKey, 2);
               coords = [point[0] + jitterLng, point[1] + jitterLat];
               break;
             }

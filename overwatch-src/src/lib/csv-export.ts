@@ -3,6 +3,11 @@
  * Converts arrays of objects to CSV and triggers a browser download.
  */
 
+import { parseUTC } from "@/lib/parse-utc";
+import { calcBreakSummary, calcPayableHoursNum } from "@/components/timeclock/timeclock-utils";
+import { calculateBreakCompliance, resolveBreakPolicy, type BreakPolicyConfig } from "@/lib/supabase/db-breaks";
+import { clockInFlag } from "@/lib/supabase/db-timesheets";
+
 type Row = Record<string, unknown>;
 
 function escapeCSV(val: unknown): string {
@@ -58,12 +63,85 @@ export function exportCSV(
 export const TIMESHEET_COLUMNS = [
   { key: "users.first_name", label: "First Name" },
   { key: "users.last_name", label: "Last Name" },
+  { key: "users.email", label: "Email" },
+  { key: "operation_name", label: "Operation" },
+  { key: "clock_in_type", label: "Clock In Type" },
   { key: "clock_in", label: "Clock In" },
   { key: "clock_out", label: "Clock Out" },
-  { key: "break_minutes", label: "Break (min)" },
+  { key: "gross_hours", label: "Gross Hours" },
+  { key: "payable_hours", label: "Payable Hours" },
+  { key: "meal_break_count", label: "Meal Breaks" },
+  { key: "meal_break_minutes", label: "Meal Break (min)" },
+  { key: "rest_break_count", label: "Rest Breaks" },
+  { key: "rest_break_minutes", label: "Rest Break (min)" },
+  { key: "unpaid_break_minutes", label: "Unpaid Break Deducted (min)" },
+  { key: "break_minutes", label: "Total Break (min)" },
+  { key: "break_compliance", label: "Break Compliance" },
+  { key: "clock_in_flag", label: "Clock-In Timing" },
+  { key: "location_verdict", label: "Location Verification" },
+  { key: "shift_notes_signed", label: "Shift Notes Signed" },
   { key: "approved", label: "Approved" },
   { key: "notes", label: "Notes" },
 ];
+
+/**
+ * Enrich raw timesheet rows with computed hours, break summaries, compliance,
+ * clock-in flags, geofence verification, and DAR signoff status for CSV export.
+ */
+export function buildTimesheetCsvRows(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  timesheets: Record<string, any>[],
+  policyInput?: Partial<BreakPolicyConfig> | Record<string, unknown> | null,
+  signedIds: ReadonlySet<string> = new Set(),
+): Row[] {
+  const policy = resolveBreakPolicy(policyInput);
+  return timesheets.map((t) => {
+    const breakSummary = calcBreakSummary(t, policy);
+    const compliance = t.clock_out
+      ? calculateBreakCompliance(
+          String(t.clock_in),
+          String(t.clock_out),
+          Array.isArray(t.timesheet_breaks) ? t.timesheet_breaks : [],
+          policy,
+          String(t.id ?? ""),
+        )
+      : null;
+    const grossHours = t.clock_out
+      ? Math.max(
+          0,
+          (parseUTC(String(t.clock_out)).getTime() - parseUTC(String(t.clock_in)).getTime()) / 3600000,
+        ).toFixed(2)
+      : "";
+    const payableHours = t.clock_out
+      ? calcPayableHoursNum(String(t.clock_in), String(t.clock_out), t, policy).toFixed(2)
+      : "";
+    const notesStr = typeof t.notes === "string" ? t.notes : "";
+    return {
+      ...t,
+      operation_name: t.events?.name ?? t.shifts?.events?.name ?? "Other",
+      clock_in_type: typeof t.clock_in_type === "string" && t.clock_in_type ? t.clock_in_type : "shift",
+      gross_hours: grossHours,
+      payable_hours: payableHours,
+      meal_break_count: breakSummary.mealCount,
+      meal_break_minutes: breakSummary.mealMinutes,
+      rest_break_count: breakSummary.restCount,
+      rest_break_minutes: breakSummary.restMinutes,
+      unpaid_break_minutes: breakSummary.unpaidMinutes,
+      break_minutes: breakSummary.totalMinutes,
+      break_compliance: compliance?.mealBreakViolation ? "Meal Break Violation" : "Compliant",
+      clock_in_flag: clockInFlag(notesStr) ?? "on_time",
+      location_verdict:
+        typeof t.clock_in_verdict === "string" && t.clock_in_verdict
+          ? t.clock_in_verdict
+          : t.clock_in_lat != null
+            ? "gps_recorded"
+            : "",
+      shift_notes_signed: signedIds.has(String(t.id ?? "")) ? "Yes" : "No",
+      approved: t.approved ? "Yes" : "No",
+      notes: notesStr,
+    };
+  });
+}
 
 export const INCIDENT_COLUMNS = [
   { key: "incident_number", label: "Number" },

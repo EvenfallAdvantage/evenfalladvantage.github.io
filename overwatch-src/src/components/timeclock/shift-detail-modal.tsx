@@ -1,14 +1,30 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Flag, Briefcase, CheckCircle2, AlertCircle, X, Send, Loader2, UtensilsCrossed, Coffee, AlertTriangle } from "lucide-react";
+import { Flag, Briefcase, CheckCircle2, AlertCircle, X, Send, Loader2, UtensilsCrossed, Coffee, AlertTriangle, Trash2, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { createTimeChangeRequest } from "@/lib/supabase/db";
+import { createTimeChangeRequest, type RequestedBreakAdjustment } from "@/lib/supabase/db";
 import { getBreaksForTimesheet, calculateBreakCompliance, resolveBreakPolicy, type BreakRecord } from "@/lib/supabase/db-breaks";
 import { useActiveCompany } from "@/stores/auth-store";
 import { toast } from "sonner";
 import { calcHours, calcPayableHours, calcBreakSummary, formatDate, formatTime, toDatetimeLocal, type Timesheet } from "./timeclock-utils";
+
+export interface EditableBreakDraft {
+  id?: string;
+  breakType: "meal" | "rest";
+  startTime: string;
+  endTime: string;
+}
+
+function breaksToDrafts(breaks: BreakRecord[]): EditableBreakDraft[] {
+  return breaks.map((b) => ({
+    ...(b.id ? { id: b.id } : {}),
+    breakType: b.breakType === "meal" ? "meal" : "rest",
+    startTime: toDatetimeLocal(b.startTime),
+    endTime: b.endTime ? toDatetimeLocal(b.endTime) : toDatetimeLocal(b.startTime),
+  }));
+}
 
 interface ShiftDetailModalProps {
   entry: Timesheet;
@@ -23,6 +39,7 @@ export function ShiftDetailModal({ entry, companyId, onClose }: ShiftDetailModal
   const [requestMode, setRequestMode] = useState(false);
   const [reqClockIn, setReqClockIn] = useState(() => toDatetimeLocal(entry.clock_in));
   const [reqClockOut, setReqClockOut] = useState(() => entry.clock_out ? toDatetimeLocal(entry.clock_out) : "");
+  const [reqBreaks, setReqBreaks] = useState<EditableBreakDraft[]>([]);
   const [reqReason, setReqReason] = useState("");
   const [submittingReq, setSubmittingReq] = useState(false);
   const [loadedBreaks, setLoadedBreaks] = useState<BreakRecord[] | null>(
@@ -58,15 +75,77 @@ export function ShiftDetailModal({ entry, companyId, onClose }: ShiftDetailModal
     ? calculateBreakCompliance(entry.clock_in, entry.clock_out, loadedBreaks ?? [], policy, entry.id)
     : null;
 
+  function handleOpenRequestMode() {
+    setReqBreaks(breaksToDrafts(loadedBreaks ?? []));
+    setRequestMode(true);
+  }
+
+  function handleAddBreakDraft(breakType: "meal" | "rest") {
+    const durationMins = breakType === "meal" ? policy.mealBreakMinutes : policy.restBreakMinutes;
+    const shiftStartMs = reqClockIn ? new Date(reqClockIn).getTime() : new Date(entry.clock_in).getTime();
+    const shiftEndMs = reqClockOut
+      ? new Date(reqClockOut).getTime()
+      : entry.clock_out
+        ? new Date(entry.clock_out).getTime()
+        : shiftStartMs + 8 * 3600000;
+    const validStartMs = Number.isFinite(shiftStartMs) ? shiftStartMs : Date.now();
+    const validEndMs = Number.isFinite(shiftEndMs) && shiftEndMs > validStartMs ? shiftEndMs : validStartMs + 8 * 3600000;
+    const midMs = validStartMs + Math.max(0, (validEndMs - validStartMs - durationMins * 60000) / 2);
+    const startISO = new Date(midMs).toISOString();
+    const endISO = new Date(midMs + durationMins * 60000).toISOString();
+    setReqBreaks((prev) => [
+      ...prev,
+      {
+        breakType,
+        startTime: toDatetimeLocal(startISO),
+        endTime: toDatetimeLocal(endISO),
+      },
+    ]);
+  }
+
+  function handleUpdateBreakDraft(index: number, patch: Partial<EditableBreakDraft>) {
+    setReqBreaks((prev) => prev.map((b, i) => (i === index ? { ...b, ...patch } : b)));
+  }
+
+  function handleRemoveBreakDraft(index: number) {
+    setReqBreaks((prev) => prev.filter((_, i) => i !== index));
+  }
+
   async function handleSubmitChangeRequest() {
     if (!companyId || !reqReason.trim()) return;
     setSubmittingReq(true);
     try {
+      const initialDrafts = breaksToDrafts(loadedBreaks ?? []);
+      const breaksChanged =
+        reqBreaks.length !== initialDrafts.length ||
+        reqBreaks.some((b, idx) => {
+          const orig = initialDrafts[idx];
+          return (
+            !orig ||
+            b.id !== orig.id ||
+            b.breakType !== orig.breakType ||
+            b.startTime !== orig.startTime ||
+            b.endTime !== orig.endTime
+          );
+        });
+
+      const requestedBreaks: RequestedBreakAdjustment[] | undefined = breaksChanged
+        ? reqBreaks
+            .filter((b) => b.startTime && b.endTime)
+            .map((b) => ({
+              ...(b.id ? { id: b.id } : {}),
+              breakType: b.breakType,
+              startTime: new Date(b.startTime).toISOString(),
+              endTime: new Date(b.endTime).toISOString(),
+            }))
+        : undefined;
+
       await createTimeChangeRequest({
         timesheetId: entry.id,
         companyId,
         requestedClockIn: reqClockIn ? new Date(reqClockIn).toISOString() : undefined,
         requestedClockOut: reqClockOut ? new Date(reqClockOut).toISOString() : undefined,
+        requestedBreaks,
         reason: reqReason.trim(),
       });
       onClose();
@@ -77,7 +156,7 @@ export function ShiftDetailModal({ entry, companyId, onClose }: ShiftDetailModal
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="w-full max-w-md rounded-2xl border border-border/50 bg-card p-5 shadow-2xl space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl border border-border/50 bg-card p-5 shadow-2xl space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
           <h3 className="text-base font-semibold">Shift Details</h3>
           <button onClick={onClose} className="rounded-lg p-1 text-muted-foreground hover:bg-muted"><X className="h-4 w-4" /></button>
@@ -188,7 +267,7 @@ export function ShiftDetailModal({ entry, companyId, onClose }: ShiftDetailModal
 
         {/* Request Change toggle / form */}
         {!requestMode ? (
-          <Button variant="outline" size="sm" className="w-full text-xs gap-1.5" onClick={() => setRequestMode(true)}>
+          <Button variant="outline" size="sm" className="w-full text-xs gap-1.5" onClick={handleOpenRequestMode}>
             Request Time Adjustment
           </Button>
         ) : (
@@ -204,6 +283,93 @@ export function ShiftDetailModal({ entry, companyId, onClose }: ShiftDetailModal
               <input type="datetime-local" value={reqClockOut} onChange={e => setReqClockOut(e.target.value)}
                 className="w-full rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-mono" />
             </div>
+
+            {/* Editable Breaks Section */}
+            <div className="space-y-2 pt-1 border-t border-border/30" data-testid="request-adjustment-breaks">
+              <div className="flex items-center justify-between gap-2">
+                <label className="text-[10px] text-muted-foreground">Breaks</label>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    data-testid="add-meal-break-btn"
+                    onClick={() => handleAddBreakDraft("meal")}
+                    className="inline-flex items-center gap-1 rounded-md border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-500/20"
+                  >
+                    <Plus className="h-2.5 w-2.5" /> Add Lunch
+                  </button>
+                  <button
+                    type="button"
+                    data-testid="add-rest-break-btn"
+                    onClick={() => handleAddBreakDraft("rest")}
+                    className="inline-flex items-center gap-1 rounded-md border border-sky-500/30 bg-sky-500/10 px-2 py-0.5 text-[10px] font-medium text-sky-600 dark:text-sky-400 hover:bg-sky-500/20"
+                  >
+                    <Plus className="h-2.5 w-2.5" /> Add Rest
+                  </button>
+                </div>
+              </div>
+
+              {reqBreaks.length === 0 ? (
+                <p className="text-[11px] text-muted-foreground/70 italic">No breaks on this shift</p>
+              ) : (
+                <div className="space-y-2">
+                  {reqBreaks.map((brk, idx) => (
+                    <div
+                      key={brk.id ?? `draft-brk-${idx}`}
+                      data-testid={`editable-break-row-${idx}`}
+                      className="rounded-lg border border-border/50 bg-background/60 p-2 space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <select
+                          aria-label={`Break ${idx + 1} type`}
+                          value={brk.breakType}
+                          onChange={(e) =>
+                            handleUpdateBreakDraft(idx, {
+                              breakType: e.target.value === "meal" ? "meal" : "rest",
+                            })
+                          }
+                          className="rounded-md border border-border bg-background px-2 py-1 text-[11px] font-medium"
+                        >
+                          <option value="meal">Lunch (Meal)</option>
+                          <option value="rest">Rest Break</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveBreakDraft(idx)}
+                          title="Remove break"
+                          aria-label={`Remove break ${idx + 1}`}
+                          className="rounded p-1 text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        <div>
+                          <label className="text-[9px] text-muted-foreground block mb-0.5">Start</label>
+                          <input
+                            type="datetime-local"
+                            aria-label={`Break ${idx + 1} start`}
+                            value={brk.startTime}
+                            onChange={(e) => handleUpdateBreakDraft(idx, { startTime: e.target.value })}
+                            className="w-full rounded-md border border-border bg-background px-2 py-1 text-[11px] font-mono"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] text-muted-foreground block mb-0.5">End</label>
+                          <input
+                            type="datetime-local"
+                            aria-label={`Break ${idx + 1} end`}
+                            value={brk.endTime}
+                            onChange={(e) => handleUpdateBreakDraft(idx, { endTime: e.target.value })}
+                            className="w-full rounded-md border border-border bg-background px-2 py-1 text-[11px] font-mono"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <div>
               <label className="text-[10px] text-muted-foreground block mb-1">Reason for change *</label>
               <textarea value={reqReason} onChange={e => setReqReason(e.target.value)}

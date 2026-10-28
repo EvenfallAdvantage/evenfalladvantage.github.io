@@ -11,9 +11,8 @@ import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelMaritime } from "@/lib/intel-client";
 import type { IntelMaritimePort, IntelMaritimeChokepoint } from "@/lib/intel-types";
+import { getTacticalIcon } from "@/lib/map/tactical-icons";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
-
-const iconCache = new Map<string, HTMLCanvasElement>();
 
 function portColor(type: IntelMaritimePort["type"]): string {
   switch (type) {
@@ -34,71 +33,11 @@ function chokepointColor(risk: IntelMaritimeChokepoint["risk"]): string {
 }
 
 function buildPortIcon(color: string): HTMLCanvasElement {
-  const cached = iconCache.get(`port-${color}`);
-  if (cached) return cached;
-
-  const size = 16;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return canvas;
-  const r = size / 2;
-
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur = 3;
-
-  // Square w/ anchor cross
-  ctx.fillStyle = color;
-  ctx.fillRect(2, 2, size - 4, size - 4);
-
-  ctx.shadowColor = "transparent";
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.lineWidth = 1.2;
-  ctx.strokeRect(2, 2, size - 4, size - 4);
-
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.moveTo(r, 4); ctx.lineTo(r, size - 4);
-  ctx.moveTo(4, r); ctx.lineTo(size - 4, r);
-  ctx.stroke();
-
-  iconCache.set(`port-${color}`, canvas);
-  return canvas;
+  return getTacticalIcon("port", color);
 }
 
 function buildChokepointIcon(color: string): HTMLCanvasElement {
-  const cached = iconCache.get(`choke-${color}`);
-  if (cached) return cached;
-
-  const size = 22;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return canvas;
-  const r = size / 2;
-
-  // Diamond
-  ctx.shadowColor = "rgba(0,0,0,0.5)";
-  ctx.shadowBlur = 3;
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(r, 2);
-  ctx.lineTo(size - 2, r);
-  ctx.lineTo(r, size - 2);
-  ctx.lineTo(2, r);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.shadowColor = "transparent";
-  ctx.strokeStyle = "rgba(255,255,255,0.95)";
-  ctx.lineWidth = 1.5;
-  ctx.stroke();
-
-  iconCache.set(`choke-${color}`, canvas);
-  return canvas;
+  return getTacticalIcon("chokepoint", color);
 }
 
 function buildPortPopup(p: IntelMaritimePort): string {

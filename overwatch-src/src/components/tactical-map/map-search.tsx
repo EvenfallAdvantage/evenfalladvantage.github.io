@@ -50,7 +50,7 @@ export function MapSearch({ onPick, onPasses, onClose }: {
   const list = coord ? [coord] : results;
 
   return (
-    <div className="w-72 max-w-full rounded-lg border border-white/10 bg-black/75 backdrop-blur-md text-white/90 shadow-lg pointer-events-auto" data-testid="map-search">
+    <div className="relative z-30 w-72 max-w-full rounded-lg border border-white/10 bg-black/75 backdrop-blur-md text-white/90 shadow-lg pointer-events-auto" data-testid="map-search">
       <form className="flex items-center gap-2 px-2.5 py-2" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
         {busy ? <Loader2 className="h-4 w-4 shrink-0 animate-spin text-white/50" /> : <Search className="h-4 w-4 shrink-0 text-white/50" />}
         <input

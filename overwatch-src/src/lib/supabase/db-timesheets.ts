@@ -255,7 +255,7 @@ export async function getCompanyTimesheets(companyId: string) {
   // Primary: filter by company_id (set on newer timesheets)
   const { data: directData, error: directErr } = await supabase
     .from("timesheets")
-    .select(`*, users!timesheets_user_id_fkey(first_name, last_name, callsign, avatar_url), events(id, name, location), shifts(id, role, events(id, name, location)), ${TIMESHEET_BREAKS_SELECT}`)
+    .select(`*, users!timesheets_user_id_fkey(first_name, last_name, email, callsign, avatar_url), events(id, name, location), shifts(id, role, events(id, name, location)), ${TIMESHEET_BREAKS_SELECT}`)
     .eq("company_id", companyId)
     .order("clock_in", { ascending: false })
     .limit(50);
@@ -275,7 +275,7 @@ export async function getCompanyTimesheets(companyId: string) {
 
   const { data: allTimesheets } = await supabase
     .from("timesheets")
-    .select(`*, users!timesheets_user_id_fkey(first_name, last_name, avatar_url), events(id, name, location, company_id), shifts(id, role, events(id, name, location)), ${TIMESHEET_BREAKS_SELECT}`)
+    .select(`*, users!timesheets_user_id_fkey(first_name, last_name, email, avatar_url), events(id, name, location, company_id), shifts(id, role, events(id, name, location)), ${TIMESHEET_BREAKS_SELECT}`)
     .in("user_id", userIds)
     .is("company_id", null)
     .order("clock_in", { ascending: false })
@@ -346,11 +346,92 @@ export async function getTimesheetsForDateRange(startISO: string, endISO: string
 
 // ─── Time Change Requests ────────────────────────────
 
+export interface RequestedBreakAdjustment {
+  id?: string;
+  breakType: "meal" | "rest";
+  startTime: string;
+  endTime: string;
+  durationMinutes?: number;
+}
+
+const BREAKS_JSON_RE = /\s*\[BREAKS_JSON:(\[[\s\S]*?\])\]\s*$/;
+
+/**
+ * Encode optional break adjustments into the reason string so they travel
+ * through public.time_change_requests without requiring a schema migration.
+ */
+export function encodeTimeChangeReason(
+  reason: string,
+  requestedBreaks?: RequestedBreakAdjustment[] | null,
+): string {
+  const cleanReason = reason.trim();
+  if (requestedBreaks == null) return cleanReason;
+  const normalized: RequestedBreakAdjustment[] = requestedBreaks.map((b) => {
+    const startMs = parseUTC(b.startTime).getTime();
+    const endMs = Math.max(startMs, parseUTC(b.endTime).getTime());
+    const durationMinutes =
+      typeof b.durationMinutes === "number" && Number.isFinite(b.durationMinutes)
+        ? Math.max(0, Math.round(b.durationMinutes))
+        : Math.max(0, Math.round((endMs - startMs) / 60000));
+    return {
+      ...(b.id ? { id: b.id } : {}),
+      breakType: b.breakType === "meal" ? "meal" : "rest",
+      startTime: new Date(startMs).toISOString(),
+      endTime: new Date(endMs).toISOString(),
+      durationMinutes,
+    };
+  });
+  return `${cleanReason}\n\n[BREAKS_JSON:${JSON.stringify(normalized)}]`;
+}
+
+/**
+ * Parse a time_change_requests.reason string into its human-readable reasonText
+ * and optional requestedBreaks array.
+ */
+export function parseTimeChangeReason(rawReason: string | null | undefined): {
+  reasonText: string;
+  requestedBreaks: RequestedBreakAdjustment[] | null;
+} {
+  if (!rawReason) return { reasonText: "", requestedBreaks: null };
+  const match = BREAKS_JSON_RE.exec(rawReason);
+  if (!match) {
+    return { reasonText: rawReason.trim(), requestedBreaks: null };
+  }
+  const reasonText = rawReason.slice(0, match.index).trim();
+  try {
+    const parsed = JSON.parse(match[1]);
+    if (!Array.isArray(parsed)) {
+      return { reasonText, requestedBreaks: null };
+    }
+    const requestedBreaks: RequestedBreakAdjustment[] = parsed
+      .filter((item) => item && typeof item === "object" && item.startTime && item.endTime)
+      .map((item) => {
+        const startMs = parseUTC(String(item.startTime)).getTime();
+        const endMs = Math.max(startMs, parseUTC(String(item.endTime)).getTime());
+        const durationMinutes =
+          typeof item.durationMinutes === "number" && Number.isFinite(item.durationMinutes)
+            ? Math.max(0, Math.round(item.durationMinutes))
+            : Math.max(0, Math.round((endMs - startMs) / 60000));
+        return {
+          ...(typeof item.id === "string" && item.id ? { id: item.id } : {}),
+          breakType: item.breakType === "meal" ? "meal" : "rest",
+          startTime: String(item.startTime),
+          endTime: String(item.endTime),
+          durationMinutes,
+        };
+      });
+    return { reasonText, requestedBreaks };
+  } catch {
+    return { reasonText: rawReason.trim(), requestedBreaks: null };
+  }
+}
+
 export async function createTimeChangeRequest(params: {
   timesheetId: string;
   companyId: string;
   requestedClockIn?: string;
   requestedClockOut?: string;
+  requestedBreaks?: RequestedBreakAdjustment[] | null;
   reason: string;
 }) {
   const userId = await ensureInternalUser();
@@ -365,7 +446,7 @@ export async function createTimeChangeRequest(params: {
       company_id: params.companyId,
       requested_clock_in: params.requestedClockIn ?? null,
       requested_clock_out: params.requestedClockOut ?? null,
-      reason: params.reason,
+      reason: encodeTimeChangeReason(params.reason, params.requestedBreaks),
       status: "pending",
       created_at: new Date().toISOString(),
     })
@@ -422,7 +503,7 @@ export async function reviewTimeChangeRequest(requestId: string, status: "approv
     .maybeSingle();
   if (fetchErr) throw fetchErr;
 
-  // If approved, update the actual timesheet
+  // If approved, update the actual timesheet and any requested breaks
   if (status === "approved" && req) {
     const updates: Record<string, unknown> = {};
     if (req.requested_clock_in) updates.clock_in = req.requested_clock_in;
@@ -432,6 +513,64 @@ export async function reviewTimeChangeRequest(requestId: string, status: "approv
         .from("timesheets")
         .update(updates)
         .eq("id", req.timesheet_id);
+    }
+
+    const { requestedBreaks } = parseTimeChangeReason(req.reason);
+    if (requestedBreaks !== null && req.timesheet_id) {
+      const { data: existingBreaks } = await supabase
+        .from("timesheet_breaks")
+        .select("id")
+        .eq("timesheet_id", req.timesheet_id);
+
+      const existingIds = new Set<string>(
+        (existingBreaks ?? []).map((b: { id: string }) => b.id),
+      );
+      const keepIds = new Set(
+        requestedBreaks
+          .map((b) => b.id)
+          .filter((id): id is string => Boolean(id)),
+      );
+      const toDeleteIds = [...existingIds].filter((id) => !keepIds.has(id));
+      if (toDeleteIds.length > 0) {
+        await supabase
+          .from("timesheet_breaks")
+          .delete()
+          .in("id", toDeleteIds);
+      }
+
+      const nowISO = new Date().toISOString();
+      for (const b of requestedBreaks) {
+        const startMs = parseUTC(b.startTime).getTime();
+        const endMs = Math.max(startMs, parseUTC(b.endTime).getTime());
+        const durationMinutes = Math.max(0, Math.round((endMs - startMs) / 60000));
+        const startISO = new Date(startMs).toISOString();
+        const endISO = new Date(endMs).toISOString();
+
+        if (b.id && existingIds.has(b.id)) {
+          await supabase
+            .from("timesheet_breaks")
+            .update({
+              break_type: b.breakType,
+              start_time: startISO,
+              end_time: endISO,
+              duration_minutes: durationMinutes,
+              updated_at: nowISO,
+            })
+            .eq("id", b.id);
+        } else {
+          await supabase
+            .from("timesheet_breaks")
+            .insert({
+              id: crypto.randomUUID(),
+              timesheet_id: req.timesheet_id,
+              break_type: b.breakType,
+              start_time: startISO,
+              end_time: endISO,
+              duration_minutes: durationMinutes,
+              ...ts(),
+            });
+        }
+      }
     }
   }
 

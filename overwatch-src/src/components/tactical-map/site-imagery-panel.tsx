@@ -55,7 +55,7 @@ export function SiteImageryPanel({ target, selected, onSelect, onClose }: {
   const rows = state.status === "ok" ? state.days.filter((d) => !clearOnly || (d.cloud !== null && d.cloud <= 20)) : [];
 
   return (
-    <div className="w-72 max-w-full rounded-lg border border-white/10 bg-black/75 backdrop-blur-md text-white/90 shadow-lg pointer-events-auto" data-testid="site-imagery">
+    <div className="relative z-30 w-72 max-w-full rounded-lg border border-white/10 bg-black/75 backdrop-blur-md text-white/90 shadow-lg pointer-events-auto" data-testid="site-imagery">
       <div className="flex items-center gap-2 px-2.5 py-2 border-b border-white/10">
         <CalendarDays className="h-4 w-4 text-emerald-300 shrink-0" />
         <div className="flex-1 min-w-0">

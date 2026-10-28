@@ -1,0 +1,187 @@
+[
+  {
+    "id": "git-2026-10-28",
+    "date": "Oct 28, 2026",
+    "version": "git-2026.10.28",
+    "title": "Timesheets: Expand CSV export columns and allow break edits in time change requests & 7 more",
+    "tier": "major",
+    "highlights": [
+      {
+        "id": "git-0c91d17d",
+        "title": "Timesheets: Expand CSV export columns and allow break edits in time change requests",
+        "summary": "Expand CSV export columns and allow break edits in time change requests.",
+        "roles": [
+          "supervisor",
+          "admin"
+        ],
+        "tryHref": "/timeclock",
+        "tryLabel": "Open Timeclock",
+        "icon": "Coffee"
+      },
+      {
+        "id": "git-da650c46",
+        "title": "Map Updates: Tactical symbology atlas, map performance & z-index polish, and What's New sync",
+        "summary": "Tactical symbology atlas, map performance & z-index polish, and What's New sync.",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/schedule",
+        "tryLabel": "Open Tactical Map",
+        "icon": "Compass"
+      },
+      {
+        "id": "git-a724f5f1",
+        "title": "Timesheets: Allow company admins to manage/delete own timesheets & surface toast errors",
+        "summary": "Allow company admins to manage/delete own timesheets & surface toast errors.",
+        "roles": [
+          "supervisor",
+          "admin"
+        ],
+        "tryHref": "/admin/staff",
+        "tryLabel": "Open Staff",
+        "icon": "Smartphone"
+      },
+      {
+        "id": "git-90c534c4",
+        "title": "Intel Traffic: Read TOMTOM_API_KEY from Supabase Vault with env override",
+        "summary": "Read TOMTOM_API_KEY from Supabase Vault with env override.",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/schedule",
+        "tryLabel": "Open Tactical Map",
+        "icon": "Car"
+      },
+      {
+        "id": "git-99363205",
+        "title": "Overwatch: Compact in-card break pills, clean map attribution footer & role-filtered What's New roll-up",
+        "summary": "Compact in-card break pills, clean map attribution footer & role-filtered What's New roll-up.",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/schedule",
+        "tryLabel": "Open Tactical Map",
+        "icon": "Compass"
+      },
+      {
+        "id": "git-d621bffb",
+        "title": "Map: Add Live Traffic Flow & Road Closures/Crashes in Roads & Cameras group",
+        "summary": "Add Live Traffic Flow & Road Closures/Crashes in Roads & Cameras group.",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/schedule",
+        "tryLabel": "Open Tactical Map",
+        "icon": "Car"
+      },
+      {
+        "id": "git-9c669e38",
+        "title": "Tactical Map: Top-center operational GlobalStatusBar and collapsible MapToolsBar",
+        "summary": "Top-center operational GlobalStatusBar and collapsible MapToolsBar.",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/schedule",
+        "tryLabel": "Open Tactical Map",
+        "icon": "Compass"
+      },
+      {
+        "id": "git-2ca69521",
+        "title": "Timesheets Ops: Fix mobile timesheet row overlap and add Quick Fill post count",
+        "summary": "Fix mobile timesheet row overlap and add Quick Fill post count.",
+        "roles": [
+          "supervisor",
+          "admin"
+        ],
+        "tryHref": "/admin/staff",
+        "tryLabel": "Open Staff",
+        "icon": "Smartphone"
+      }
+    ]
+  },
+  {
+    "id": "git-2026-10-27",
+    "date": "Oct 27, 2026",
+    "version": "git-2026.10.27",
+    "title": "Timeclock: Wire HQ Config break policy and end-to-end lunch/rest break tracking & 2 more",
+    "tier": "major",
+    "highlights": [
+      {
+        "id": "git-2c13bcfa",
+        "title": "Timeclock: Wire HQ Config break policy and end-to-end lunch/rest break tracking",
+        "summary": "Wire HQ Config break policy and end-to-end lunch/rest break tracking.",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/timeclock",
+        "tryLabel": "Open Timeclock",
+        "icon": "Coffee"
+      },
+      {
+        "id": "git-39bab32d",
+        "title": "Auth Shifts: Support token_hash and implicit hash on invite password page & bucket shifts in event timezone",
+        "summary": "Support token_hash and implicit hash on invite password page & bucket shifts in event timezone.",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/admin/events",
+        "tryLabel": "Open Ops Planning",
+        "icon": "Layers"
+      },
+      {
+        "id": "git-382099ab",
+        "title": "Ops Email: Fix intake link deletion & expiry display and add email-send platform fallback",
+        "summary": "Fix intake link deletion & expiry display and add email-send platform fallback.",
+        "roles": [
+          "supervisor",
+          "admin"
+        ],
+        "tryHref": "/admin/events",
+        "tryLabel": "Open Ops Planning",
+        "icon": "Layers"
+      }
+    ]
+  },
+  {
+    "id": "git-2026-10-25",
+    "date": "Oct 25, 2026",
+    "version": "git-2026.10.25",
+    "title": "Timesheets: Show end date when shift spans calendar days (overnight shifts)",
+    "tier": "minor",
+    "highlights": [
+      {
+        "id": "git-4f4164fb",
+        "title": "Timesheets: Show end date when shift spans calendar days (overnight shifts)",
+        "summary": "Show end date when shift spans calendar days (overnight shifts).",
+        "roles": [
+          "supervisor",
+          "admin"
+        ],
+        "tryHref": "/admin/staff",
+        "tryLabel": "Open Staff",
+        "icon": "Smartphone"
+      }
+    ]
+  },
+  {
+    "id": "git-2026-10-23",
+    "date": "Oct 23, 2026",
+    "version": "git-2026.10.23",
+    "title": "Roster: Link rostered agents by verified email",
+    "tier": "minor",
+    "highlights": [
+      {
+        "id": "git-81dc880a",
+        "title": "Roster: Link rostered agents by verified email",
+        "summary": "Link rostered agents by verified email; fix false expired on set-password; batch bulk invites.",
+        "roles": [
+          "supervisor",
+          "admin"
+        ],
+        "tryHref": "/admin/staff",
+        "tryLabel": "Open Staff",
+        "icon": "Smartphone"
+      }
+    ]
+  }
+]

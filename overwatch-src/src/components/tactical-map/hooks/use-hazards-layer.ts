@@ -18,6 +18,7 @@ import { pointBudget, topN, withSuspendedEvents } from "@/lib/map/device-profile
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef } from "./cesium-layer-types";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
+import { getHazardIcon } from "@/lib/map/tactical-icons";
 
 const REFRESH_MS = 5 * 60_000;
 const NO_HAZARDS: IntelHazard[] = [];
@@ -105,12 +106,18 @@ export function useHazardsLayer(params: {
         try {
           if (g.type === "Point") {
             const [lng, lat] = g.coordinates;
-            const size = h.kind === "quake" ? 6 + h.severity * 3 : h.kind === "cyclone" ? 16 : h.kind === "volcano" ? 10 : 4 + h.severity;
+            const hzKind = h.kind === "quake" || h.kind === "fire" || h.kind === "volcano" || h.kind === "cyclone" ? h.kind : "fire";
+            const mag = h.kind === "quake" ? Number(h.props?.mag ?? 0) || undefined : undefined;
             ds.entities.add({
               id: `hz-${h.id}`,
               name: h.title,
               position: C.Cartesian3.fromDegrees(lng, lat),
-              point: { pixelSize: size, color: color.withAlpha(h.kind === "fire" ? 0.85 : 0.9), outlineColor: C.Color.BLACK.withAlpha(0.7), outlineWidth: 1, disableDepthTestDistance: nearSideDepthProperty(viewer, C), heightReference: C.HeightReference.CLAMP_TO_GROUND },
+              billboard: {
+                image: getHazardIcon(hzKind, hazardColor(h), { severity: h.severity, magnitude: mag }),
+                verticalOrigin: C.VerticalOrigin.CENTER,
+                disableDepthTestDistance: nearSideDepthProperty(viewer, C),
+                heightReference: C.HeightReference.CLAMP_TO_GROUND,
+              },
               label: h.kind === "cyclone" ? { text: h.title.split(" · ")[0], font: "11px monospace", fillColor: color, outlineColor: C.Color.BLACK, outlineWidth: 2, style: C.LabelStyle.FILL_AND_OUTLINE, pixelOffset: new C.Cartesian2(0, -18), disableDepthTestDistance: nearSideDepthProperty(viewer, C) } : undefined,
               description,
             });

@@ -20,13 +20,17 @@ import { Badge } from "@/components/ui/badge";
 import { useAuthStore, useActiveCompany } from "@/stores/auth-store";
 import {
   RELEASES,
+  GENERATED_RELEASES,
   buildRollUpHighlights,
+  fetchLatestGitHubReleases,
   filterReleaseHighlightsForRole,
   getUnseenReleases,
   markLatestReleaseSeen,
+  mergeReleases,
   readLastSeenReleaseId,
   shouldAutoOpenWhatsNew,
   type ReleaseHighlight,
+  type ReleaseNote,
 } from "@/lib/releases";
 import { cn } from "@/lib/utils";
 
@@ -183,6 +187,7 @@ export function WhatsNewTriggerPill({
  * Single Roll-Up Modal + Full Changelog Dialog.
  * - Auto-opens at most ONCE when there is >= 1 unseen major release and the user is not on /timeclock or /scan.
  * - Rolls up at most 4 role-relevant highlights across all missed releases (never stacks multiple popups).
+ * - Full changelog merges curated RELEASES with build-time git commits and live GitHub commits.
  */
 export function WhatsNewModal() {
   const pathname = usePathname();
@@ -193,6 +198,7 @@ export function WhatsNewModal() {
 
   const [manualOpen, setManualOpen] = useState(false);
   const [view, setView] = useState<"rollup" | "changelog">("rollup");
+  const [liveReleases, setLiveReleases] = useState<ReleaseNote[]>([]);
   const lastSeenId = useLastSeenReleaseId(userId);
 
   const autoOpen = useMemo(
@@ -221,6 +227,22 @@ export function WhatsNewModal() {
     window.addEventListener(WHATS_NEW_OPEN_EVENT, handler);
     return () => window.removeEventListener(WHATS_NEW_OPEN_EVENT, handler);
   }, [userId]);
+
+  useEffect(() => {
+    if (!open) return;
+    const ctl = new AbortController();
+    void fetchLatestGitHubReleases({ signal: ctl.signal }).then((fetched) => {
+      if (!ctl.signal.aborted && fetched.length > 0) {
+        setLiveReleases(fetched);
+      }
+    });
+    return () => ctl.abort();
+  }, [open]);
+
+  const changelogReleases = useMemo(
+    () => mergeReleases(RELEASES, GENERATED_RELEASES, liveReleases),
+    [liveReleases],
+  );
 
   const markSeenAndClose = useCallback(() => {
     markLatestReleaseSeen(userId, RELEASES);
@@ -260,7 +282,7 @@ export function WhatsNewModal() {
   return (
     <div
       data-testid="whats-new-modal"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-[110] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={markSeenAndClose}
     >
       <div
@@ -347,7 +369,7 @@ export function WhatsNewModal() {
             </div>
           ) : (
             <div data-testid="whats-new-changelog-list" className="space-y-4">
-              {RELEASES.map((release) => {
+              {changelogReleases.map((release) => {
                 const items = filterReleaseHighlightsForRole(release, userRole);
                 if (items.length === 0) return null;
                 return (

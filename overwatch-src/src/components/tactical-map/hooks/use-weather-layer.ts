@@ -71,11 +71,14 @@ export function useWeatherLayer(params: {
     const count = isConstrainedDevice() ? 4 : 7;
 
     const build = () => {
-      removeFrames();
+      const prev = framesRef.current;
       try {
         framesRef.current = radarFrameTimes(Date.now(), count).map((t, i) => addFrame(t, i === count - 1 ? RADAR_ALPHA : 0));
         idx = count - 1;
       } catch (e) { logger.swallow("cesium-layers:radar-add", e, "warn"); }
+      for (const l of prev) {
+        try { viewer.imageryLayers.remove(l, true); } catch (e) { logger.swallow("cesium-layers:radar-remove", e, "debug"); }
+      }
       viewer.scene.requestRender();
     };
 

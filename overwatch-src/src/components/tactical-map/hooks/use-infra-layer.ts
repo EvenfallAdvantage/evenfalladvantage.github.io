@@ -1,70 +1,61 @@
 /**
- * OpenStreetMap infrastructure layer (Infrastructure > "Data centres, dams,
- * power & military"; power = US substations and transmission lines). Reads the pre-built, cached extract in
- * /overwatch/data/infra (see scripts/build-infra-extract.mjs): the index
- * once, then only the 10° cells under the view, and only when zoomed in
- * below INFRA_MAX_HEIGHT_M. No live API calls. Credit: © OpenStreetMap
- * contributors (ODbL).
+ * OSM critical-infrastructure layer (panel v2): data centres, substations,
+ * water treatment and military bases from static 10x10-deg cells under
+ * /data/infra/, built offline by scripts/fetch-infra-extract.mjs. Loads only
+ * the cells in view on camera moveEnd and only while zoomed below 2,500 km.
+ * Credit: (c) OpenStreetMap contributors (ODbL).
  */
 
 import { useEffect } from "react";
 import { logger } from "@/lib/logger";
-import { escapeHtml } from "@/lib/security";
+import { escapeHtml, safeHttpUrl } from "@/lib/security";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
-import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import {
-  INFRA_CREDIT, INFRA_KINDS, INFRA_LABEL_DISTANCE_M, INFRA_LINE_LIFT_M, INFRA_LINE_TERRAIN_LEVEL, INFRA_MAX_SAMPLED_VERTICES,
-  decodeInfraLine, densifyLine, infraContrastStyle, infraLimits, keepInfraFeature, lineInView, lineStyle, nearestLines,
-  decodeInfraRow, infraCellsForView, type InfraCell, type InfraFeature, type InfraIndex,
+  decodeInfraLine, decodeInfraRow, INFRA_KINDS, infraCellsForView, infraContrastStyle, infraLimits, keepInfraFeature, lineInView, lineStyle, nearestLines,
+  type InfraCell, type InfraFeature, type InfraIndex,
 } from "@/lib/map/infra-extract";
+import { getInfraIcon } from "@/lib/map/tactical-icons";
+import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
-export const INFRA_BASE = "/overwatch/data/infra";
-const DEBOUNCE_MS = 450;
-/** Renders requested after a refresh (SETTLE_RENDERS × SETTLE_INTERVAL_MS ≈ 3 s). */
-const SETTLE_RENDERS = 12;
-const SETTLE_INTERVAL_MS = 250;
-/**
- * Terrain level sampled once per drawn view for the points. Points used to be
- * CLAMP_TO_GROUND: with ~2,000 points + ~1,500 labels in a city view, Cesium
- * re-ran a CPU ray/triangle pick for every clamped point on every terrain tile
- * that loaded, freezing the main thread for 10+ s (operations map freeze).
- */
-export const INFRA_POINT_TERRAIN_LEVEL = 11;
-/** Points float this far above the sampled ground. */
-export const INFRA_POINT_LIFT_M = 5;
-
-
+const BASE = "/overwatch/data/infra";
 let indexPromise: Promise<InfraIndex | null> | null = null;
 const cellCache = new Map<string, Promise<InfraCell | null>>();
 
 function loadIndex(): Promise<InfraIndex | null> {
-  indexPromise ??= fetch(`${INFRA_BASE}/index.json`)
-    .then((r) => (r.ok ? (r.json() as Promise<InfraIndex>) : null))
-    .catch((err) => { logger.swallow("infra-layer:index", err, "warn"); indexPromise = null; return null; });
+  if (!indexPromise) {
+    indexPromise = fetch(`${BASE}/index.json`).then((r) => (r.ok ? (r.json() as Promise<InfraIndex>) : null)).catch((e) => {
+      logger.swallow("infra:index", e, "warn");
+      indexPromise = null;
+      return null;
+    });
+  }
   return indexPromise;
 }
 
 function loadCell(key: string): Promise<InfraCell | null> {
   let p = cellCache.get(key);
   if (!p) {
-    p = fetch(`${INFRA_BASE}/c_${key}.json`)
-      .then((r) => (r.ok ? (r.json() as Promise<InfraCell>) : null))
-      .catch((err) => { logger.swallow("infra-layer:cell", err, "warn"); cellCache.delete(key); return null; });
+    p = fetch(`${BASE}/c_${key}.json`).then((r) => (r.ok ? (r.json() as Promise<InfraCell>) : null)).catch((e) => {
+      logger.swallow("infra:cell", e, "warn");
+      cellCache.delete(key);
+      return null;
+    });
     cellCache.set(key, p);
   }
   return p;
 }
 
-function popup(f: InfraFeature, built: string): string {
-  const color = INFRA_KINDS[f.kind].color;
-  const link = f.osmUrl
-    ? `<div><a href="${escapeHtml(f.osmUrl)}" target="_blank" rel="noopener" style="color:#93c5fd">View on OpenStreetMap</a></div>`
-    : "";
-  return `<div style="font-family:monospace;font-size:11px;line-height:1.7">
-    <b style="color:${color}">${escapeHtml(f.name)}</b>
-    <div>${escapeHtml(f.detail)}</div>${link}
-    <div style="color:#94a3b8;margin-top:4px">${escapeHtml(INFRA_CREDIT)} · extract ${escapeHtml(built)}</div>
+function toDeg(rad: number): number { return (rad * 180) / Math.PI; }
+
+function buildPopup(f: InfraFeature): string {
+  const meta = INFRA_KINDS[f.kind];
+  const link = f.osmUrl ? safeHttpUrl(f.osmUrl) : null;
+  return `<div style="font-family:monospace;font-size:11px;line-height:1.7;max-width:260px">
+    <b style="color:${meta.color}">${escapeHtml(f.name || meta.label)}</b>
+    <div>${escapeHtml(f.detail)}</div>
+    ${link ? `<div><a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer" style="color:#38bdf8">OpenStreetMap →</a></div>` : ""}
+    <div style="color:#64748b;margin-top:4px;font-size:9px">© OpenStreetMap contributors (ODbL)</div>
   </div>`;
 }
 
@@ -74,262 +65,145 @@ export function useInfraLayer(params: {
   entityGroupsRef: EntityGroupsRef;
   loading: boolean;
   enabled: boolean;
-  /** NVG/thermal look: draw dark so the layer reads after brightness-only post-processing. */
-  highContrast?: boolean;
+  highContrast: boolean;
+  filter?: (lat: number, lng: number) => boolean;
 }) {
-  const { viewerRef, cesiumRef, entityGroupsRef, loading, enabled, highContrast = false } = params;
+  const { viewerRef, cesiumRef, entityGroupsRef, loading, enabled, highContrast, filter } = params;
 
   useEffect(() => {
     const viewer = viewerRef.current;
     const Cesium = cesiumRef.current;
-    if (!viewer || !Cesium || loading || !enabled) return;
-    const groups = entityGroupsRef.current;
+    if (!viewer || !Cesium || loading) return;
+    const entityGroups = entityGroupsRef.current;
 
-    let disposed = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    // Under requestRenderMode, ground-clamped points get their terrain height a few
-    // frames after they are added; keep rendering briefly so they appear without
-    // waiting for the next camera move or idle tick.
-    let settle: ReturnType<typeof setInterval> | null = null;
-    const settleRenders = () => {
-      if (settle) clearInterval(settle);
-      let left = SETTLE_RENDERS;
-      settle = setInterval(() => {
-        if (disposed || --left < 0) { if (settle) clearInterval(settle); settle = null; return; }
-        try { viewer.scene.requestRender(); } catch { /* viewer gone */ }
-      }, SETTLE_INTERVAL_MS);
+    const clear = () => {
+      for (const e of (entityGroups.infra ?? []) as Array<{ id: string }>) {
+        try { viewer.entities.removeById(e.id); } catch (err) { logger.swallow("infra:remove", err); }
+      }
+      entityGroups.infra = [];
     };
-    let shown = "";
-    let drawGeneration = 0;
-    // Transmission lines live in their own data source: in the points' source (thousands of
-    // ground-clamped points) tilted views dropped every line near the camera.
-    const lineSource = new Cesium.CustomDataSource("osm-infrastructure-lines");
-    viewer.dataSources.add(lineSource);
-    const source = new Cesium.CustomDataSource("osm-infrastructure");
-    viewer.dataSources.add(source);
-    groups.osmInfraSource = source;
-    let credit: unknown = null;
-    const setCredit = (on: boolean) => {
-      const cd = viewer.creditDisplay;
-      try {
-        if (credit) { cd?.removeStaticCredit?.(credit); credit = null; }
-        if (on) { credit = new Cesium.Credit(escapeHtml(INFRA_CREDIT), false); cd?.addStaticCredit?.(credit); }
-      } catch (err) { logger.swallow("infra-layer:credit", err, "debug"); }
-    };
+    clear();
+    if (!enabled) return;
 
-    const look = infraContrastStyle(highContrast);
-    const pointOutline = Cesium.Color.fromCssColorString(look.pointOutline).withAlpha(highContrast ? 0.9 : 0.8);
-    const pointFill = look.pointFill ? Cesium.Color.fromCssColorString(look.pointFill) : null;
-    const labelFill = look.labelFill ? Cesium.Color.fromCssColorString(look.labelFill) : null;
-    const labelOutline = Cesium.Color.fromCssColorString(look.labelOutline);
-    const colors = Object.fromEntries(
-      Object.entries(INFRA_KINDS).map(([k, v]) => [k, Cesium.Color.fromCssColorString(v.color)]),
-    );
-    // Phones: fewer cells, closer zoom, no labels (tap a point for its name).
+    let cancelled = false;
+    let runSeq = 0;
     const limits = infraLimits(isConstrainedDevice());
-    const labelShow = new Cesium.DistanceDisplayCondition(0, INFRA_LABEL_DISTANCE_M);
-    const lineColors: Record<string, unknown> = {};
+    const contrast = infraContrastStyle(highContrast);
 
-    const refresh = async () => {
-      if (disposed) return;
-      const height = viewer.camera.positionCartographic?.height ?? 1e7;
+    async function refresh() {
+      const seq = ++runSeq;
+      const height = viewer.camera?.positionCartographic?.height ?? Infinity;
+      if (height > limits.maxHeightM) { clear(); viewer.scene.requestRender(); return; }
       const index = await loadIndex();
-      if (disposed || !index) return;
-      const rect = viewer.camera.computeViewRectangle?.(viewer.scene.globe.ellipsoid);
-      let keys: string[] = [];
-      let view: { west: number; south: number; east: number; north: number } | null = null;
-      if (rect && height <= limits.maxHeightM) {
-        const deg = Cesium.Math.toDegrees;
-        view = { west: deg(rect.west), south: deg(rect.south), east: deg(rect.east), north: deg(rect.north) };
-        keys = infraCellsForView(view, index.cells, index.cell).slice(0, limits.maxCells);
-      }
-      // Power follows height and (for lines) the view inside a cell, so both are part of what is "shown".
-      const linesOn = !!view && height <= limits.powerMaxHeightM;
-      const key = keys.join(",") + (linesOn && view
-        ? `|lines:${[view.west, view.south, view.east, view.north].map((d) => Math.round(d)).join(",")}`
-        : "");
-      if (key === shown) return;
+      if (cancelled || seq !== runSeq || !index) return;
+
+      const r = viewer.camera.computeViewRectangle();
+      const view = r
+        ? { west: toDeg(r.west), south: toDeg(r.south), east: toDeg(r.east), north: toDeg(r.north) }
+        : { west: -180, south: -90, east: 180, north: 90 };
+      const keys = infraCellsForView(view, index.cells, limits.maxCells);
       const cells = await Promise.all(keys.map(loadCell));
-      if (disposed) return;
-      shown = key;
-      const generation = ++drawGeneration;
-      const lineEntities: Array<{ entity: { polyline?: { positions?: unknown } }; pts: Array<[number, number]> }> = [];
-      const pointEntities: Array<{ entity: { position?: unknown }; lng: number; lat: number }> = [];
-      source.entities.suspendEvents();
-      lineSource.entities.suspendEvents();
-      try {
-        source.entities.removeAll();
-        lineSource.entities.removeAll();
-        let n = 0;
+      if (cancelled || seq !== runSeq) return;
+
+      clear();
+      let idx = 0;
+
+      // Collect in-view point features and prioritize strategic facilities
+      // (data centres, water treatment, military) ahead of dense substations,
+      // capped at limits.maxPoints so dense urban cells never stall WebGL.
+      const primaryFeatures: InfraFeature[] = [];
+      const substationFeatures: InfraFeature[] = [];
+      for (const cell of cells) {
+        for (const raw of cell?.f ?? []) {
+          const f = decodeInfraRow(raw);
+          if (!f || !keepInfraFeature(f, limits, height)) continue;
+          if (filter && !filter(f.lat, f.lng)) continue;
+          if (f.kind === "s") substationFeatures.push(f);
+          else primaryFeatures.push(f);
+        }
+      }
+      const selectedFeatures = primaryFeatures.length >= limits.maxPoints
+        ? primaryFeatures.slice(0, limits.maxPoints)
+        : primaryFeatures.concat(substationFeatures.slice(0, limits.maxPoints - primaryFeatures.length));
+
+      for (const f of selectedFeatures) {
+        const meta = INFRA_KINDS[f.kind];
+        const entity = viewer.entities.add({
+          id: `infra-${idx++}`,
+          name: f.name || meta.label,
+          position: Cesium.Cartesian3.fromDegrees(f.lng, f.lat, 5),
+          billboard: {
+            image: getInfraIcon(f.kind, meta.color, { highContrast }),
+            scale: f.kind === "s" ? 0.8 : 0.9,
+            verticalOrigin: Cesium.VerticalOrigin.CENTER,
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
+          },
+          label: limits.labels && f.name ? {
+            text: f.name,
+            font: "9px monospace",
+            fillColor: Cesium.Color.fromCssColorString(contrast.labelFill ?? meta.color),
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            pixelOffset: new Cesium.Cartesian2(0, -14),
+            heightReference: Cesium.HeightReference.CLAMP_TO_GROUND,
+            disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
+            distanceDisplayCondition: new Cesium.DistanceDisplayCondition(0, 250_000),
+          } : undefined,
+          description: buildPopup(f),
+        });
+        (entityGroups.infra as Array<{ id: string }>).push(entity);
+      }
+
+      if (height <= limits.powerMaxHeightM) {
+        const candidates = [];
         for (const cell of cells) {
-          for (const row of cell?.f ?? []) {
-            const f = decodeInfraRow(row);
-            if (!f || !keepInfraFeature(f, limits, height)) continue;
-            const pointEntity = source.entities.add({
-              id: `infra-${f.kind}-${n++}`,
-              name: f.name,
-              position: Cesium.Cartesian3.fromDegrees(f.lng, f.lat, 0),
-              point: {
-                pixelSize: f.kind === "m" ? 7 : f.kind === "s" && (f.kv ?? 0) < 230 ? 4 : 6,
-                color: pointFill ?? colors[f.kind],
-                outlineColor: pointOutline,
-                outlineWidth: look.pointOutlineWidth,
-                // Absolute height (lifted onto sampled terrain below), not CLAMP_TO_GROUND: see INFRA_POINT_TERRAIN_LEVEL.
-                // Near side reads over terrain; the globe hides the far side (#107). Shared per viewer.
-                disableDepthTestDistance: nearSideDepthProperty(viewer, Cesium),
-              },
-              // Labels skip the many small substations (their name is in the popup).
-              label: limits.labels && !(f.kind === "s" && (f.kv ?? 0) < 230) ? {
-                text: f.name,
-                font: "10px sans-serif",
-                fillColor: labelFill ?? colors[f.kind],
-                outlineColor: labelOutline,
-                outlineWidth: 2,
-                style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-                pixelOffset: new Cesium.Cartesian2(0, -12),
-                distanceDisplayCondition: labelShow,
-              } : undefined,
-              description: popup(f, index.built),
-            });
-            pointEntities.push({ entity: pointEntity, lng: f.lng, lat: f.lat });
+          for (const raw of cell?.l ?? []) {
+            const line = decodeInfraLine(raw);
+            if (!line || !lineInView(line.pts, view)) continue;
+            if (filter && !line.pts.some(([lng, lat]) => filter(lat, lng))) continue;
+            candidates.push(line);
           }
         }
-        // Transmission lines (ODbL, US): only when zoomed in, capped per view.
-        if (linesOn && view) {
-          const inView: Array<{ kv: number; pts: Array<[number, number]> }> = [];
-          for (const cell of cells) {
-            for (const raw of cell?.l ?? []) {
-              const line = decodeInfraLine(raw);
-              if (line && lineInView(line.pts, view)) inView.push(line);
-            }
-          }
-          // Over the cap, keep the lines nearest where the camera looks (screen centre).
-          const canvas = viewer.scene.canvas;
-          const centre = viewer.camera.pickEllipsoid?.(
-            new Cesium.Cartesian2(canvas.clientWidth / 2, canvas.clientHeight / 2),
-            viewer.scene.globe.ellipsoid,
-          );
-          const cg = centre
-            ? Cesium.Cartographic.fromCartesian(centre)
-            : viewer.camera.positionCartographic;
-          const focus = { lng: Cesium.Math.toDegrees(cg.longitude), lat: Cesium.Math.toDegrees(cg.latitude) };
-          const drawn = nearestLines(inView, focus, limits.maxLines);
-          for (const line of drawn) {
-            const base = lineStyle(line.kv);
-            const st = { width: base.width + look.lineWidthBoost, color: look.lineColor ?? base.color };
-            const label = line.kv > 0 ? `${line.kv} kV transmission line` : "Transmission line";
-            const entity = lineSource.entities.add({
-              id: `infra-l-${n++}`,
-              name: label,
-              // Not ground-clamped: clamped (ground-primitive) lines hid the layer's clamped
-              // points under the reduced-quality renderer, and cost far more. Lines start on the
-              // ellipsoid (+ a small lift) and are lifted onto sampled terrain below (3D terrain on).
-              // Only lines inside the current view are drawn, so none reach the far side.
-              polyline: {
-                // Start slightly above the ellipsoid: lines at height 0 lose the depth test to the
-                // globe surface in tilted views (seen with terrain off on phones).
-                positions: Cesium.Cartesian3.fromDegreesArrayHeights(line.pts.flatMap(([lng, lat]) => [lng, lat, INFRA_LINE_LIFT_M])),
-                width: st.width,
-                arcType: Cesium.ArcType.GEODESIC,
-                material: (lineColors[st.color] ??= Cesium.Color.fromCssColorString(st.color).withAlpha(look.lineAlpha)),
-                depthFailMaterial: (lineColors[`${st.color}-df`] ??= Cesium.Color.fromCssColorString(st.color).withAlpha(0.4)),
-              },
-              description: `<div style="font-family:monospace;font-size:11px">${escapeHtml(label)}<br/><span style="color:#94a3b8">${escapeHtml(INFRA_CREDIT)} · extract ${escapeHtml(index.built)}</span></div>`,
-            });
-            lineEntities.push({ entity, pts: line.pts });
-          }
-        }
-        setCredit(n > 0);
-      } finally {
-        source.entities.resumeEvents();
-        lineSource.entities.resumeEvents();
-      }
-      settleRenders();
-      if (lineEntities.length) void liftLines(lineEntities, generation);
-      if (pointEntities.length) void liftPoints(pointEntities, generation);
-    };
-
-    // With 3D terrain on, sample the ground once per drawn view and set each point's height.
-    const liftPoints = async (
-      items: Array<{ entity: { position?: unknown }; lng: number; lat: number }>,
-      generation: number,
-    ) => {
-      const tp = viewer.terrainProvider;
-      if (!tp || tp instanceof Cesium.EllipsoidTerrainProvider) return;
-      const cartos = items.map((it) => Cesium.Cartographic.fromDegrees(it.lng, it.lat));
-      try {
-        const sampled = await Cesium.sampleTerrain(tp, INFRA_POINT_TERRAIN_LEVEL, cartos);
-        if (disposed || generation !== drawGeneration) return;
-        source.entities.suspendEvents();
-        try {
-          items.forEach((it, k) => {
-            const h = sampled[k]?.height;
-            it.entity.position = Cesium.Cartesian3.fromDegrees(it.lng, it.lat, (Number.isFinite(h) ? h : 0) + INFRA_POINT_LIFT_M);
+        const cp = viewer.camera?.positionCartographic;
+        const focus = cp
+          ? { lng: toDeg(cp.longitude), lat: toDeg(cp.latitude) }
+          : { lng: (view.west + view.east) / 2, lat: (view.south + view.north) / 2 };
+        const chosen = nearestLines(candidates, focus, limits.maxLines);
+        for (const line of chosen) {
+          const s = lineStyle(line.kv);
+          const mat = Cesium.Color.fromCssColorString(contrast.lineColor ?? s.color).withAlpha(contrast.lineAlpha);
+          const flat = line.pts.flatMap(([lng, lat]) => [lng, lat]);
+          const entity = viewer.entities.add({
+            id: `infra-line-${idx++}`,
+            name: `${line.kv} kV transmission line`,
+            polyline: {
+              positions: Cesium.Cartesian3.fromDegreesArray(flat),
+              width: s.width + contrast.lineWidthBoost,
+              material: mat,
+              clampToGround: true,
+            },
+            description: `<div style="font-family:monospace;font-size:11px;line-height:1.7"><b style="color:${s.color}">${line.kv} kV transmission line</b><div>High-voltage grid corridor</div><div style="color:#64748b;margin-top:4px;font-size:9px">© OpenStreetMap contributors (ODbL)</div></div>`,
           });
-        } finally {
-          source.entities.resumeEvents();
+          (entityGroups.infra as Array<{ id: string }>).push(entity);
         }
-        viewer.scene.requestRender();
-      } catch (err) {
-        logger.swallow("infra-layer:point-terrain", err, "debug");
       }
-    };
+      viewer.scene.requestRender();
+    }
 
-    // With 3D terrain on, lines on the ellipsoid sink under hills and mountains. Sample the
-    // ground once per drawn view (coarse level, densified vertices) and lift them onto it.
-    const liftLines = async (
-      items: Array<{ entity: { polyline?: { positions?: unknown } }; pts: Array<[number, number]> }>,
-      generation: number,
-    ) => {
-      const tp = viewer.terrainProvider;
-      if (!tp || tp instanceof Cesium.EllipsoidTerrainProvider) return;
-      let dense = items.map((it) => densifyLine(it.pts));
-      if (dense.reduce((a, d) => a + d.length, 0) > INFRA_MAX_SAMPLED_VERTICES) dense = items.map((it) => it.pts);
-      const cartos = dense.flat().map(([lng, lat]) => Cesium.Cartographic.fromDegrees(lng, lat));
-      try {
-        const sampled = await Cesium.sampleTerrain(tp, INFRA_LINE_TERRAIN_LEVEL, cartos);
-        if (disposed || generation !== drawGeneration) return;
-        let i = 0;
-        lineSource.entities.suspendEvents();
-        try {
-          dense.forEach((pts, k) => {
-            const flat: number[] = [];
-            for (const [lng, lat] of pts) {
-              const h = sampled[i++]?.height;
-              flat.push(lng, lat, (Number.isFinite(h) ? h : 0) + INFRA_LINE_LIFT_M);
-            }
-            const pl = items[k].entity.polyline;
-            if (pl) pl.positions = Cesium.Cartesian3.fromDegreesArrayHeights(flat);
-          });
-        } finally {
-          lineSource.entities.resumeEvents();
-        }
-        viewer.scene.requestRender();
-      } catch (err) {
-        logger.swallow("infra-layer:terrain", err, "debug");
-      }
+    let moveTimer: ReturnType<typeof setTimeout> | null = null;
+    const onMove = () => {
+      if (moveTimer) clearTimeout(moveTimer);
+      moveTimer = setTimeout(() => void refresh(), 220);
     };
-
-    const schedule = () => {
-      if (timer) clearTimeout(timer);
-      timer = setTimeout(() => { timer = null; void refresh(); }, DEBOUNCE_MS);
-    };
-    const removeMove = viewer.camera.moveEnd.addEventListener(schedule);
-    // 3D terrain toggled: redraw so points and lines are re-lifted (or dropped back to the ellipsoid).
-    const removeTerrain = viewer.scene.terrainProviderChanged?.addEventListener?.(() => { shown = ""; schedule(); });
     void refresh();
-
+    viewer.camera.moveEnd.addEventListener(onMove);
     return () => {
-      disposed = true;
-      if (timer) clearTimeout(timer);
-      if (settle) clearInterval(settle);
-      try { removeMove?.(); } catch (err) { logger.swallow("infra-layer:move", err, "debug"); }
-      try { removeTerrain?.(); } catch (err) { logger.swallow("infra-layer:terrain-listener", err, "debug"); }
-      setCredit(false);
-      try { viewer.dataSources.remove(source, true); } catch (err) { logger.swallow("infra-layer:remove", err, "debug"); }
-      try { viewer.dataSources.remove(lineSource, true); } catch (err) { logger.swallow("infra-layer:remove-lines", err, "debug"); }
-      groups.osmInfraSource = null;
+      cancelled = true;
+      if (moveTimer) clearTimeout(moveTimer);
+      try { viewer.camera.moveEnd.removeEventListener(onMove); } catch { /* viewer gone */ }
+      clear();
     };
-    // highContrast rebuilds the layer in the new look (cells are cached, so it is quick).
-  }, [enabled, loading, highContrast, viewerRef, cesiumRef, entityGroupsRef]);
+  }, [enabled, highContrast, loading, viewerRef, cesiumRef, entityGroupsRef, filter]);
 }

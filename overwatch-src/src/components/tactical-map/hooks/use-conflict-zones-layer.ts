@@ -12,9 +12,8 @@ import { escapeHtml } from "@/lib/security";
 import type { LayerVisibility } from "../map-layers-panel";
 import { fetchIntelConflictZones } from "@/lib/intel-client";
 import type { IntelConflictZone } from "@/lib/intel-types";
+import { getTacticalIcon } from "@/lib/map/tactical-icons";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
-
-const iconCache = new Map<string, HTMLCanvasElement>();
 
 function severityColor(severity: IntelConflictZone["severity"]): string {
   switch (severity) {
@@ -28,45 +27,7 @@ function severityColor(severity: IntelConflictZone["severity"]): string {
 }
 
 function buildIcon(severity: IntelConflictZone["severity"]): HTMLCanvasElement {
-  const key = severity;
-  const cached = iconCache.get(key);
-  if (cached) return cached;
-  const color = severityColor(severity);
-  const size = 32;
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return canvas;
-
-  // Drop shadow halo
-  ctx.shadowColor = "rgba(0,0,0,0.6)";
-  ctx.shadowBlur = 4;
-
-  // Triangle
-  ctx.fillStyle = color;
-  ctx.beginPath();
-  ctx.moveTo(size / 2, 4);
-  ctx.lineTo(size - 4, size - 5);
-  ctx.lineTo(4, size - 5);
-  ctx.closePath();
-  ctx.fill();
-
-  // Outline
-  ctx.shadowColor = "transparent";
-  ctx.lineWidth = 1.5;
-  ctx.strokeStyle = "rgba(255,255,255,0.9)";
-  ctx.stroke();
-
-  // Exclamation
-  ctx.fillStyle = "#0f1a2e";
-  ctx.font = "bold 14px sans-serif";
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.fillText("!", size / 2, size / 2 + 3);
-
-  iconCache.set(key, canvas);
-  return canvas;
+  return getTacticalIcon("conflict", severityColor(severity));
 }
 
 function buildPopup(z: IntelConflictZone): string {

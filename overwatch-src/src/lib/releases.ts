@@ -1,3 +1,5 @@
+import generatedReleasesRaw from "./generated-releases.json";
+
 export type ReleaseRole = "all" | "field" | "supervisor" | "admin";
 
 export interface ReleaseHighlight {
@@ -28,6 +30,10 @@ export interface RolledUpHighlight extends ReleaseHighlight {
 
 export const LAST_SEEN_RELEASE_KEY_PREFIX = "overwatch_last_seen_release_v1_";
 export const LAST_SEEN_RELEASE_LEGACY_KEY = "overwatch_last_seen_release_id";
+export const GITHUB_RELEASES_CACHE_KEY = "overwatch_github_releases_cache_v1";
+export const GITHUB_RELEASES_CACHE_TTL_MS = 15 * 60 * 1000;
+export const GITHUB_COMMITS_URL =
+  "https://api.github.com/repos/EvenfallAdvantage/evenfalladvantage.github.io/commits?per_page=20";
 
 /**
  * Structured Overwatch release manifest (newest first).
@@ -46,7 +52,7 @@ export const RELEASES: ReleaseNote[] = [
         summary:
           "Live TomTom traffic congestion speeds plus state DOT & 511 road closures, crashes, and work zones under the Roads & Cameras map drawer group.",
         roles: ["all"],
-        tryHref: "/intel",
+        tryHref: "/schedule",
         tryLabel: "Open Tactical Map",
         icon: "Car",
       },
@@ -66,7 +72,7 @@ export const RELEASES: ReleaseNote[] = [
         summary:
           "Live company operational pill (Active Ops, On-Duty Staff, Active Alerts) at top-center and collapsible Measure & Annotate tool menus.",
         roles: ["all"],
-        tryHref: "/intel",
+        tryHref: "/schedule",
         tryLabel: "View Map",
         icon: "Compass",
       },
@@ -110,6 +116,276 @@ export const RELEASES: ReleaseNote[] = [
     ],
   },
 ];
+
+/**
+ * Build-time generated releases parsed from `git log` via `scripts/generate-releases.mjs`.
+ */
+export const GENERATED_RELEASES: ReleaseNote[] = Array.isArray(generatedReleasesRaw)
+  ? (generatedReleasesRaw as ReleaseNote[])
+  : [];
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const MARKETING_ONLY_SCOPES = new Set(["home", "westwood", "marketing", "landing"]);
+
+function formatIsoDateLabel(isoDate: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(isoDate.trim());
+  if (!m) return isoDate;
+  const year = Number(m[1]);
+  const monthIdx = Number(m[2]) - 1;
+  const day = Number(m[3]);
+  return `${MONTHS[monthIdx] ?? m[2]} ${day}, ${year}`;
+}
+
+function inferCommitMeta(scope: string, description: string): {
+  roles: ReleaseRole[];
+  tryHref?: string;
+  tryLabel?: string;
+  icon: string;
+} {
+  const combined = `${scope} ${description}`.toLowerCase();
+  const roles: ReleaseRole[] = /\b(admin|ops-planning|quick-fill|intake|timesheets?|roster|staff-mgmt)\b/.test(
+    combined,
+  )
+    ? ["supervisor", "admin"]
+    : ["all"];
+
+  if (/\b(map|schedule|imagery|traffic|cctv|layers|cesium|radar|hazard|aircraft|symbology|gnss|raws)\b/.test(combined)) {
+    return {
+      roles,
+      tryHref: "/schedule",
+      tryLabel: "Open Tactical Map",
+      icon: /\b(traffic|road|cctv)\b/.test(combined) ? "Car" : "Compass",
+    };
+  }
+  if (/\b(timeclock|break|meal|rest|clock)\b/.test(combined)) {
+    return {
+      roles,
+      tryHref: "/timeclock",
+      tryLabel: "Open Timeclock",
+      icon: "Coffee",
+    };
+  }
+  if (/\b(timesheets?|staff|roster)\b/.test(combined)) {
+    return {
+      roles,
+      tryHref: "/admin/staff",
+      tryLabel: "Open Staff",
+      icon: "Smartphone",
+    };
+  }
+  if (/\b(events?|shifts?|ops|intake|quick-fill)\b/.test(combined)) {
+    return {
+      roles,
+      tryHref: "/admin/events",
+      tryLabel: "Open Ops Planning",
+      icon: "Layers",
+    };
+  }
+  if (/\b(invite|auth|login|password|key)\b/.test(combined)) {
+    return { roles, icon: "KeyRound" };
+  }
+  return { roles, icon: "Sparkles" };
+}
+
+export interface GitHubCommitPayload {
+  sha?: string;
+  commit?: {
+    message?: string;
+    author?: {
+      date?: string;
+    };
+  };
+}
+
+/**
+ * Parse GitHub `/commits` API payload into grouped ReleaseNote items.
+ */
+export function parseGitHubCommitsToReleases(
+  commits: readonly GitHubCommitPayload[],
+): ReleaseNote[] {
+  const byDate = new Map<
+    string,
+    { isoDate: string; hasFeat: boolean; highlights: ReleaseHighlight[] }
+  >();
+  const seen = new Set<string>();
+
+  for (const item of commits) {
+    const sha = (item.sha ?? "").trim();
+    const rawMsg = (item.commit?.message ?? "").trim();
+    const firstLine = rawMsg.split(/\r?\n/)[0]?.trim() ?? "";
+    const rawDate = (item.commit?.author?.date ?? "").slice(0, 10);
+    if (!sha || !firstLine || !/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) continue;
+
+    const match = /^(feat|fix|perf)(?:\(([^)]+)\))?!?:\s*(.+)$/i.exec(firstLine);
+    if (!match) continue;
+    const type = match[1].toLowerCase();
+    const scope = (match[2] ?? "").trim();
+    const desc = match[3].replace(/\s*\(#\d+\)\s*$/, "").trim();
+    if (!desc) continue;
+    if (scope && MARKETING_ONLY_SCOPES.has(scope.toLowerCase())) continue;
+
+    const dedupeKey = `${rawDate}:${desc.toLowerCase()}`;
+    if (seen.has(dedupeKey)) continue;
+    seen.add(dedupeKey);
+
+    const capitalized = desc.charAt(0).toUpperCase() + desc.slice(1);
+    const scopeLabel = scope
+      ? scope.replace(/[-_,]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+      : "";
+    const firstClause = capitalized.split(";")[0].trim();
+    const title = scopeLabel ? `${scopeLabel}: ${firstClause}` : firstClause;
+    const summary = capitalized.endsWith(".") ? capitalized : `${capitalized}.`;
+    const meta = inferCommitMeta(scope, desc);
+
+    const highlight: ReleaseHighlight = {
+      id: `gh-${sha.slice(0, 8)}`,
+      title,
+      summary,
+      roles: meta.roles,
+      ...(meta.tryHref ? { tryHref: meta.tryHref, tryLabel: meta.tryLabel } : {}),
+      icon: meta.icon,
+    };
+
+    const group = byDate.get(rawDate) ?? {
+      isoDate: rawDate,
+      hasFeat: false,
+      highlights: [],
+    };
+    if (type === "feat") group.hasFeat = true;
+    if (group.highlights.length < 8) {
+      group.highlights.push(highlight);
+    }
+    byDate.set(rawDate, group);
+  }
+
+  return [...byDate.keys()]
+    .sort((a, b) => b.localeCompare(a))
+    .map((isoDate) => {
+      const group = byDate.get(isoDate)!;
+      const lead = group.highlights[0]?.title ?? "Overwatch Updates";
+      return {
+        id: `git-${isoDate}`,
+        date: formatIsoDateLabel(isoDate),
+        version: `git-${isoDate.replace(/-/g, ".")}`,
+        title:
+          group.highlights.length > 1
+            ? `${lead} & ${group.highlights.length - 1} more`
+            : lead,
+        tier: "minor" as const,
+        highlights: group.highlights,
+      };
+    });
+}
+
+/**
+ * Merge curated releases with build-time generated releases and live GitHub commits.
+ * Curated releases take precedence on matching dates, while any additional highlights or
+ * older/newer date groups from git history are appended cleanly without duplicates.
+ */
+export function mergeReleases(
+  curated: readonly ReleaseNote[],
+  ...extraLists: ReadonlyArray<readonly ReleaseNote[]>
+): ReleaseNote[] {
+  const byDate = new Map<string, ReleaseNote>();
+  const order: string[] = [];
+
+  for (const r of curated) {
+    byDate.set(r.date, {
+      ...r,
+      highlights: [...r.highlights],
+    });
+    order.push(r.date);
+  }
+
+  for (const list of extraLists) {
+    for (const rel of list) {
+      if (!rel || !Array.isArray(rel.highlights) || rel.highlights.length === 0) continue;
+      const existing = byDate.get(rel.date);
+      if (!existing) {
+        byDate.set(rel.date, {
+          ...rel,
+          highlights: [...rel.highlights],
+        });
+        order.push(rel.date);
+      } else {
+        const seenIds = new Set(existing.highlights.map((h) => h.id));
+        const seenTitles = new Set(existing.highlights.map((h) => h.title.toLowerCase()));
+        for (const h of rel.highlights) {
+          if (seenIds.has(h.id) || seenTitles.has(h.title.toLowerCase())) continue;
+          seenIds.add(h.id);
+          seenTitles.add(h.title.toLowerCase());
+          existing.highlights.push(h);
+        }
+      }
+    }
+  }
+
+  return order.map((d) => byDate.get(d)!);
+}
+
+/**
+ * Lightweight client-side fetch that queries GitHub's commits endpoint (cached in
+ * sessionStorage for 15 minutes, failing silently to `[]` if offline or rate-limited).
+ */
+export async function fetchLatestGitHubReleases(options?: {
+  signal?: AbortSignal;
+  storage?: Pick<Storage, "getItem" | "setItem"> | null;
+  fetchImpl?: typeof fetch;
+  now?: number;
+}): Promise<ReleaseNote[]> {
+  const store =
+    options?.storage !== undefined
+      ? options.storage
+      : typeof window !== "undefined"
+        ? window.sessionStorage
+        : null;
+  const now = options?.now ?? Date.now();
+
+  if (store) {
+    try {
+      const raw = store.getItem(GITHUB_RELEASES_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw) as { ts?: number; releases?: ReleaseNote[] };
+        if (
+          typeof parsed.ts === "number" &&
+          now - parsed.ts < GITHUB_RELEASES_CACHE_TTL_MS &&
+          Array.isArray(parsed.releases)
+        ) {
+          return parsed.releases;
+        }
+      }
+    } catch {
+      // ignore storage parse errors
+    }
+  }
+
+  const fetchFn = options?.fetchImpl ?? (typeof fetch !== "undefined" ? fetch : undefined);
+  if (!fetchFn) return [];
+
+  try {
+    const res = await fetchFn(GITHUB_COMMITS_URL, {
+      headers: { Accept: "application/vnd.github+json" },
+      signal: options?.signal,
+    });
+    if (!res.ok) return [];
+    const data = (await res.json()) as GitHubCommitPayload[];
+    if (!Array.isArray(data)) return [];
+    const releases = parseGitHubCommitsToReleases(data);
+    if (store) {
+      try {
+        store.setItem(
+          GITHUB_RELEASES_CACHE_KEY,
+          JSON.stringify({ ts: now, releases }),
+        );
+      } catch {
+        // ignore quota errors
+      }
+    }
+    return releases;
+  } catch {
+    return [];
+  }
+}
 
 export function getStorageKeyForRelease(userId?: string | null): string {
   const cleanId = (userId ?? "").trim() || "anon";

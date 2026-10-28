@@ -51,7 +51,7 @@ export function DronePlanner({ open, onClose, waypoints, onWaypointsChange, isAd
   }
 
   return (
-    <div className="absolute top-3 left-14 z-20 w-72 rounded-xl backdrop-blur-md border border-white/10 overflow-hidden"
+    <div data-testid="drone-planner-panel" className="absolute top-12 lg:top-3 left-14 z-30 w-72 max-w-[calc(100vw-4.25rem)] rounded-xl backdrop-blur-md border border-white/10 overflow-hidden"
       style={{ backgroundColor: "color-mix(in srgb, var(--brand-primary, #0f1a2e) 92%, transparent)" }}>
 
       {/* Header */}

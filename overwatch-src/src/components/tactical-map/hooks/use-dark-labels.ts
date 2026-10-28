@@ -8,7 +8,7 @@ import type { CesiumRef } from "./cesium-layer-types";
  * Re-applied on a 1 s tick for labels added later; restored when the mode is off.
  */
 export const DARK_LABEL = Object.freeze({ backgroundAlpha: 0.7, padX: 5, padY: 3, minOutlineWidth: 3 });
-const TICK_MS = 1000;
+const TICK_MS = 2500;
 
 type Saved = { bg: unknown; bgc: unknown; pad: unknown; ow: unknown };
 

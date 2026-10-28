@@ -254,6 +254,7 @@ export function useS2IntelLayer({
         // Add the clustered data source to the viewer
         viewer.dataSources.add(ds);
         dataSourceRef.current = { ds, name: "s2-intel" };
+        viewer.scene.requestRender();
         entityGroupsRef.current.s2Intel = allEntities;
         setFeatureCount(allEntities.length);
         setLastRefresh(new Date());

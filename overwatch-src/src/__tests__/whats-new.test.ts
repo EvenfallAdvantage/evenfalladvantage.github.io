@@ -13,6 +13,9 @@ import {
   markLatestReleaseSeen,
   readLastSeenReleaseId,
   shouldAutoOpenWhatsNew,
+  parseGitHubCommitsToReleases,
+  mergeReleases,
+  fetchLatestGitHubReleases,
   type ReleaseNote,
 } from "@/lib/releases";
 import { MapLegalFooter } from "@/components/tactical-map/map-legal-footer";
@@ -28,6 +31,52 @@ describe("What's New release manifest & role filtering", () => {
     expect(RELEASES[0].tier).toBe("major");
     expect(RELEASES[1].id).toBe("2026-10-27-onboarding-and-intake");
     expect(RELEASES[1].tier).toBe("minor");
+  });
+
+  it("never points any highlight tryHref to the removed /intel route", () => {
+    for (const rel of RELEASES) {
+      for (const h of rel.highlights) {
+        if (h.tryHref) {
+          expect(h.tryHref).not.toBe("/intel");
+          expect(h.tryHref.startsWith("/intel/")).toBe(false);
+        }
+      }
+    }
+    const v214 = RELEASES.find((r) => r.id === "2026-10-28-roads-and-breaks");
+    expect(v214?.highlights.find((h) => h.id === "roads-and-cameras-traffic")?.tryHref).toBe("/schedule");
+    expect(v214?.highlights.find((h) => h.id === "streamlined-tactical-map-hud")?.tryHref).toBe("/schedule");
+  });
+
+  it("parses GitHub commits into minor release notes, merges without duplicating curated dates, and falls back gracefully on error", async () => {
+    const parsed = parseGitHubCommitsToReleases([
+      {
+        sha: "abcdef123456",
+        commit: {
+          message: "feat(schedule): add daily imagery date selector",
+          author: { date: "2026-10-26T14:00:00Z" },
+        },
+      },
+      {
+        sha: "999999123456",
+        commit: {
+          message: "chore: release Overwatch",
+          author: { date: "2026-10-26T15:00:00Z" },
+        },
+      },
+    ]);
+    expect(parsed).toHaveLength(1);
+    expect(parsed[0].tier).toBe("minor");
+    expect(parsed[0].highlights[0].tryHref).toBe("/schedule");
+
+    const merged = mergeReleases(RELEASES, parsed);
+    expect(merged.some((r) => r.id === parsed[0].id)).toBe(true);
+
+    const fallback = await fetchLatestGitHubReleases({
+      fetchImpl: async () => {
+        throw new Error("network error");
+      },
+    });
+    expect(fallback).toEqual([]);
   });
 
   it("filters highlights by role (field staff vs supervisor/admin)", () => {

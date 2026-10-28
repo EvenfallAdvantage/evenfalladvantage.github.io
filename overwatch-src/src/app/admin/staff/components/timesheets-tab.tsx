@@ -14,7 +14,7 @@ import { formatLocaleDateRange, isSameDay, calcBreakSummary, calcPayableHoursNum
 import { calculateBreakCompliance, resolveBreakPolicy, startBreak, endBreak } from "@/lib/supabase/db-breaks";
 import { useActiveCompany } from "@/stores/auth-store";
 import { toast } from "sonner";
-import { exportCSV, TIMESHEET_COLUMNS } from "@/lib/csv-export";
+import { exportCSV, TIMESHEET_COLUMNS, buildTimesheetCsvRows } from "@/lib/csv-export";
 import { formatMemberName } from "@/lib/format-names";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useCompanyQuery } from "@/hooks/use-company-query";
@@ -179,7 +179,7 @@ export function TimesheetsTab({ activeCompanyId, canManage }: TimesheetsTabProps
       <div className="flex flex-wrap items-center justify-end gap-2 mb-2">
         <Link href="/admin/settings/pay" className="inline-flex min-h-11 items-center text-xs text-primary hover:underline sm:min-h-0">Pay &amp; overtime rules</Link>
         {timesheets.length > 0 && (
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => exportCSV(timesheets, TIMESHEET_COLUMNS, `timesheets-${new Date().toISOString().slice(0,10)}`)}>
+          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => exportCSV(buildTimesheetCsvRows(timesheets, policy, signedIds), TIMESHEET_COLUMNS, `timesheets-${new Date().toISOString().slice(0,10)}`)}>
             <Download className="h-3.5 w-3.5" /> Export CSV
           </Button>
         )}

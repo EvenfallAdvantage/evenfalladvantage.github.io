@@ -1,3 +1,5 @@
+import { TIMESHEET_COLUMNS, buildTimesheetCsvRows } from "@/lib/csv-export";
+import { encodeTimeChangeReason, parseTimeChangeReason } from "@/lib/supabase/db-timesheets";
 import { describe, it, expect } from "vitest";
 import { parseCSV, validateStaffRows } from "@/lib/csv-import";
 
@@ -149,5 +151,120 @@ describe("validateStaffRows", () => {
     expect(valid[0].first_name).toBe("Jane");
     expect(valid[0].last_name).toBe("Doe");
     expect(valid[0].email).toBe("jane@test.com");
+  });
+});
+
+describe("TIMESHEET_COLUMNS & buildTimesheetCsvRows", () => {
+  it("exports all 21 expanded timesheet CSV columns with break, compliance, and verification data", () => {
+    expect(TIMESHEET_COLUMNS).toHaveLength(21);
+    expect(TIMESHEET_COLUMNS.map((c) => c.label)).toEqual([
+      "First Name",
+      "Last Name",
+      "Email",
+      "Operation",
+      "Clock In Type",
+      "Clock In",
+      "Clock Out",
+      "Gross Hours",
+      "Payable Hours",
+      "Meal Breaks",
+      "Meal Break (min)",
+      "Rest Breaks",
+      "Rest Break (min)",
+      "Unpaid Break Deducted (min)",
+      "Total Break (min)",
+      "Break Compliance",
+      "Clock-In Timing",
+      "Location Verification",
+      "Shift Notes Signed",
+      "Approved",
+      "Notes",
+    ]);
+
+    const rows = buildTimesheetCsvRows(
+      [
+        {
+          id: "ts-1",
+          clock_in: "2026-10-28T13:00:00Z",
+          clock_out: "2026-10-28T21:00:00Z",
+          clock_in_type: "shift",
+          clock_in_verdict: "inside",
+          approved: true,
+          notes: "Late clock-in: traffic on I-10",
+          users: { first_name: "Paul", last_name: "Cimino", email: "paul@evenfall.com" },
+          events: { name: "HQ Patrol" },
+          timesheet_breaks: [
+            {
+              id: "b-1",
+              break_type: "meal",
+              start_time: "2026-10-28T17:00:00Z",
+              end_time: "2026-10-28T17:30:00Z",
+              duration_minutes: 30,
+            },
+            {
+              id: "b-2",
+              break_type: "rest",
+              start_time: "2026-10-28T15:00:00Z",
+              end_time: "2026-10-28T15:10:00Z",
+              duration_minutes: 10,
+            },
+          ],
+        },
+      ],
+      undefined,
+      new Set(["ts-1"]),
+    );
+
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({
+      operation_name: "HQ Patrol",
+      clock_in_type: "shift",
+      gross_hours: "8.00",
+      payable_hours: "7.50",
+      meal_break_count: 1,
+      meal_break_minutes: 30,
+      rest_break_count: 1,
+      rest_break_minutes: 10,
+      unpaid_break_minutes: 30,
+      break_minutes: 40,
+      break_compliance: "Compliant",
+      clock_in_flag: "late",
+      location_verdict: "inside",
+      shift_notes_signed: "Yes",
+      approved: "Yes",
+      notes: "Late clock-in: traffic on I-10",
+    });
+  });
+});
+
+describe("encodeTimeChangeReason & parseTimeChangeReason", () => {
+  it("round-trips requested break adjustments and leaves plain reasons untouched", () => {
+    const plain = parseTimeChangeReason("Forgot to clock out at 5 PM");
+    expect(plain.reasonText).toBe("Forgot to clock out at 5 PM");
+    expect(plain.requestedBreaks).toBeNull();
+
+    const encoded = encodeTimeChangeReason("Removed accidental 24m rest break and added lunch", [
+      {
+        id: "brk-1",
+        breakType: "meal",
+        startTime: "2026-10-28T16:00:00.000Z",
+        endTime: "2026-10-28T16:30:00.000Z",
+      },
+    ]);
+    const parsed = parseTimeChangeReason(encoded);
+    expect(parsed.reasonText).toBe("Removed accidental 24m rest break and added lunch");
+    expect(parsed.requestedBreaks).toEqual([
+      {
+        id: "brk-1",
+        breakType: "meal",
+        startTime: "2026-10-28T16:00:00.000Z",
+        endTime: "2026-10-28T16:30:00.000Z",
+        durationMinutes: 30,
+      },
+    ]);
+
+    const cleared = parseTimeChangeReason(encodeTimeChangeReason("Clear accidental break", []));
+    expect(cleared.reasonText).toBe("Clear accidental break");
+    expect(cleared.requestedBreaks).toEqual([]);
   });
 });

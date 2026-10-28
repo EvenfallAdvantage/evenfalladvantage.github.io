@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 import { subscribeAdsb } from "@/lib/sdr/adsb-store";
 import type { AdsbAircraftMap } from "@/lib/sdr/adsb-types";
 import type { LayerVisibility } from "../map-layers-panel";
-import { createPinCanvas } from "../pin-canvas";
+import { getAircraftIcon } from "@/lib/map/tactical-icons";
 import { getAircraft } from "../flight-tracker";
 import type { OperationPin } from "../types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -177,14 +177,19 @@ export function useAircraftLayer(params: {
         if (!visible) continue;
 
         const existing = v.entities.getById(entityId);
-        const color = plane.emergency ? AIRCRAFT_EMERGENCY_COLOR : AIRCRAFT_CATEGORY_COLOR[aircraftCategory({ ...plane, category: plane.emitterCategory })];
-        const scale = plane.emergency ? 0.55 : plane.source === "adsb" ? 0.45 : 0.35;
+        const cat = aircraftCategory({ ...plane, category: plane.emitterCategory });
+        const color = plane.emergency ? AIRCRAFT_EMERGENCY_COLOR : AIRCRAFT_CATEGORY_COLOR[cat];
+        const iconKey = `${cat}:${color}:${plane.emergency ? 1 : 0}`;
+        const scale = plane.emergency ? 0.95 : plane.source === "adsb" ? 0.85 : 0.78;
 
         if (existing) {
           if (existing.billboard) {
             existing.billboard.rotation = -plane.heading * (Math.PI / 180);
             existing.billboard.scale = scale;
-            if (existing._owColor !== color) { existing.billboard.image = createPinCanvas(color, "flag"); existing._owColor = color; }
+            if (existing._owIconKey !== iconKey) {
+              existing.billboard.image = getAircraftIcon(cat, color, { emergency: !!plane.emergency });
+              existing._owIconKey = iconKey;
+            }
           }
           if (existing.label) existing.label.text = planeLabel(plane);
           existing.description = buildDesc(plane);
@@ -200,9 +205,10 @@ export function useAircraftLayer(params: {
               return C.Cartesian3.fromDegrees(p.lng, p.lat, p.altM, undefined, result ?? scratch);
             }, false),
             billboard: {
-              image: createPinCanvas(color, "flag"),
+              image: getAircraftIcon(cat, color, { emergency: !!plane.emergency }),
               scale,
               rotation: -plane.heading * (Math.PI / 180),
+              alignedAxis: C.Cartesian3.UNIT_Z,
               disableDepthTestDistance: nearSideDepthProperty(v, C),
             },
             label: {
@@ -219,7 +225,7 @@ export function useAircraftLayer(params: {
             },
             description: buildDesc(plane),
           });
-          entity._owColor = color;
+          entity._owIconKey = iconKey;
           entityGroupsRef.current.aircraft.push(entity);
         }
       }
@@ -243,8 +249,12 @@ export function useAircraftLayer(params: {
 
     function renderGnss() {
       const C = cesiumRef.current;
+      const v = viewerRef.current;
       gnssSource.entities.removeAll();
-      if (!C || !showGnssRef.current) return;
+      if (!C || !showGnssRef.current) {
+        v?.scene?.requestRender?.();
+        return;
+      }
       const cells = aggregateGnss([...merged.values()]);
       for (const c of cells) {
         const alpha = Math.min(0.55, 0.2 + c.ratio * 0.4);
@@ -263,6 +273,7 @@ export function useAircraftLayer(params: {
           </div>`,
         });
       }
+      v?.scene?.requestRender?.();
     }
 
     // ── ADSB subscription (high-refresh, local SDR) ──
