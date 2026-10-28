@@ -557,3 +557,35 @@ export interface IntelHazardsResponse {
   sources: Partial<Record<HazardSource, { ok: boolean; count: number; stale?: boolean; error?: string }>>;
   timestamp: string;
 }
+
+// ─── Traffic Flow & Road Incidents (intel-traffic) ───────────────
+export type RoadIncidentKind = "closure" | "crash" | "construction" | "hazard" | "congestion";
+export type RoadIncidentSeverity = "minor" | "moderate" | "major" | "critical";
+
+export interface IntelRoadIncident {
+  id: string;
+  source: string;
+  kind: RoadIncidentKind;
+  severity: RoadIncidentSeverity;
+  title: string;
+  description: string;
+  road: string | null;
+  direction: string | null;
+  lat: number;
+  lng: number;
+  startTime: string | null;
+  endTime: string | null;
+  updatedAt: string | null;
+  attribution: string;
+}
+
+export interface IntelTrafficIncidentsResponse {
+  incidents: IntelRoadIncident[];
+  total: number;
+  bbox: [number, number, number, number];
+  sources: Record<string, { ok: boolean; count: number; error?: string }>;
+  attributions: string[];
+  flowTilesAvailable?: boolean;
+  timestamp: string;
+  error?: string;
+}

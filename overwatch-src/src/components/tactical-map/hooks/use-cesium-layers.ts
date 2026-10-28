@@ -44,6 +44,8 @@ import { useWindLayer } from "./use-wind-layer";
 import { useWindParticles } from "./use-wind-particles";
 import { useMaritimeLayer } from "./use-maritime-layer";
 import { useCctvLayer } from "./use-cctv-layer";
+import { useTrafficFlowLayer } from "./use-traffic-flow-layer";
+import { useRoadIncidentsLayer } from "./use-road-incidents-layer";
 import { useLaunchesLayer } from "./use-launches-layer";
 import { useStreetLevelLayer } from "./use-street-level-layer";
 import { useGeofencesLayer } from "./use-geofences-layer";
@@ -239,6 +241,19 @@ export function useCesiumLayers(params: {
 
   // ─── Sub-hook: Maritime static (ports + chokepoints; AIS gated) ──────────
   useMaritimeLayer({ viewerRef, cesiumRef, entityGroupsRef, loading, layers });
+
+  // ─── Sub-hook: Live traffic flow tiles (TomTom v4 / Edge Function proxy) ──
+  useTrafficFlowLayer({
+    viewerRef, cesiumRef, loading, layers,
+    debouncedReplayTime, timeMachineOpen,
+  });
+
+  // ─── Sub-hook: Road closures & crashes (DOT / 511 / TomTom v5) ────────────
+  useRoadIncidentsLayer({
+    viewerRef, cesiumRef, entityGroupsRef, loading, layers,
+    debouncedReplayTime, timeMachineOpen,
+    filter: cameraFilter,
+  });
 
   // ─── Sub-hook: CCTV cameras (gated; click → viewer modal) ────────────────
   useCctvLayer({

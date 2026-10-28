@@ -51,7 +51,11 @@ export interface LayerVisibility {
   hud: boolean;
   /** Rocket launches, last 30 days (Launch Library 2), Infrastructure → Space. */
   rocketLaunches: boolean;
-  /** Street-level photos (Panoramax, KartaView, Mapillary) in the Cameras group. */
+  /** Live road congestion traffic flow tile overlay (Roads & Cameras group). */
+  trafficFlow: boolean;
+  /** Live road closures, crashes, and construction from DOT/511 & TomTom feeds (Roads & Cameras group). */
+  roadIncidents: boolean;
+  /** Street-level photos (Panoramax, KartaView, Mapillary) in the Roads & Cameras group. */
   streetPhotos: boolean;
   /** Screen overlays (View menu): rotating sonar sweep, circular scope mask. */
   sonarSweep: boolean;
@@ -133,6 +137,8 @@ export const DEFAULT_LAYERS: LayerVisibility = {
   sharpen: false,
   hud: false,
   rocketLaunches: false,
+  trafficFlow: false,
+  roadIncidents: false,
   streetPhotos: false,
   sonarSweep: false,
   scopeMask: false,
@@ -226,7 +232,9 @@ const LAYER_TOGGLES: LayerToggle[] = [
   { key: "gdelt", label: "World News (geotagged)", icon: <Newspaper className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "sigintNews", label: "SIGINT News", icon: <Rss className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "nuclearInfrastructure", label: "Nuclear Facilities", icon: <Atom className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
-  // Surveillance feeds
+  // Roads & surveillance feeds
+  { key: "trafficFlow", label: "Live Traffic Flow", icon: <Activity className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
+  { key: "roadIncidents", label: "Road Closures & Crashes", icon: <AlertTriangle className="h-3.5 w-3.5" />, group: "INTELLIGENCE", liveOnly: true },
   { key: "cctv", label: "CCTV Cameras", icon: <Camera className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   { key: "liveNews", label: "Live Broadcasters", icon: <Tv className="h-3.5 w-3.5" />, group: "INTELLIGENCE" },
   // Air & maritime tracking

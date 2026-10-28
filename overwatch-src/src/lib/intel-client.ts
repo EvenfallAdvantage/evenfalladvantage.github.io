@@ -27,6 +27,7 @@ import type {
   IntelRegionDossierResponse,
   IntelCctvResponse,
   IntelCctvBboxResponse,
+  IntelTrafficIncidentsResponse,
   IntelDnsResponse,
   IntelWhoisResponse,
   IntelIpResponse,
@@ -189,4 +190,50 @@ export function fetchOsintSweep(ip: string, cidr = 24) {
   return call<SweepResult>(
     `/intel-osint-sweep?ip=${encodeURIComponent(ip)}&cidr=${cidr}`,
   );
+}
+
+// ─── Traffic Flow & Road Incidents (intel-traffic) ───────────────
+export function fetchIntelTrafficIncidents(opts?: {
+  bbox?: { west: number; south: number; east: number; north: number };
+  near?: string;
+  nearKm?: number;
+  limit?: number;
+  signal?: AbortSignal;
+}) {
+  const params = new URLSearchParams();
+  if (opts?.bbox) {
+    params.set(
+      "bbox",
+      `${opts.bbox.west.toFixed(4)},${opts.bbox.south.toFixed(4)},${opts.bbox.east.toFixed(4)},${opts.bbox.north.toFixed(4)}`,
+    );
+  }
+  if (opts?.near) {
+    params.set("near", opts.near);
+  }
+  if (opts?.nearKm !== undefined) {
+    params.set("near_km", String(Math.round(opts.nearKm)));
+  }
+  if (opts?.limit !== undefined) {
+    params.set("limit", String(opts.limit));
+  }
+  const qs = params.toString();
+  return call<IntelTrafficIncidentsResponse>(
+    `/intel-traffic${qs ? `?${qs}` : ""}`,
+    opts?.signal ? { signal: withTimeout(opts.signal, 20_000) } : {},
+  );
+}
+
+/**
+ * URL template (`{z}`, `{x}`, `{y}`) for Cesium `UrlTemplateImageryProvider`
+ * displaying live road congestion speeds. Uses `NEXT_PUBLIC_TOMTOM_API_KEY` directly
+ * when configured, or falls back to the `intel-traffic` Edge Function tile proxy
+ * (which uses server-side `TOMTOM_API_KEY`).
+ */
+export function trafficFlowTileUrlTemplate(style = "relative0-dark"): string {
+  const directKey = process.env.NEXT_PUBLIC_TOMTOM_API_KEY?.trim();
+  if (directKey) {
+    return `https://api.tomtom.com/traffic/map/4/tile/flow/${encodeURIComponent(style)}/{z}/{x}/{y}.png?tileSize=256&key=${encodeURIComponent(directKey)}`;
+  }
+  const base = process.env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ?? "";
+  return `${base}/functions/v1/intel-traffic?tile={z}/{x}/{y}&style=${encodeURIComponent(style)}`;
 }

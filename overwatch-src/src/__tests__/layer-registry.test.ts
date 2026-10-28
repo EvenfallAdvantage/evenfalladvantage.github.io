@@ -29,6 +29,13 @@ describe("layer registry structure", () => {
     expect(groupDef("infrastructure").subs.some((s) => s.keys.includes("satelliteOrbits"))).toBe(true);
     expect(groupDef("airSea").subs.some((s) => s.keys.includes("maritime"))).toBe(true);
   });
+  it("cameras group is named Roads & Cameras and offers trafficFlow, roadIncidents, cctv, and street", () => {
+    const cam = groupDef("cameras");
+    expect(cam.label).toBe("Roads & Cameras");
+    expect(cam.subs.map((s) => s.id)).toEqual(["trafficFlow", "roadIncidents", "cctv", "street"]);
+    expect(DEFAULT_LAYERS.trafficFlow).toBe(false);
+    expect(DEFAULT_LAYERS.roadIncidents).toBe(false);
+  });
 });
 
 describe("effectiveLayers", () => {
