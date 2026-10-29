@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { iconSize } from "@/lib/map/tactical-icons";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { escapeHtml } from "@/lib/security";
@@ -40,6 +41,7 @@ export function useIncidentsLayer(params: {
         position: Cesium.Cartesian3.fromDegrees(inc.lng, inc.lat, 5),
         billboard: {
           image: createPinCanvas(color, "alert"),
+          ...iconSize(createPinCanvas(color, "alert")),
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           scale: 0.55,
           heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,

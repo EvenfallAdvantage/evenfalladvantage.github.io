@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { iconSize } from "@/lib/map/tactical-icons";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
 import { escapeHtml } from "@/lib/security";
@@ -43,6 +44,7 @@ export function useOperationsLayer(params: {
         position: Cesium.Cartesian3.fromDegrees(op.lng, op.lat, 5),
         billboard: {
           image: createPinCanvas(color.toCssColorString(), "flag"),
+          ...iconSize(createPinCanvas(color.toCssColorString(), "flag")),
           verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
           scale: 0.7,
           heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,

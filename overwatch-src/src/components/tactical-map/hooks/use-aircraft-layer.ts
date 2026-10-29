@@ -5,7 +5,7 @@ import { logger } from "@/lib/logger";
 import { subscribeAdsb } from "@/lib/sdr/adsb-store";
 import type { AdsbAircraftMap } from "@/lib/sdr/adsb-types";
 import type { LayerVisibility } from "../map-layers-panel";
-import { getAircraftIcon } from "@/lib/map/tactical-icons";
+import { getAircraftIcon, iconSize } from "@/lib/map/tactical-icons";
 import { getAircraft } from "../flight-tracker";
 import type { OperationPin } from "../types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -180,14 +180,19 @@ export function useAircraftLayer(params: {
         const cat = aircraftCategory({ ...plane, category: plane.emitterCategory });
         const color = plane.emergency ? AIRCRAFT_EMERGENCY_COLOR : AIRCRAFT_CATEGORY_COLOR[cat];
         const iconKey = `${cat}:${color}:${plane.emergency ? 1 : 0}`;
-        const scale = plane.emergency ? 0.95 : plane.source === "adsb" ? 0.85 : 0.78;
+        // 26 px logical sprite → ~15.6 / 12.5 / 9.9 px, matching the pre-#215 28 px pin at 0.55 / 0.45 / 0.35.
+        const scale = plane.emergency ? 0.6 : plane.source === "adsb" ? 0.48 : 0.38;
 
         if (existing) {
           if (existing.billboard) {
             existing.billboard.rotation = -plane.heading * (Math.PI / 180);
             existing.billboard.scale = scale;
             if (existing._owIconKey !== iconKey) {
-              existing.billboard.image = getAircraftIcon(cat, color, { emergency: !!plane.emergency });
+              const img = getAircraftIcon(cat, color, { emergency: !!plane.emergency });
+              const sz = iconSize(img);
+              existing.billboard.image = img;
+              existing.billboard.width = sz.width;
+              existing.billboard.height = sz.height;
               existing._owIconKey = iconKey;
             }
           }
@@ -206,6 +211,7 @@ export function useAircraftLayer(params: {
             }, false),
             billboard: {
               image: getAircraftIcon(cat, color, { emergency: !!plane.emergency }),
+              ...iconSize(getAircraftIcon(cat, color, { emergency: !!plane.emergency })),
               scale,
               rotation: -plane.heading * (Math.PI / 180),
               alignedAxis: C.Cartesian3.UNIT_Z,

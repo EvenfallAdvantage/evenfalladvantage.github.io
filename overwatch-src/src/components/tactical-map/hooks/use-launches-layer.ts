@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { logger } from "@/lib/logger";
 import { isHighContrastLook } from "@/lib/map/contact-models";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
-import { getTacticalIcon } from "@/lib/map/tactical-icons";
+import { getTacticalIcon, iconSize } from "@/lib/map/tactical-icons";
 import { ascentLabel, estimatedAscent, launchAzimuth, LL2_CREDIT, loadLaunches, REPLAY_SECONDS, typicalInclination, type Launch } from "@/lib/map/launches";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -43,6 +43,8 @@ export function useLaunchesLayer(params: {
           id, position: C.Cartesian3.fromDegrees(l.lng, l.lat, 0),
           billboard: {
             image: getTacticalIcon("rocket", COLOR[l.outcome], { highContrast: dark }),
+            ...iconSize(getTacticalIcon("rocket", COLOR[l.outcome], { highContrast: dark })),
+            scale: 0.42, // 24 px × 0.42 ≈ 10 px (pre-#215 dot: 9 px + 1.5 px outline)
             verticalOrigin: C.VerticalOrigin.CENTER,
             disableDepthTestDistance: nearSideDepthProperty(viewer, C),
             distanceDisplayCondition: new C.DistanceDisplayCondition(0, 2.5e7),

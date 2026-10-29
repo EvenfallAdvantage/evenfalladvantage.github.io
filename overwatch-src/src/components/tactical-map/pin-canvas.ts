@@ -11,6 +11,9 @@ export type PinIconType = "flag" | "person" | "alert";
 
 const pinCache = new Map<string, HTMLCanvasElement>();
 const DPRI = 2;
+/** On-screen size matches the pre-HiDPI 28 px pin; glyphs are authored on a 36 px grid. */
+export const PIN_LOGICAL_SIZE = 28;
+const PIN_DRAW_GRID = 36;
 
 export function clearPinCanvasCache(): void {
   pinCache.clear();
@@ -21,13 +24,15 @@ export function createPinCanvas(color: string, iconType: PinIconType): HTMLCanva
   const cached = pinCache.get(key);
   if (cached) return cached;
 
-  const logicalSize = 36;
+  const logicalSize = PIN_LOGICAL_SIZE;
   const canvas = document.createElement("canvas");
   canvas.width = logicalSize * DPRI;
   canvas.height = logicalSize * DPRI;
   canvas.style.width = `${logicalSize}px`;
   canvas.style.height = `${logicalSize}px`;
   canvas.setAttribute("data-pin-canvas", key);
+  canvas.dataset.logicalWidth = String(logicalSize);
+  canvas.dataset.logicalHeight = String(logicalSize);
 
   const ctx = canvas.getContext("2d");
   if (!ctx) {
@@ -36,7 +41,7 @@ export function createPinCanvas(color: string, iconType: PinIconType): HTMLCanva
   }
 
   ctx.save();
-  ctx.scale(DPRI, DPRI);
+  ctx.scale((DPRI * logicalSize) / PIN_DRAW_GRID, (DPRI * logicalSize) / PIN_DRAW_GRID);
   ctx.lineJoin = "round";
   ctx.lineCap = "round";
 

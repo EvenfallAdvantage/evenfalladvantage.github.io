@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { logger } from "@/lib/logger";
 import type { LayerVisibility } from "../map-layers-panel";
-import { getPoiIcon } from "@/lib/map/tactical-icons";
+import { getPoiIcon, iconSize } from "@/lib/map/tactical-icons";
 import { getPOIsInBbox, getNearbyPOIs, countTilesForBbox, type NearbyPOI, type PoiType } from "../env-intel";
 import type { OperationPin } from "../types";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
@@ -150,8 +150,10 @@ export function usePoiLayer(params: {
           position: Cesium.Cartesian3.fromDegrees(poi.lng, poi.lat, 5),
           billboard: {
             image: getPoiIcon(poi.type, color),
+            ...iconSize(getPoiIcon(poi.type, color)),
             verticalOrigin: Cesium.VerticalOrigin.CENTER,
-            scale: 0.9,
+            // 24 px logical × 0.53 ≈ 12.7 px (pre-#215: 28 px pin × 0.45 = 12.6 px).
+            scale: 0.53,
             heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
             // Always render through buildings at venue scale (camera < 500 km).
             // Beyond that, depth-test against the globe so far-side pins are

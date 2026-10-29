@@ -32,12 +32,26 @@ export interface TacticalIconOptions {
   magnitude?: number;
 }
 
-const DPRI = 2;
+/** Backing-store pixel ratio for every tactical sprite. */
+export const TACTICAL_ICON_DPR = 2;
+const DPRI = TACTICAL_ICON_DPR;
 const HALO_DARK = "#090d16";
 const HALO_LIGHT = "#f8fafc";
 const MAX_CACHE_ENTRIES = 512;
 
 const iconCache = new Map<string, HTMLCanvasElement>();
+
+/**
+ * Logical (CSS px) size of a HiDPI sprite. Cesium sizes billboards from the
+ * image's backing pixels unless `width`/`height` are set, so every caller must
+ * spread this into the billboard or icons render at DPR x their intended size.
+ */
+export function iconSize(canvas: HTMLCanvasElement): { width: number; height: number } {
+  const w = Number(canvas.dataset?.logicalWidth);
+  const h = Number(canvas.dataset?.logicalHeight);
+  if (w > 0 && h > 0) return { width: w, height: h };
+  return { width: canvas.width / TACTICAL_ICON_DPR, height: canvas.height / TACTICAL_ICON_DPR };
+}
 
 export function clearTacticalIconCache(): void {
   iconCache.clear();
@@ -67,6 +81,8 @@ function getOrCreateCanvas(
   canvas.style.width = `${px}px`;
   canvas.style.height = `${px}px`;
   canvas.setAttribute("data-tactical-icon", cacheKey);
+  canvas.dataset.logicalWidth = String(px);
+  canvas.dataset.logicalHeight = String(px);
 
   const ctx = canvas.getContext("2d");
   if (ctx) {

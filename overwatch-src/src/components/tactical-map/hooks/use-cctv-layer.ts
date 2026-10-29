@@ -27,7 +27,7 @@ import {
 } from "@/lib/map/cctv-viewport";
 import { isConstrainedDevice } from "@/lib/map/device-profile";
 import { CONE_MOUNT_M, cameraPose, coneArc } from "@/lib/map/camera-cone";
-import { getTacticalIcon } from "@/lib/map/tactical-icons";
+import { getTacticalIcon, iconSize } from "@/lib/map/tactical-icons";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
 
@@ -218,7 +218,7 @@ export function useCctvLayer(params: {
                 id, name: item.cam.name,
                 position: Cesium.Cartesian3.fromDegrees(lng, lat, 5),
                 billboard: {
-                  image: buildIcon(highContrast), scale: 0.9,
+                  image: buildIcon(highContrast), ...iconSize(buildIcon(highContrast)), scale: 0.6, // 20 px × 0.6 = 12 px (pre-#215: 12 px)
                   heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
                   verticalOrigin: Cesium.VerticalOrigin.BOTTOM,
                 },
