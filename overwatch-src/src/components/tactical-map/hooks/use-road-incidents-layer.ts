@@ -17,6 +17,7 @@ import type { IntelRoadIncident, RoadIncidentKind, RoadIncidentSeverity } from "
 import { isConstrainedDevice, withSuspendedEvents } from "@/lib/map/device-profile";
 import { bboxKey, diffIds, rectToBBox, roundBBox, zoomFromHeight } from "@/lib/map/cctv-viewport";
 import { nearSideDepthProperty } from "@/lib/map/near-side-depth";
+import { TACTICAL_ICON_DPR, iconSize } from "@/lib/map/tactical-icons";
 import type { LayerVisibility } from "../map-layers-panel";
 import type { CesiumRef, EntityGroupsRef } from "./cesium-layer-types";
 
@@ -55,17 +56,27 @@ export function roadIncidentLabel(kind: RoadIncidentKind): string {
 
 const iconCache = new Map<string, HTMLCanvasElement>();
 
-function buildIncidentIcon(kind: RoadIncidentKind, severity: RoadIncidentSeverity): HTMLCanvasElement {
+/** Logical (CSS px) diameter: CCTV-sized 12 px, 14 px for critical/major. */
+export function roadIncidentIconPx(severity: RoadIncidentSeverity): number {
+  return severity === "critical" || severity === "major" ? 14 : 12;
+}
+
+export function buildIncidentIcon(kind: RoadIncidentKind, severity: RoadIncidentSeverity): HTMLCanvasElement {
   const key = `${kind}:${severity}`;
   const cached = iconCache.get(key);
   if (cached) return cached;
 
-  const size = severity === "critical" || severity === "major" ? 20 : 16;
+  // Drawn on a 20/16 px grid (pre-existing artwork), rendered HiDPI at the logical size.
+  const px = roadIncidentIconPx(severity);
+  const size = px === 14 ? 20 : 16;
   const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
+  canvas.width = px * TACTICAL_ICON_DPR;
+  canvas.height = px * TACTICAL_ICON_DPR;
+  canvas.dataset.logicalWidth = String(px);
+  canvas.dataset.logicalHeight = String(px);
   const ctx = canvas.getContext("2d");
   if (!ctx) return canvas;
+  ctx.scale((px * TACTICAL_ICON_DPR) / size, (px * TACTICAL_ICON_DPR) / size);
 
   const r = size / 2;
   const color = roadIncidentColor(kind);
@@ -210,12 +221,14 @@ export function useRoadIncidentsLayer(params: {
         }
         for (const id of add) {
           const inc = next.get(id)!;
+          const incIcon = buildIncidentIcon(inc.kind, inc.severity);
           const entity = viewer.entities.add({
             id,
             name: inc.title,
             position: Cesium.Cartesian3.fromDegrees(inc.lng, inc.lat, 8),
             billboard: {
-              image: buildIncidentIcon(inc.kind, inc.severity),
+              image: incIcon,
+              ...iconSize(incIcon),
               scale: 1.0,
               heightReference: Cesium.HeightReference.RELATIVE_TO_GROUND,
               verticalOrigin: Cesium.VerticalOrigin.CENTER,
