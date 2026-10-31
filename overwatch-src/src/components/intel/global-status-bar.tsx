@@ -132,7 +132,7 @@ export function GlobalStatusBar({
         <button
           type="button"
           onClick={onShare}
-          className="text-white/40 hover:text-white/85 transition-colors"
+          className="-my-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-white/40 hover:text-white/85 transition-colors"
           title="Copy a link to this view"
           aria-label="Copy a link to this view"
         >
@@ -144,7 +144,7 @@ export function GlobalStatusBar({
         <button
           type="button"
           onClick={onOpenAttribution}
-          className="text-white/40 hover:text-white/85 transition-colors"
+          className="-my-1.5 inline-flex h-6 w-6 items-center justify-center rounded text-white/40 hover:text-white/85 transition-colors"
           title="Data sources"
           aria-label="Data sources"
         >
