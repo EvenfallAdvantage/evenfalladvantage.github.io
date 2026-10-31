@@ -53,7 +53,7 @@ export function GlobalStatusBar({
       data-testid="global-status-bar"
       className={`absolute ${
         offsetTop ? "top-24 lg:top-12" : "top-3"
-      } left-1/2 -translate-x-1/2 z-10 pointer-events-auto rounded-full px-3 py-1.5 flex items-center gap-2.5 sm:gap-3 backdrop-blur-sm border border-white/10 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap transition-[top] duration-150`}
+      } left-1/2 -translate-x-1/2 z-10 max-w-[calc(100%-6rem)] sm:max-w-none pointer-events-auto rounded-full px-3 py-1.5 flex items-center gap-2.5 sm:gap-3 backdrop-blur-sm border border-white/10 text-[10px] font-mono uppercase tracking-wider whitespace-nowrap transition-[top] duration-150`}
       style={{
         backgroundColor:
           "color-mix(in srgb, var(--brand-primary, #0f1a2e) 88%, transparent)",
@@ -71,7 +71,7 @@ export function GlobalStatusBar({
           style={{ backgroundColor: activeOpsCount > 0 ? "#10b981" : "#64748b" }}
         />
         <span className="text-white/85 font-semibold">{activeOpsCount}</span>
-        <span className="text-white/45">
+        <span className="hidden sm:inline text-white/45">
           {activeOpsCount === 1 ? "active op" : "active ops"}
         </span>
       </div>
@@ -89,7 +89,7 @@ export function GlobalStatusBar({
           style={{ backgroundColor: onDutyCount > 0 ? "#22d3ee" : "#64748b" }}
         />
         <span className="text-white/85 font-semibold">{onDutyCount}</span>
-        <span className="text-white/45">on duty</span>
+        <span className="hidden sm:inline text-white/45">on duty</span>
       </div>
 
       <span className="text-white/20">·</span>
@@ -119,7 +119,7 @@ export function GlobalStatusBar({
         >
           {alertCount}
         </span>
-        <span className="text-white/45">
+        <span className="hidden sm:inline text-white/45">
           {alertCount === 1 ? "alert" : "alerts"}
         </span>
       </div>
