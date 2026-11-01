@@ -1,12 +1,10 @@
 "use client";
 
-import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
+import { CommsTabs } from "@/components/comms-tabs";
 import { useEffect, useState } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Hash, ExternalLink, Mail, Radio } from "lucide-react";
 import { DirectMessages } from "@/components/direct-messages";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePageHeader } from "@/stores/page-header-store";
@@ -51,26 +49,11 @@ export default function ChatPage() {
   return (
     <div className="space-y-4">
       {/* Tabs */}
-      <SubTabList>
-        <Link href="/updates" role="tab" aria-selected="false"
-          className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0">
-          Briefings
-        </Link>
-        <SubTab active={tab === "channels"} onClick={() => setTab("channels")} icon={Hash}>
-          Channels
-          {ch.internal.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-primary/20 text-primary">{ch.internal.length}</Badge>}
-        </SubTab>
-        <SubTab active={tab === "messages"} onClick={() => setTab("messages")} icon={Mail}>
-          Messages
-        </SubTab>
-        <SubTab active={tab === "external"} onClick={() => setTab("external")} icon={ExternalLink}>
-          External Groups
-          {ch.external.length > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-primary/20 text-primary">{ch.external.length}</Badge>}
-        </SubTab>
-        <SubTab active={tab === "scanner"} onClick={() => setTab("scanner")} icon={Radio}>
-          Scanner
-        </SubTab>
-      </SubTabList>
+      <CommsTabs
+        active={tab}
+        onSelect={{ channels: () => setTab("channels"), messages: () => setTab("messages"), external: () => setTab("external"), scanner: () => setTab("scanner") }}
+        counts={{ channels: ch.internal.length, external: ch.external.length }}
+      />
 
       {/* ────────── CHANNELS TAB ────────── */}
       {tab === "channels" && (

@@ -3,8 +3,7 @@
 import { useEffect, useState } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Radar, Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import Link from "next/link";
+import { CommsTabs } from "@/components/comms-tabs";
 import { useAuthStore } from "@/stores/auth-store";
 import { getPosts, createPost, togglePinPost, deletePost, getChatChannels } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
@@ -171,27 +170,7 @@ export default function UpdatesPage() {
   return (
     <>
       <div className="space-y-4">
-        {/* Tabs */}
-        <div className="flex gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full">
-          <div className="flex items-center gap-2 rounded-md bg-background px-3 py-1.5 text-sm font-medium shadow-sm">
-            <Radar className="h-3.5 w-3.5 text-primary" />
-            Briefing
-          </div>
-          <Link href="/chat"
-            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
-            Channels
-            {channelCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-primary/20 text-primary">{channelCount}</Badge>}
-          </Link>
-          <Link href="/chat?tab=messages"
-            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
-            Messages
-          </Link>
-          <Link href="/chat?tab=external"
-            className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors">
-            External Groups
-            {externalCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-primary/20 text-primary">{externalCount}</Badge>}
-          </Link>
-        </div>
+        <CommsTabs active="briefings" counts={{ channels: channelCount, external: externalCount }} />
 
         {/* Composer — leadership only */}
         {isAdmin && (

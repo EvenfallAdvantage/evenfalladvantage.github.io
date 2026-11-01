@@ -147,3 +147,10 @@ export const OFFICER_MOBILE_NAV_ITEMS: NavItem[] = [
 
 /** Roles that get the officer-focused bottom nav. */
 export const OFFICER_ROLES = ["staff", "breaker", "lead"] as const;
+
+/** Routes that live under another nav item (Briefings is a Comms tab). */
+const NAV_ALIASES: Record<string, string> = { "/updates": "/chat" };
+/** Pathname to use for nav highlighting. */
+export function navPathname(pathname: string): string {
+  return NAV_ALIASES[pathname] ?? pathname;
+}

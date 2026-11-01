@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { MOBILE_NAV_ITEMS, OFFICER_MOBILE_NAV_ITEMS, OFFICER_ROLES } from "./nav-items";
+import { MOBILE_NAV_ITEMS, OFFICER_MOBILE_NAV_ITEMS, OFFICER_ROLES, navPathname } from "./nav-items";
 import { useAuthStore, useActiveCompany } from "@/stores/auth-store";
 import { SosButton } from "@/components/sos/sos-button";
 import {
@@ -26,7 +26,7 @@ const MOBILE_ICON_MAP: Record<string, LucideIcon> = {
 };
 
 export function MobileNav() {
-  const pathname = usePathname();
+  const pathname = navPathname(usePathname());
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useActiveCompany();
   const role = activeCompany?.role ?? "";
