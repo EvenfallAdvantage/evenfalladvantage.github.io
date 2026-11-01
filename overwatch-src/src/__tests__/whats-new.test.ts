@@ -302,3 +302,41 @@ describe("mergeReleases ordering and version labels", () => {
     expect(merged.map((r) => r.version)).toEqual(["v2.14", "v2.13.1", "v2.13"]);
   });
 });
+
+describe("What's New sidebar badge follows live releases", () => {
+  it("shows the same newest version as the merged changelog, including live GitHub releases", async () => {
+    const { WhatsNewTriggerPill } = await import("@/components/updates/whats-new-modal");
+    const { GITHUB_RELEASES_CACHE_KEY, GENERATED_RELEASES } = await import("@/lib/releases");
+    const live: ReleaseNote[] = [
+      {
+        id: "live-2099-01-01",
+        date: "Jan 1, 2099",
+        version: "git-2099.01.01",
+        title: "Future release",
+        tier: "minor",
+        highlights: [{ id: "future-h", title: "Future thing", summary: "x", roles: ["all"] }],
+      },
+    ];
+    sessionStorage.setItem(GITHUB_RELEASES_CACHE_KEY, JSON.stringify({ ts: Date.now(), releases: live }));
+    // Mark everything seen so the badge shows the version instead of "N new".
+    markLatestReleaseSeen(null, RELEASES);
+    const expected = mergeReleases(RELEASES, GENERATED_RELEASES, live)[0].version;
+    render(createElement(WhatsNewTriggerPill, { variant: "sidebar" }));
+    expect(await screen.findByText(expected)).toBeTruthy();
+    sessionStorage.clear();
+  });
+});
+
+describe("squash-merged PR titles appear in What's New", () => {
+  it("includes non-conventional PR titles and skips chores", () => {
+    const rel = parseGitHubCommitsToReleases([
+      { sha: "d212b03d861ac378", commit: { message: "De-escalation scenarios 4 and 5 (#224)", author: { date: "2026-11-01T16:07:47Z" } } },
+      { sha: "aaaaaaaabbbbbbbb", commit: { message: "chore: bump deps (#225)", author: { date: "2026-11-01T17:00:00Z" } } },
+      { sha: "ccccccccdddddddd", commit: { message: "random local commit", author: { date: "2026-11-01T18:00:00Z" } } },
+    ]);
+    expect(rel).toHaveLength(1);
+    expect(rel[0].highlights.map((h) => h.title)).toEqual(["De-escalation scenarios 4 and 5"]);
+    const merged = mergeReleases(RELEASES, rel);
+    expect(merged[0].date).toBe("Nov 1, 2026");
+  });
+});

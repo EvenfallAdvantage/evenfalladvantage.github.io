@@ -20,6 +20,9 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          # Full history so scripts/generate-releases.mjs sees every commit (shallow clone left What's New stale).
+          fetch-depth: 0
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
