@@ -20,6 +20,8 @@ export type Scenario = {
   initialState: string;
   initialMeter: number;
   subjectId: number | null;
+  /** Optional content note shown on the card and confirmed before the scenario starts. */
+  contentNote?: string;
   audioMap: Record<string, string>;
   steps: Record<string, Step>;
 };
@@ -411,6 +413,238 @@ export const SCENARIOS: Scenario[] = [
         state: "Fail", dialogue: "You know what? Forget it! I'm leaving and I'm never coming back to this dump!",
         isEnding: true, success: false,
         debrief: "Escalation failure! Rigid enforcement without empathy created unnecessary conflict. Remember: the goal is safety and compliance, not punishment. Use 'we' language and offer alternatives to build cooperation.",
+      },
+    },
+  },
+  {
+    id: "assault-disclosure",
+    title: "Guest Discloses a Sexual Assault",
+    description: "A shaken guest approaches you near the restrooms and says someone touched her without consent and she doesn't know what to do.",
+    initialState: "Distressed",
+    initialMeter: 50,
+    subjectId: 4,
+    contentNote: "Content note: this scenario involves a guest disclosing unwanted sexual touching. It focuses on a supportive first response. If you need support, RAINN is available 24/7 at 800-656-HOPE (4673).",
+    audioMap: {
+      "start": `${AUDIO_BASE}/s4/S.mp3`,
+      "good-path-step-2": `${AUDIO_BASE}/s4/G2.mp3`,
+      "good-path-step-3": `${AUDIO_BASE}/s4/G3.mp3`,
+      "good-path-step-4": `${AUDIO_BASE}/s4/G4.mp3`,
+      "bad-path-1-step-2": `${AUDIO_BASE}/s4/B12.mp3`,
+      "bad-path-1-step-3": `${AUDIO_BASE}/s4/B13.mp3`,
+      "bad-path-2-step-2": `${AUDIO_BASE}/s4/B22.mp3`,
+      "bad-path-2-step-3": `${AUDIO_BASE}/s4/B23.mp3`,
+      "mixed-path-step-2": `${AUDIO_BASE}/s4/M2.mp3`,
+      "mixed-path-step-3-recovery": `${AUDIO_BASE}/s4/M3R.mp3`,
+      "success-happy": `${AUDIO_BASE}/s4/P.mp3`,
+      "fail-very-angry": `${AUDIO_BASE}/s4/F.mp3`,
+    },
+    steps: {
+      start: {
+        state: "Distressed",
+        dialogue: "Excuse me... um, someone in the crowd, he grabbed me. Like, under my skirt. I don't... I don't know what to do.",
+        choices: [
+          { text: "I'm really sorry that happened. I believe you. Let's step over somewhere quieter where you're safe. Is that okay?", next: "good-path-step-2", meterChange: -15 },
+          { text: "Okay, which guy? Point him out. What exactly did he do?", next: "mixed-path-step-2", meterChange: 10 },
+          { text: "Are you sure? It's packed in there, people bump into each other all the time.", next: "bad-path-1-step-2", meterChange: 25 },
+          { text: "How much have you had to drink tonight?", next: "bad-path-2-step-2", meterChange: 25 },
+        ],
+      },
+      "good-path-step-2": {
+        state: "Sad",
+        dialogue: "Yeah... okay. Thank you. I just feel so stupid. I should have stayed with my friends.",
+        choices: [
+          { text: "You didn't do anything wrong. This is not your fault. Are you hurt anywhere, or do you feel safe right now?", next: "good-path-step-3", meterChange: -15 },
+          { text: "Yeah, it's always smarter to stick with your group.", next: "bad-path-2-step-2", meterChange: 20 },
+          { text: "Let's not worry about that. Walk me through everything from the start.", next: "mixed-path-step-2", meterChange: 10 },
+        ],
+      },
+      "good-path-step-3": {
+        state: "Sad",
+        dialogue: "I'm not hurt, I think. I just want my friend Jess. And I don't want to see him again.",
+        choices: [
+          { text: "We can get Jess here. You can decide what happens next: I can bring in my supervisor, our medical team, or police if you want, and I have a 24/7 support line, 800-656-HOPE. None of it is required.", next: "good-path-step-4", meterChange: -20 },
+          { text: "I need to call the police either way, so just wait here.", next: "mixed-path-step-3-recovery", meterChange: 15 },
+          { text: "If you're not hurt, you're probably fine to head back in with your friend.", next: "bad-path-1-step-3", meterChange: 20 },
+        ],
+      },
+      "good-path-step-4": {
+        state: "Sad",
+        dialogue: "Can you... can you just get Jess, and maybe tell someone so he doesn't do it to anyone else? I'm not sure about police yet.",
+        choices: [
+          { text: "Absolutely. I'll stay with you, radio for Jess and my supervisor, and pass on a description so our team can watch for him. Police stays your choice, now or later.", next: "success-happy", meterChange: -25 },
+          { text: "Without a police report there's not much we can do about him.", next: "mixed-path-step-3-recovery", meterChange: 15 },
+        ],
+      },
+      "bad-path-1-step-2": {
+        state: "Angry",
+        dialogue: "Bumped? He put his hand up my skirt! I knew nobody would take this seriously.",
+        choices: [
+          { text: "Look, I can't do anything about something I didn't see.", next: "bad-path-1-step-3", meterChange: 20 },
+          { text: "You're right, I'm sorry. That was the wrong thing to say. I believe you, and I want to help.", next: "mixed-path-step-3-recovery", meterChange: -20 },
+        ],
+      },
+      "bad-path-1-step-3": {
+        state: "Faded",
+        dialogue: "...Forget it. It doesn't matter. I'll just go.",
+        choices: [
+          { text: "Okay, take care of yourself.", next: "fail-very-angry", meterChange: 25 },
+          { text: "Please wait. It does matter, and I'm sorry I made you feel otherwise. Can I get you somewhere safe and call your friend?", next: "mixed-path-step-3-recovery", meterChange: -20 },
+        ],
+      },
+      "bad-path-2-step-2": {
+        state: "Angry",
+        dialogue: "What does that have to do with anything? So it's my fault now?",
+        choices: [
+          { text: "I'm just saying it affects what people remember.", next: "bad-path-2-step-3", meterChange: 20 },
+          { text: "No, it's not your fault, no matter what. I'm sorry. Let's get you somewhere safe.", next: "mixed-path-step-3-recovery", meterChange: -15 },
+        ],
+      },
+      "bad-path-2-step-3": {
+        state: "Faded",
+        dialogue: "Wow. I can't believe this. I'm done.",
+        choices: [
+          { text: "Your call. Let me know if you see him again.", next: "fail-very-angry", meterChange: 20 },
+          { text: "I was wrong to say that. You deserve support. Can I stay with you and get my supervisor?", next: "mixed-path-step-3-recovery", meterChange: -20 },
+        ],
+      },
+      "mixed-path-step-2": {
+        state: "Distressed",
+        dialogue: "I... I don't know, it was dark, it happened so fast. Why are you asking me all this?",
+        choices: [
+          { text: "You don't have to give me details. I'm sorry for pushing. What do you need right now?", next: "mixed-path-step-3-recovery", meterChange: -15 },
+          { text: "If you can't describe him, how am I supposed to find him?", next: "bad-path-1-step-2", meterChange: 20 },
+        ],
+      },
+      "mixed-path-step-3-recovery": {
+        state: "Sad",
+        dialogue: "Okay... I just want to sit down somewhere and have my friend with me.",
+        choices: [
+          { text: "Let's do that. I'll stay with you, get your friend and my supervisor, and share some support options. You decide what's next.", next: "success-happy", meterChange: -25 },
+          { text: "Fine, but I have to file a report with your full statement first.", next: "bad-path-1-step-3", meterChange: 15 },
+        ],
+      },
+      "success-happy": {
+        state: "Happy",
+        dialogue: "Thank you for believing me. I feel a little safer now.",
+        isEnding: true, success: true,
+        debrief: "Supportive response! You believed her, moved her somewhere safe and private, told her it wasn't her fault, and let her choose next steps: friend, supervisor, medical, police, or the RAINN hotline (800-656-HOPE). You didn't investigate the details yourself; you passed a description to the team. Follow your venue's policy: notify a supervisor, document only basic facts, and preserve CCTV.",
+      },
+      "fail-very-angry": {
+        state: "Fail",
+        dialogue: "Nobody here cares. I'm leaving.",
+        isEnding: true, success: false,
+        debrief: "She left unsupported and alone. Doubting, questioning her drinking, or pressing for details are blaming responses that make survivors less likely to seek help. Lead with 'I believe you' and 'It's not your fault', get her to a safe place with someone she trusts, offer choices rather than demands, and escalate to a supervisor so the venue can act.",
+      },
+    },
+  },
+
+  {
+    id: "service-dog-entry",
+    title: "Service Dog at the Gate",
+    description: "A guest arrives at entry with a dog in a harness. The venue has a no-pets policy, and the guest is already tense from being stopped before.",
+    initialState: "Distressed",
+    initialMeter: 45,
+    subjectId: 5,
+    audioMap: {
+      "start": `${AUDIO_BASE}/s5/S.mp3`,
+      "good-path-step-2": `${AUDIO_BASE}/s5/G2.mp3`,
+      "good-path-step-3": `${AUDIO_BASE}/s5/G3.mp3`,
+      "bad-path-1-step-2": `${AUDIO_BASE}/s5/B12.mp3`,
+      "bad-path-1-step-3": `${AUDIO_BASE}/s5/B13.mp3`,
+      "bad-path-2-step-2": `${AUDIO_BASE}/s5/B22.mp3`,
+      "bad-path-2-step-3": `${AUDIO_BASE}/s5/B23.mp3`,
+      "mixed-path-step-2": `${AUDIO_BASE}/s5/M2.mp3`,
+      "mixed-path-step-3-recovery": `${AUDIO_BASE}/s5/M3R.mp3`,
+      "success-happy": `${AUDIO_BASE}/s5/P.mp3`,
+      "fail-very-angry": `${AUDIO_BASE}/s5/F.mp3`,
+    },
+    steps: {
+      start: {
+        state: "Distressed",
+        dialogue: "Before you say anything - yes, he's coming in with me. Every single event, someone gives me a hard time about my dog.",
+        choices: [
+          { text: "Welcome! Just two quick questions: is he a service animal required because of a disability, and what work or task is he trained to perform?", next: "good-path-step-2", meterChange: -15 },
+          { text: "No pets allowed. Do you have his service dog papers or certification?", next: "bad-path-1-step-2", meterChange: 25 },
+          { text: "What's your disability? You don't look like you need a service dog.", next: "bad-path-2-step-2", meterChange: 30 },
+          { text: "Is that a pit bull? We can't allow that breed in here.", next: "mixed-path-step-2", meterChange: 20 },
+        ],
+      },
+      "good-path-step-2": {
+        state: "Sad",
+        dialogue: "...Yeah. He's a service dog. He alerts me before seizures so I can get somewhere safe and sit down.",
+        choices: [
+          { text: "Thanks for telling me. You're all set. If you'd like, the accessible viewing area near section B has more room for him.", next: "good-path-step-3", meterChange: -20 },
+          { text: "Can you have him show me how he does that?", next: "bad-path-1-step-2", meterChange: 20 },
+          { text: "How often do you have seizures? Is it safe for you to be here?", next: "bad-path-2-step-2", meterChange: 20 },
+        ],
+      },
+      "good-path-step-3": {
+        state: "Sad",
+        dialogue: "Really? That's it? Usually I get twenty questions and a lecture.",
+        choices: [
+          { text: "That's it. He just needs to stay under your control, and if anything comes up, flag any of us in a yellow shirt. Enjoy the show.", next: "success-happy", meterChange: -25 },
+          { text: "That's it for now, but you'll need to show me his service dog paperwork before I can let him past the gate.", next: "bad-path-1-step-3", meterChange: 30 },
+        ],
+      },
+      "bad-path-1-step-2": {
+        state: "Angry",
+        dialogue: "Papers? There's no such thing as required papers! The ADA doesn't make me prove anything to you.",
+        choices: [
+          { text: "No certificate, no entry. That's our policy.", next: "bad-path-1-step-3", meterChange: 25 },
+          { text: "You're right, I'm sorry. I'm not allowed to ask for that. Is he required because of a disability, and what task is he trained to do?", next: "mixed-path-step-3-recovery", meterChange: -15 },
+        ],
+      },
+      "bad-path-1-step-3": {
+        state: "Angry",
+        dialogue: "This is illegal and you know it! Get me your supervisor right now.",
+        choices: [
+          { text: "My supervisor will tell you the same thing. Step out of line.", next: "fail-very-angry", meterChange: 25 },
+          { text: "I'll get my supervisor, and I apologize - I was wrong to demand papers. Let's sort this out now.", next: "mixed-path-step-3-recovery", meterChange: -20 },
+        ],
+      },
+      "bad-path-2-step-2": {
+        state: "Angry",
+        dialogue: "Excuse me? My medical history is none of your business. Not every disability is visible.",
+        choices: [
+          { text: "I just need to know it's legit. People fake this all the time.", next: "bad-path-2-step-3", meterChange: 20 },
+          { text: "You're absolutely right, I'm sorry. I shouldn't have asked that. I only need to know what task he's trained to perform.", next: "mixed-path-step-3-recovery", meterChange: -15 },
+        ],
+      },
+      "bad-path-2-step-3": {
+        state: "Faded",
+        dialogue: "So I'm a liar now. I'm so tired of this. Every time.",
+        choices: [
+          { text: "If you've got nothing to hide, just answer the question.", next: "fail-very-angry", meterChange: 25 },
+          { text: "No, you're not. I handled that badly and I apologize. He's welcome here.", next: "mixed-path-step-3-recovery", meterChange: -20 },
+        ],
+      },
+      "mixed-path-step-2": {
+        state: "Angry",
+        dialogue: "He's a mixed breed, and it doesn't matter. Breed bans don't apply to service dogs.",
+        choices: [
+          { text: "Rules are rules. That breed is too risky.", next: "bad-path-1-step-3", meterChange: 20 },
+          { text: "You're right, breed isn't a factor. My apologies. Is he a service animal, and what task is he trained for?", next: "mixed-path-step-3-recovery", meterChange: -15 },
+        ],
+      },
+      "mixed-path-step-3-recovery": {
+        state: "Sad",
+        dialogue: "Fine. Yes, he's a service dog. He's trained to alert me before a seizure.",
+        choices: [
+          { text: "Thank you. You're both welcome. He just needs to stay under your control. Enjoy the show, and sorry for the hassle.", next: "success-happy", meterChange: -25 },
+          { text: "Okay, but if he so much as sniffs someone, he's out.", next: "bad-path-2-step-3", meterChange: 15 },
+        ],
+      },
+      "success-happy": {
+        state: "Happy",
+        dialogue: "Thank you. Honestly, that's the best a gate has ever gone for us.",
+        isEnding: true, success: true,
+        debrief: "ADA-compliant entry! When a disability isn't obvious, staff may ask only two questions: (1) Is the dog a service animal required because of a disability? (2) What work or task has it been trained to perform? You cannot ask for papers or certification, a demonstration, or details of the disability, and breed bans don't apply. No vest, ID tag, or registration is required; online certificates prove nothing. A dog may be removed only if it is out of control and the handler doesn't take effective action, it isn't housebroken, or its actual behavior poses a direct threat. Even then, offer the guest entry without the dog. Emotional-support animals are not service animals under the ADA; check state or local law and venue policy for those.",
+      },
+      "fail-very-angry": {
+        state: "Fail",
+        dialogue: "Forget it. I'm leaving, and I'm filing an ADA complaint against this venue.",
+        isEnding: true, success: false,
+        debrief: "Unlawful refusal. Demanding papers, asking about the disability, requesting a demonstration, or banning by breed all violate the ADA and expose the venue to complaints and liability. Ask only the two permitted questions, accept the answer, and welcome the team in. Remove a dog only for its actual behavior (out of control and not corrected, not housebroken, or a direct threat), never for its breed or your assumptions, and still offer the guest entry without the dog.",
       },
     },
   },
