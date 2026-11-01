@@ -5,7 +5,7 @@ import { Save, Loader2, Check, LayoutGrid, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { updateCompanySettings } from "@/lib/supabase/db";
-import { TOGGLEABLE_TABS } from "@/lib/feature-flags";
+import { TOGGLEABLE_TABS, TOGGLEABLE_SECTIONS } from "@/lib/feature-flags";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
 
@@ -55,7 +55,7 @@ export default function FeatureVisibilitySection({ companyId, initialHiddenTabs 
           </Button>
         </div>
         <div className="rounded-lg border border-border/40 overflow-hidden divide-y divide-border/30">
-          {["Field Ops", "Academy", "Tools"].map((section) => {
+          {TOGGLEABLE_SECTIONS.map((section) => {
             const sectionTabs = TOGGLEABLE_TABS.filter((t) => t.section === section);
             return (
               <div key={section}>

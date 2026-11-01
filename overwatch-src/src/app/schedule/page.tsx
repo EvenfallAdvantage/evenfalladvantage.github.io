@@ -2,18 +2,17 @@
 
 import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
 import { useEffect, useState, useCallback, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
-  CalendarDays, Loader2, QrCode, Globe, Plus, ArrowLeftRight, Target,
+  CalendarDays, Loader2, Globe, ArrowLeftRight, Target,
 } from "lucide-react";
 import dynamic from "next/dynamic";
-import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import {
-  getUpcomingEvents, getUserShifts, getAssets, createAsset, checkoutAsset, checkinAsset, deleteAsset, getAssetByQrCode,
+  getUpcomingEvents, getUserShifts,
   getEventDocuments, setAvailability, getMyAvailability,
 } from "@/lib/supabase/db";
 import type { OperationDocument } from "@/types/operations";
@@ -25,14 +24,13 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { getStaffLocations, subscribeStaffLocations } from "@/lib/supabase/db-location";
 import { getIncidents, getTeams } from "@/lib/supabase/db";
 import type { OperationPin, StaffPin, IncidentPin } from "@/components/tactical-map/types";
-import { fmtDate, fmtTime, type Ev, type Shift, type Asset } from "./components/schedule-helpers";
+import { fmtDate, fmtTime, type Ev, type Shift } from "./components/schedule-helpers";
 import { ScheduleTab } from "./components/schedule-tab";
-import { ArmoryTab } from "./components/armory-tab";
 import { ShiftSwapTab } from "./components/shift-swap-tab";
 import { GeofencesTab } from "@/components/ops/geofences-tab";
-import { resolveOpsTab, type OpsTab } from "./components/ops-tabs";
+import { SWAPS_FLAG, GEOFENCES_FLAG, isFeatureHidden } from "@/lib/feature-flags";
+import { resolveOpsTab, opsRedirect, type OpsTab } from "./components/ops-tabs";
 import { logger } from "@/lib/logger";
-import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { resolveStorageUrl } from "@/lib/supabase/db-helpers";
 import { getMapOperations } from "@/lib/supabase/db-events";
 import { classifyStaffFreshness, hasValidCoords, isUuid } from "@/lib/map/map-ops-window";
@@ -49,12 +47,18 @@ function SchedulePageInner() {
 
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
-  const { confirm, ConfirmDialog } = useConfirmDialog();
 
-  const [tab, setTab] = useState<OpsTab>(() => resolveOpsTab(searchParams.get("tab"), isAdmin));
+  const hidden = activeCompany?.settings?.hiddenTabs;
+  const showSwaps = !isFeatureHidden(hidden, SWAPS_FLAG);
+  const showGeofences = isAdmin && !isFeatureHidden(hidden, GEOFENCES_FLAG);
+  const [tabState, setTab] = useState<OpsTab>(() => resolveOpsTab(searchParams.get("tab"), isAdmin));
+  // HQ Config can switch Swaps / Geofences off; fall back to the map.
+  const tab: OpsTab = (tabState === "swaps" && !showSwaps) || (tabState === "geofences" && !showGeofences) ? "map" : tabState;
 
-  // Armory "show create" state
-  const [showCreate, setShowCreate] = useState(false);
+  // Legacy ?tab=armory → Tools › Armory.
+  const router = useRouter();
+  const legacyRedirect = opsRedirect(searchParams.get("tab"));
+  useEffect(() => { if (legacyRedirect) router.replace(legacyRedirect); }, [legacyRedirect, router]);
 
   // Schedule state
   const [events, setEvents] = useState<Ev[]>([]);
@@ -69,21 +73,9 @@ function SchedulePageInner() {
   const [docsPopupEvent, setDocsPopupEvent] = useState<string | null>(null);
   const [viewingDoc, setViewingDoc] = useState<OperationDocument | null>(null);
 
-  // Armory state
-  const [assets, setAssets] = useState<Asset[]>([]);
-  const [assetsLoading, setAssetsLoading] = useState(true);
-  const [newName, setNewName] = useState("");
-  const [newType, setNewType] = useState("");
-  const [newSerial, setNewSerial] = useState("");
-  const [creating, setCreating] = useState(false);
-  const [acting, setActing] = useState<string | null>(null);
-  const [deletingAsset, setDeletingAsset] = useState<string | null>(null);
+  // Shift reminder state
   const [sendingReminders, setSendingReminders] = useState(false);
   const [remindersSent, setRemindersSent] = useState(false);
-
-  // QR scanner state
-  const [scanMode, setScanMode] = useState<null | "serial" | "checkinout">(null);
-  const [scanResult, setScanResult] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
   // Map tab state
   const [mapOps, setMapOps] = useState<OperationPin[]>([]);
@@ -92,13 +84,8 @@ function SchedulePageInner() {
   const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
-    setHeader("OPERATIONS", "Your assigned shifts, operations, and equipment",
-      tab === "armory" ? <QrCode className="h-5 w-5" /> : tab === "map" ? <Globe className="h-5 w-5" /> : <CalendarDays className="h-5 w-5" />,
-      tab === "armory" && isAdmin ? (
-        <Button size="sm" className="gap-1.5" onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4" /> Add Gear
-        </Button>
-      ) : undefined
+    setHeader("OPERATIONS", "Your assigned shifts and operations",
+      tab === "map" ? <Globe className="h-5 w-5" /> : <CalendarDays className="h-5 w-5" />,
     );
     return () => clearHeader();
   }, [setHeader, clearHeader, tab, isAdmin]);
@@ -115,12 +102,7 @@ function SchedulePageInner() {
     } catch (e) { logger.swallow("schedule:load", e, "warn"); } finally { setLoading(false); }
   }, [activeCompanyId]);
 
-  const loadAssets = useCallback(async () => {
-    if (!activeCompanyId) { setAssetsLoading(false); return; }
-    try { setAssets(await getAssets(activeCompanyId)); } catch (e) { logger.swallow("schedule:load-assets", e, "debug"); } finally { setAssetsLoading(false); }
-  }, [activeCompanyId]);
-
-  useEffect(() => { loadSchedule(); loadAssets(); }, [loadSchedule, loadAssets]);
+  useEffect(() => { loadSchedule(); }, [loadSchedule]);
 
   // ─── Map Tab: load operation pins, staff locations, incidents ────
   // Operations come from getMapOperations (active + upcoming + ended in the
@@ -247,31 +229,6 @@ function SchedulePageInner() {
     finally { setSettingAvail(null); }
   }
 
-  // ─── Armory handlers ────
-  async function handleCreateAsset() {
-    if (!newName.trim() || !activeCompanyId) return;
-    setCreating(true);
-    try {
-      await createAsset({ companyId: activeCompanyId, name: newName.trim(), assetType: newType || undefined, serialNumber: newSerial || undefined });
-      setNewName(""); setNewType(""); setNewSerial(""); setShowCreate(false); await loadAssets();
-      toast.success("Asset created");
-    } catch (err) { console.error(err); toast.error("Failed to create asset"); } finally { setCreating(false); }
-  }
-
-  async function handleCheckout(id: string) {
-    setActing(id);
-    try { await checkoutAsset(id); await loadAssets(); toast.success("Asset checked out"); }
-    catch (err) { console.error(err); toast.error("Checkout failed"); }
-    finally { setActing(null); }
-  }
-
-  async function handleCheckin(id: string) {
-    setActing(id);
-    try { await checkinAsset(id); await loadAssets(); toast.success("Asset checked in"); }
-    catch (err) { console.error(err); toast.error("Check-in failed"); }
-    finally { setActing(null); }
-  }
-
   async function handleSendReminders() {
     if (!activeCompanyId || !shifts.length) return;
     setSendingReminders(true);
@@ -298,37 +255,6 @@ function SchedulePageInner() {
     finally { setSendingReminders(false); }
   }
 
-  async function handleDeleteAsset(id: string) {
-    if (!await confirm({ description: "Delete this asset?", variant: "destructive" })) return;
-    setDeletingAsset(id);
-    try { await deleteAsset(id); await loadAssets(); toast.success("Asset deleted"); }
-    catch (err) { console.error(err); toast.error("Failed to delete asset"); }
-    finally { setDeletingAsset(null); }
-  }
-
-  function handleSerialScan(value: string) {
-    setNewSerial(value); setScanMode(null);
-    setScanResult({ type: "success", message: `Scanned: ${value}` });
-    setTimeout(() => setScanResult(null), 3000);
-  }
-
-  async function handleCheckinoutScan(value: string) {
-    setScanMode(null);
-    if (!activeCompanyId) {
-      setScanResult({ type: "error", message: "No active company." });
-      setTimeout(() => setScanResult(null), 4000); return;
-    }
-    try {
-      const asset = await getAssetByQrCode(activeCompanyId, value);
-      if (!asset) { setScanResult({ type: "error", message: "No equipment found for scanned code." }); }
-      else if (asset.status === "available") { await checkoutAsset(asset.id); setScanResult({ type: "success", message: `Checked out: ${asset.name}` }); }
-      else if (asset.status === "checked_out") { await checkinAsset(asset.id); setScanResult({ type: "success", message: `Returned: ${asset.name}` }); }
-      else { setScanResult({ type: "error", message: `Asset "${asset.name}" status: ${asset.status}` }); }
-      await loadAssets();
-    } catch (err) { console.error(err); setScanResult({ type: "error", message: "Scan action failed. Try again." }); }
-    setTimeout(() => setScanResult(null), 4000);
-  }
-
   return (
     <>
       <div className="space-y-4">
@@ -340,13 +266,12 @@ function SchedulePageInner() {
             <SubTab active={tab === "schedule"} onClick={() => setTab("schedule")} icon={CalendarDays}>
               Schedule
             </SubTab>
-            <SubTab active={tab === "swaps"} onClick={() => setTab("swaps")} icon={ArrowLeftRight}>
-              Swaps
-            </SubTab>
-            <SubTab active={tab === "armory"} onClick={() => setTab("armory")} icon={QrCode}>
-              Armory
-            </SubTab>
-            {isAdmin && (
+            {showSwaps && (
+              <SubTab active={tab === "swaps"} onClick={() => setTab("swaps")} icon={ArrowLeftRight}>
+                Swaps
+              </SubTab>
+            )}
+            {showGeofences && (
               <SubTab active={tab === "geofences"} onClick={() => setTab("geofences")} icon={Target}>
                 Geofences
               </SubTab>
@@ -375,22 +300,6 @@ function SchedulePageInner() {
         {/* ── Swaps Tab ── */}
         {tab === "swaps" && <ShiftSwapTab />}
 
-        {/* ── Armory Tab ── */}
-        {tab === "armory" && (
-          <ArmoryTab
-            isAdmin={isAdmin} assets={assets} assetsLoading={assetsLoading}
-            showCreate={showCreate} setShowCreate={setShowCreate}
-            newName={newName} setNewName={setNewName}
-            newType={newType} setNewType={setNewType}
-            newSerial={newSerial} setNewSerial={setNewSerial}
-            creating={creating} handleCreateAsset={handleCreateAsset}
-            acting={acting} handleCheckout={handleCheckout} handleCheckin={handleCheckin}
-            deletingAsset={deletingAsset} handleDeleteAsset={handleDeleteAsset}
-            scanMode={scanMode} setScanMode={setScanMode}
-            scanResult={scanResult}
-            handleSerialScan={handleSerialScan} handleCheckinoutScan={handleCheckinoutScan}
-          />
-        )}
       </div>
 
       {/* ── Map Tab ── */}
@@ -417,7 +326,6 @@ function SchedulePageInner() {
         <DocViewerModal doc={viewingDoc} onClose={() => setViewingDoc(null)} />
       )}
 
-      <ConfirmDialog />
     </>
   );
 }

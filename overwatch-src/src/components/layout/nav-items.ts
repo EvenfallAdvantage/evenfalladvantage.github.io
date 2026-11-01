@@ -48,7 +48,7 @@ export const NAV_SECTIONS: NavSection[] = [
         children: [
           { title: "Geo-Risk", href: "/geo-risk", icon: "MapPin" },
           { title: "Site Assessment", href: "/site-assessment", icon: "ClipboardCheck" },
-          { title: "Invoices", href: "/invoices", icon: "FileText" },
+          { title: "Armory", href: "/armory", icon: "QrCode" },
         ],
       },
       { title: "Leave", href: "/time-off", icon: "CalendarOff" },
@@ -76,6 +76,12 @@ export const NAV_SECTIONS: NavSection[] = [
         title: "Analytics",
         href: "/admin/analytics",
         icon: "BarChart3",
+        roles: ["owner", "admin", "manager"],
+      },
+      {
+        title: "Invoices",
+        href: "/invoices",
+        icon: "FileText",
         roles: ["owner", "admin", "manager"],
       },
       {
@@ -112,10 +118,15 @@ export const NAV_SECTIONS: NavSection[] = [
   },
 ];
 
+/**
+ * Phone bars share one layout so muscle memory carries across roles:
+ * slot 1 Clock, slot 3 Incidents, slot 4 Comms, slot 5 More. Slot 2 is Home
+ * for managers and Patrols for field officers.
+ */
 export const MOBILE_NAV_ITEMS: NavItem[] = [
   { title: "Clock", href: "/timeclock", icon: "Clock" },
-  { title: "Incidents", href: "/incidents", icon: "AlertTriangle" },
   { title: "Home", href: "/feed", icon: "LayoutDashboard" },
+  { title: "Incidents", href: "/incidents", icon: "AlertTriangle" },
   { title: "Comms", href: "/chat", icon: "Radio" },
   { title: "More", href: "/more", icon: "Menu" },
 ];
@@ -130,7 +141,7 @@ export const OFFICER_MOBILE_NAV_ITEMS: NavItem[] = [
   { title: "Clock", href: "/timeclock", icon: "Clock" },
   { title: "Patrols", href: "/patrols", icon: "Footprints" },
   { title: "Incidents", href: "/incidents", icon: "AlertTriangle" },
-  { title: "Chat", href: "/chat", icon: "Radio" },
+  { title: "Comms", href: "/chat", icon: "Radio" },
   { title: "More", href: "/more", icon: "Menu" },
 ];
 

@@ -15,6 +15,8 @@ import { usePageHeader } from "@/stores/page-header-store";
 import Image from "next/image";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
+import { useAuthStore } from "@/stores/auth-store";
+import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 
 type LineItem = {
   id: number;
@@ -56,7 +58,22 @@ const EMPTY_FORM: InvoiceData = {
 
 const STORAGE_KEY = "overwatch_invoice_current";
 
+/** Invoices are a Command tool: managers and above only. */
 export default function InvoicesPage() {
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const canView = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+  if (!canView) {
+    return (
+      <div className="flex flex-col items-center justify-center py-24 text-center text-sm text-muted-foreground" data-testid="invoices-forbidden">
+        <p className="font-medium text-foreground">Managers only</p>
+        <p>Invoices are available to managers, admins and owners.</p>
+      </div>
+    );
+  }
+  return <InvoicesEditor />;
+}
+
+function InvoicesEditor() {
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);

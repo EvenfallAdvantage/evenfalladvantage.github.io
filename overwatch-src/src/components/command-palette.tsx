@@ -8,7 +8,7 @@ import {
   School, BookOpen, MessageCircle, Scale, Video, Award,
   MapPin, ClipboardCheck, FileText, CalendarOff, Flag, UserCog,
   NotebookPen, GraduationCap, ShieldAlert, Activity, User,
-  Bell, Search, ScanLine, Settings, ListChecks, BarChart3, Target,
+  Bell, Search, ScanLine, Settings, ListChecks, BarChart3, Target, QrCode,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuthStore } from "@/stores/auth-store";
@@ -19,7 +19,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   School, BookOpen, MessageCircle, Scale, Video, Award,
   MapPin, ClipboardCheck, FileText, CalendarOff, Flag, UserCog,
   NotebookPen, GraduationCap, ShieldAlert, Activity, User,
-  Bell, Search, ScanLine, Settings, ListChecks, BarChart3, Target,
+  Bell, Search, ScanLine, Settings, ListChecks, BarChart3, Target, QrCode,
 };
 
 interface CommandItem {
@@ -49,7 +49,8 @@ const COMMANDS: CommandItem[] = [
   { label: "Certifications", href: "/certifications", icon: "Award", keywords: "certs credentials" },
   { label: "Geo-Risk", href: "/geo-risk", icon: "MapPin", keywords: "crime data risk" },
   { label: "Site Assessment", href: "/site-assessment", icon: "ClipboardCheck", keywords: "security evaluation" },
-  { label: "Invoices", href: "/invoices", icon: "FileText", keywords: "billing invoice" },
+  { label: "Invoices", href: "/invoices", icon: "FileText", keywords: "billing invoice", roles: ["owner", "admin", "manager"] },
+  { label: "Armory", href: "/armory", icon: "QrCode", keywords: "equipment gear assets checkout" },
   { label: "Leave", href: "/time-off", icon: "CalendarOff", keywords: "time off vacation pto" },
   { label: "Forms", href: "/forms", icon: "FileText", keywords: "forms submissions reports" },
   { label: "Geofences", href: "/schedule?tab=geofences", icon: "Target", keywords: "geofence zones perimeter clock-in radius", roles: ["owner", "admin", "manager"] },
