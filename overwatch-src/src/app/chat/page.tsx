@@ -3,7 +3,6 @@
 import { CommsTabs, COMMS_TAB_HEADERS } from "@/components/comms-tabs";
 import { useEffect, useState } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { Hash, ExternalLink, Mail, Radio } from "lucide-react";
 import { DirectMessages } from "@/components/direct-messages";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
