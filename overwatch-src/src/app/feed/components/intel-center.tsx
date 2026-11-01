@@ -96,7 +96,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
         {intelKpis.map((kpi) => (
           <Card key={kpi.label} className="border-border/40">
-            <CardContent className="p-2.5">
+            <CardContent className="p-3.5">
               <div className="flex items-center justify-between mb-1">
                 <div className={`flex h-6 w-6 items-center justify-center rounded-md ${kpi.bg}`}>
                   <kpi.icon className={`h-3 w-3 ${kpi.color}`} />
@@ -113,7 +113,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
       <div className="grid gap-3 lg:grid-cols-3">
         {/* Hiring Pipeline */}
         <Card className="border-border/40">
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold flex items-center gap-1.5"><UserPlus className="h-3.5 w-3.5 text-cyan-500" /> Hiring Pipeline</h3>
               <Link href="/admin/staff"><Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-accent">View All</Badge></Link>
@@ -149,7 +149,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
 
         {/* Integration Health */}
         <Card className="border-border/40">
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold flex items-center gap-1.5"><Plug className="h-3.5 w-3.5 text-green-500" /> Integrations</h3>
               <Link href="/admin/settings"><Badge variant="outline" className="text-[10px] cursor-pointer hover:bg-accent">Settings</Badge></Link>
@@ -188,7 +188,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
 
         {/* Payroll Readiness */}
         <Card className="border-border/40">
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold flex items-center gap-1.5"><DollarSign className="h-3.5 w-3.5 text-emerald-500" /> Payroll Readiness</h3>
               <Badge variant="outline" className={`text-[10px] ${payroll && payroll.readyPct >= 100 ? "text-green-500 border-green-500/30" : "text-amber-500 border-amber-500/30"}`}>
@@ -223,7 +223,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
       {/* Charts Row */}
       <div className="grid gap-3 lg:grid-cols-3">
         <Card className="border-border/40 lg:col-span-2">
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-brand" /> Weekly Hours</h3>
               <span className="text-[10px] text-muted-foreground">{hrs}h total</span>
@@ -235,7 +235,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
           </CardContent>
         </Card>
         <Card className="border-border/40">
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><BarChart3 className="h-3.5 w-3.5 text-primary" /> Composition</h3>
             <DonutChart segments={compositionSegs} />
             <div className="mt-2 space-y-0.5">
@@ -256,7 +256,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
       {/* Bottom Row: Incidents + Personnel + Onboarding + Activity */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Card className="border-border/40">
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-red-500" /> Incidents</h3>
               <span className="text-[10px] text-muted-foreground">{(intel.weeklyIncidents).reduce((a: number, b: number) => a + b, 0)} this week</span>
@@ -268,7 +268,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
           </CardContent>
         </Card>
         <Card className="border-border/40">
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><Users className="h-3.5 w-3.5 text-blue-500" /> Personnel Status</h3>
             {pers.total > 0 ? (
               <div className="space-y-2">
@@ -295,7 +295,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
 
         {/* Onboarding */}
         <Card className="border-border/40">
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><UserCheck className="h-3.5 w-3.5 text-cyan-500" /> Onboarding</h3>
             {ownerIntel?.onboarding && ownerIntel.onboarding.length > 0 ? (
               <div className="space-y-2">
@@ -321,7 +321,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
 
         {/* Activity */}
         <Card className="border-border/40">
-          <CardContent className="p-3">
+          <CardContent className="p-4">
             <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><FileText className="h-3.5 w-3.5 text-rose-500" /> Activity</h3>
             <div className="space-y-2">
               {[

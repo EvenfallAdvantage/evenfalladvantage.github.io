@@ -34,7 +34,7 @@ export function ComplianceWidget({ activeCompanyId }: ComplianceWidgetProps) {
 
   return (
     <Card className={`border-border/40 ${hasIssues ? "border-amber-500/30" : ""}`}>
-      <CardContent className="p-4 space-y-3">
+      <CardContent className="p-5 sm:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground/60 flex items-center gap-1.5">
             <Shield className="h-3.5 w-3.5" /> Compliance
