@@ -270,3 +270,35 @@ describe("MapLegalFooter compact right-aligned pill", () => {
     expect(opened).toBe(true);
   });
 });
+
+describe("mergeReleases ordering and version labels", () => {
+  const mk = (date: string, version: string, id: string): ReleaseNote => ({
+    id,
+    date,
+    version,
+    title: id,
+    tier: "minor",
+    highlights: [{ id: `h-${id}`, title: `T ${id}`, summary: "s", roles: ["all"], icon: "Sparkles" }],
+  });
+
+  it("puts the newest release first and replaces git-date tags with vX.Y versions", () => {
+    const curated = [mk("Oct 28, 2026", "v2.14", "c14"), mk("Oct 27, 2026", "v2.13", "c13")];
+    const generated = [
+      mk("Nov 1, 2026", "git-2026.11.01", "g1101"),
+      mk("Oct 31, 2026", "git-2026.10.31", "g1031"),
+      mk("Oct 29, 2026", "git-2026.10.29", "g1029"),
+    ];
+    const merged = mergeReleases(curated, generated);
+    expect(merged.map((r) => r.id)).toEqual(["g1101", "g1031", "g1029", "c14", "c13"]);
+    expect(merged.map((r) => r.version)).toEqual(["v2.17", "v2.16", "v2.15", "v2.14", "v2.13"]);
+    expect(merged.some((r) => r.version.startsWith("git-"))).toBe(false);
+  });
+
+  it("labels generated groups between curated releases as patch versions", () => {
+    const merged = mergeReleases(
+      [mk("Oct 28, 2026", "v2.14", "c14"), mk("Oct 20, 2026", "v2.13", "c13")],
+      [mk("Oct 24, 2026", "git-2026.10.24", "g24")],
+    );
+    expect(merged.map((r) => r.version)).toEqual(["v2.14", "v2.13.1", "v2.13"]);
+  });
+});

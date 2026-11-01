@@ -320,7 +320,57 @@ export function mergeReleases(
     }
   }
 
-  return order.map((d) => byDate.get(d)!);
+  const merged = order.map((d) => byDate.get(d)!);
+  merged.sort((a, b) => releaseDateValue(b.date) - releaseDateValue(a.date));
+  return assignSemanticVersions(merged);
+}
+
+function releaseDateValue(label: string): number {
+  const t = Date.parse(label);
+  return Number.isNaN(t) ? 0 : t;
+}
+
+const SEMVER_RE = /^v(\d+)\.(\d+)(?:\.(\d+))?$/;
+
+/**
+ * Replace auto-generated `git-YYYY.MM.DD` labels with proper `vX.Y` versions.
+ * Expects releases sorted newest first. Generated groups newer than the latest curated
+ * release continue its minor line (v2.14 -> v2.15, v2.16...); generated groups that fall
+ * between curated releases become patch versions of the preceding one (v2.13.1...).
+ */
+export function assignSemanticVersions(releases: ReleaseNote[]): ReleaseNote[] {
+  const firstCurated = [...releases].reverse().find((r) => SEMVER_RE.test(r.version));
+  let major = 2;
+  let minor = 0;
+  if (firstCurated) {
+    const m = SEMVER_RE.exec(firstCurated.version)!;
+    major = Number(m[1]);
+    minor = Math.max(0, Number(m[2]) - 1);
+  }
+  let patch = 0;
+  let newestCuratedIdx = releases.findIndex((r) => SEMVER_RE.test(r.version));
+  if (newestCuratedIdx < 0) newestCuratedIdx = releases.length;
+
+  const out = releases.map((r) => ({ ...r }));
+  for (let i = out.length - 1; i >= 0; i--) {
+    const r = out[i];
+    const m = SEMVER_RE.exec(r.version);
+    if (m) {
+      major = Number(m[1]);
+      minor = Number(m[2]);
+      patch = Number(m[3] ?? 0);
+      continue;
+    }
+    if (i < newestCuratedIdx) {
+      minor += 1;
+      patch = 0;
+      r.version = `v${major}.${minor}`;
+    } else {
+      patch += 1;
+      r.version = `v${major}.${minor}.${patch}`;
+    }
+  }
+  return out;
 }
 
 /**
