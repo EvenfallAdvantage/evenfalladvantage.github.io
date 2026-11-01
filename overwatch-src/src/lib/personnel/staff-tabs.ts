@@ -11,7 +11,7 @@ export const STAFF_TABS = [
 ] as const;
 export type StaffTab = (typeof STAFF_TABS)[number];
 
-export const APPROVAL_VIEWS = ["timesheets", "corrections", "leave"] as const;
+export const APPROVAL_VIEWS = ["timesheets", "corrections", "leave", "swaps"] as const;
 export type ApprovalView = (typeof APPROVAL_VIEWS)[number];
 
 const isApprovalView = (v: string | null | undefined): v is ApprovalView =>

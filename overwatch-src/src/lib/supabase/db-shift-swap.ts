@@ -361,7 +361,7 @@ export async function notifySwapClaimed(swapId: string): Promise<void> {
   const supabase = createClient();
   const { data: mgrs } = await supabase.from("company_memberships").select("user_id").eq("company_id", c.companyId).eq("status", "active").in("role", ["owner", "admin", "manager"]);
   for (const m of (mgrs ?? []) as { user_id: string }[]) {
-    await notifyEvent({ companyId: c.companyId, userId: m.user_id, type: "shift_swap", actionUrl: "/schedule?tab=swaps", title: "Shift swap needs approval", body: `${who} offered to cover ${c.label}.` });
+    await notifyEvent({ companyId: c.companyId, userId: m.user_id, type: "shift_swap", actionUrl: "/admin/staff?tab=approvals&view=swaps", title: "Shift swap needs approval", body: `${who} offered to cover ${c.label}.` });
   }
 }
 
