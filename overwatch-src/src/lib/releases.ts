@@ -136,6 +136,35 @@ function formatIsoDateLabel(isoDate: string): string {
   return `${MONTHS[monthIdx] ?? m[2]} ${day}, ${year}`;
 }
 
+/**
+ * Extended icon rules used after the map/timeclock/staff/ops/auth checks, before the
+ * Sparkles default. Keep in sync with scripts/generate-releases.mjs.
+ */
+export const EXTENDED_ICON_RULES: ReadonlyArray<
+  readonly [RegExp, string, string?, string?]
+> = [
+  [/\b(training|de-?escalation|scenarios?|courses?|lessons?|quiz(zes)?|certifications?)\b/, "GraduationCap", "/training/scenarios", "Open Training"],
+  [/\b(a11y|accessibility|aria|screen ?readers?|contrast|hit areas?|keyboard)\b/, "Accessibility"],
+  [/\b(security|dependabot|cve|vuln(erabilit(y|ies))?|codeql|secrets?|xss|csp|sanitiz\w*|toctou)\b/, "ShieldCheck"],
+  [/(what'?s[\s-]new|\bchangelog\b|\breleases?\b)/, "Megaphone"],
+  [/\b(perf|performance|faster|speed|latency|lazy|cach(e|ing)|optimi[sz]\w*)\b/, "Gauge"],
+  [/\b(audio|tts|voice|sound)\b/, "Volume2"],
+  [/\b(images?|photos?|pictures?|avatars?)\b/, "Image"],
+  [/\b(notifications?|alerts?|push|reminders?)\b/, "Bell"],
+  [/\b(chat|messages?|messaging|radio|comms)\b/, "MessageSquare"],
+  [/\b(reports?|exports?|pdf|csv|docs?)\b/, "FileText"],
+  [/\b(fix(es|ed)?|bugs?|crash(es)?|regressions?)\b/, "Wrench"],
+];
+
+export function inferExtendedIcon(
+  combined: string,
+): { icon: string; tryHref?: string; tryLabel?: string } {
+  for (const [re, icon, tryHref, tryLabel] of EXTENDED_ICON_RULES) {
+    if (re.test(combined)) return tryHref ? { icon, tryHref, tryLabel } : { icon };
+  }
+  return { icon: "Sparkles" };
+}
+
 function inferCommitMeta(scope: string, description: string): {
   roles: ReleaseRole[];
   tryHref?: string;
@@ -184,7 +213,7 @@ function inferCommitMeta(scope: string, description: string): {
   if (/\b(invite|auth|login|password|key)\b/.test(combined)) {
     return { roles, icon: "KeyRound" };
   }
-  return { roles, icon: "Sparkles" };
+  return { roles, ...inferExtendedIcon(combined) };
 }
 
 export interface GitHubCommitPayload {

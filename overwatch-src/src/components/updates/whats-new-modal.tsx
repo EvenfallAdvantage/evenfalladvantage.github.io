@@ -11,6 +11,17 @@ import {
   Layers,
   Smartphone,
   KeyRound,
+  GraduationCap,
+  Accessibility,
+  ShieldCheck,
+  Megaphone,
+  Gauge,
+  Volume2,
+  Image as ImageIcon,
+  Bell,
+  MessageSquare,
+  FileText,
+  Wrench,
   History,
   Check,
   X,
@@ -62,7 +73,7 @@ function useLastSeenReleaseId(userId: string | null): string | null {
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }
 
-function renderHighlightIcon(iconName?: string) {
+export function renderHighlightIcon(iconName?: string) {
   switch (iconName) {
     case "Car":
       return <Car className="h-4 w-4 text-amber-500 shrink-0" />;
@@ -76,6 +87,28 @@ function renderHighlightIcon(iconName?: string) {
       return <Smartphone className="h-4 w-4 text-blue-500 shrink-0" />;
     case "KeyRound":
       return <KeyRound className="h-4 w-4 text-amber-500 shrink-0" />;
+    case "GraduationCap":
+      return <GraduationCap className="h-4 w-4 text-indigo-500 shrink-0" />;
+    case "Accessibility":
+      return <Accessibility className="h-4 w-4 text-teal-500 shrink-0" />;
+    case "ShieldCheck":
+      return <ShieldCheck className="h-4 w-4 text-green-600 shrink-0" />;
+    case "Megaphone":
+      return <Megaphone className="h-4 w-4 text-amber-500 shrink-0" />;
+    case "Gauge":
+      return <Gauge className="h-4 w-4 text-orange-500 shrink-0" />;
+    case "Volume2":
+      return <Volume2 className="h-4 w-4 text-pink-500 shrink-0" />;
+    case "Image":
+      return <ImageIcon className="h-4 w-4 text-cyan-500 shrink-0" />;
+    case "Bell":
+      return <Bell className="h-4 w-4 text-yellow-500 shrink-0" />;
+    case "MessageSquare":
+      return <MessageSquare className="h-4 w-4 text-sky-500 shrink-0" />;
+    case "FileText":
+      return <FileText className="h-4 w-4 text-slate-500 shrink-0" />;
+    case "Wrench":
+      return <Wrench className="h-4 w-4 text-zinc-500 shrink-0" />;
     default:
       return <Sparkles className="h-4 w-4 text-primary shrink-0" />;
   }
