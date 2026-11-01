@@ -45,3 +45,12 @@ export const approvalsHref = (view: ApprovalView) => `/admin/staff?tab=approvals
 
 /** Canonical Personnel link for a Forms view. */
 export const formsHref = (view: FormsView = "submissions") => `/admin/staff?tab=forms&view=${view}`;
+
+/** HQ Config › Feature Visibility key for a Personnel tab (Roster is always on). */
+export const staffTabFlag = (tab: StaffTab) => `/admin/staff?tab=${tab}`;
+
+/** Personnel tabs the company has switched off in Feature Visibility. */
+export function hiddenStaffTabs(hiddenTabs: readonly string[] | undefined): Set<StaffTab> {
+  const hidden = new Set(hiddenTabs ?? []);
+  return new Set(STAFF_TABS.filter((t) => t !== "roster" && hidden.has(staffTabFlag(t))));
+}

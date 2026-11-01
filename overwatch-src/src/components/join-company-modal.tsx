@@ -57,7 +57,7 @@ export function JoinCompanyModal({ open, onClose, onSwitchToRegister, onSwitchTo
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
-      <div className="relative w-full max-w-sm rounded-2xl border border-[#dd8c33]/30 bg-[#0f1a2e] p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+      <div className="relative w-full max-w-sm rounded-2xl border border-brand/30 bg-[#0f1a2e] p-6 shadow-2xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-3 right-3 text-white/40 hover:text-white">
           <X className="h-5 w-5" />
         </button>
@@ -77,7 +77,7 @@ export function JoinCompanyModal({ open, onClose, onSwitchToRegister, onSwitchTo
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
               required
-              className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white uppercase tracking-wider font-mono outline-none focus:border-[#dd8c33]/50 focus:ring-1 focus:ring-[#dd8c33]/20 placeholder:text-white/60 placeholder:normal-case placeholder:tracking-normal placeholder:font-sans"
+              className="w-full h-9 rounded-lg border border-white/10 bg-white/5 px-3 text-sm text-white uppercase tracking-wider font-mono outline-none focus:border-brand/50 focus:ring-1 focus:ring-brand/20 placeholder:text-white/60 placeholder:normal-case placeholder:tracking-normal placeholder:font-sans"
             />
           </div>
 
@@ -86,7 +86,7 @@ export function JoinCompanyModal({ open, onClose, onSwitchToRegister, onSwitchTo
           <button
             type="submit"
             disabled={loading || !code.trim()}
-            className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-[#dd8c33] text-white font-semibold text-sm hover:bg-[#c47a2a] disabled:opacity-50 transition-colors"
+            className="w-full flex items-center justify-center gap-2 h-10 rounded-lg bg-brand text-white font-semibold text-sm hover:bg-brand/90 disabled:opacity-50 transition-colors"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
             Join Company
@@ -101,7 +101,7 @@ export function JoinCompanyModal({ open, onClose, onSwitchToRegister, onSwitchTo
                 onClose();
                 onSwitchToRegister();
               }}
-              className="text-[#dd8c33] hover:underline font-medium"
+              className="text-brand hover:underline font-medium"
             >
               Create a new company
             </button>

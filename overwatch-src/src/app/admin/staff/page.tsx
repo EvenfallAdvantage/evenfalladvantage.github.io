@@ -23,7 +23,7 @@ import { type HireResult } from "@/lib/services/hiring-orchestrator";
 import { usePageHeader } from "@/stores/page-header-store";
 import { OnboardingTab } from "./components/onboarding-tab";
 import { ApprovalsTab } from "./components/approvals-tab";
-import { resolveStaffTab, type StaffTab, type ApprovalView, type FormsView } from "@/lib/personnel/staff-tabs";
+import { hiddenStaffTabs, resolveStaffTab, type StaffTab, type ApprovalView, type FormsView } from "@/lib/personnel/staff-tabs";
 import { PostingsTab } from "./components/postings-tab";
 import { ApplicantsTab } from "./components/applicants-tab";
 import { RosterTab } from "./components/roster-tab";
@@ -153,6 +153,12 @@ function AdminStaffPageInner() {
     brandColor: c.brandColor ?? null,
   }));
 
+  // HQ Config › Feature Visibility can switch Personnel tabs off; fall back to Roster.
+  const hiddenStaff = hiddenStaffTabs(
+    (user?.companies.find((c: { companyId: string }) => c.companyId === activeCompanyId) as { settings?: { hiddenTabs?: string[] } } | undefined)?.settings?.hiddenTabs,
+  );
+  const shownTab: Tab = hiddenStaff.has(tab) ? "roster" : tab;
+
   const approvalsBadge = counts.pendingTimesheets + counts.pendingCorrections + counts.pendingLeave;
 
   if (loading) {
@@ -203,11 +209,11 @@ function AdminStaffPageInner() {
           return (
             <label className="block sm:hidden">
               <span className="sr-only">Section</span>
-              <select value={tab} onChange={(e) => setTab(e.target.value as Tab)} data-testid="staff-section"
+              <select value={shownTab} onChange={(e) => setTab(e.target.value as Tab)} data-testid="staff-section"
                 className="h-12 w-full rounded-xl border border-input bg-background px-3 text-base font-semibold">
-                {groups.map((g) => (
+                {groups.filter((g) => g.keys.some((k) => !hiddenStaff.has(k))).map((g) => (
                   <optgroup key={g.label} label={g.label}>
-                    {g.keys.map((k) => <option key={k} value={k}>{meta[k].label}{meta[k].badge > 0 ? ` (${meta[k].badge} pending)` : ""}</option>)}
+                    {g.keys.filter((k) => !hiddenStaff.has(k)).map((k) => <option key={k} value={k}>{meta[k].label}{meta[k].badge > 0 ? ` (${meta[k].badge} pending)` : ""}</option>)}
                   </optgroup>
                 ))}
               </select>
@@ -223,8 +229,8 @@ function AdminStaffPageInner() {
             { key: "postings" as Tab, label: "Postings", badge: counts.activePostings, icon: Megaphone },
             { key: "applicants" as Tab, label: "Applicants", badge: counts.newApplicants, icon: UserPlus },
             { key: "onboarding" as Tab, label: "Onboarding", badge: 0, icon: BookOpenCheck },
-          ]).map(t => (
-            <SubTab key={t.key} active={tab === t.key} onClick={() => setTab(t.key)} icon={t.icon}>
+          ]).filter((t) => !hiddenStaff.has(t.key)).map(t => (
+            <SubTab key={t.key} active={shownTab === t.key} onClick={() => setTab(t.key)} icon={t.icon}>
               {t.label}
               {t.badge > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-amber-500/20 text-amber-600">{t.badge}</Badge>}
             </SubTab>
@@ -232,7 +238,7 @@ function AdminStaffPageInner() {
         </SubTabList>
 
         {/* ── Tab Content ── */}
-        {tab === "roster" && activeCompanyId && (
+        {shownTab === "roster" && activeCompanyId && (
           <RosterTab
             activeCompanyId={activeCompanyId}
             canManage={canManage}
@@ -246,7 +252,7 @@ function AdminStaffPageInner() {
           />
         )}
 
-        {tab === "approvals" && activeCompanyId && (
+        {shownTab === "approvals" && activeCompanyId && (
           <ApprovalsTab
             activeCompanyId={activeCompanyId}
             canManage={canManage}
@@ -257,15 +263,15 @@ function AdminStaffPageInner() {
           />
         )}
 
-        {tab === "forms" && activeCompanyId && (
+        {shownTab === "forms" && activeCompanyId && (
           <FormsTab activeCompanyId={activeCompanyId} canManage={canManage} view={formsView} onViewChange={setFormsView} pendingSubmissions={counts.pendingForms + counts.openIncidents} />
         )}
 
-        {tab === "postings" && activeCompanyId && (
+        {shownTab === "postings" && activeCompanyId && (
           <PostingsTab activeCompanyId={activeCompanyId} canManage={canManage} companyName={companyName} />
         )}
 
-        {tab === "applicants" && activeCompanyId && (
+        {shownTab === "applicants" && activeCompanyId && (
           <ApplicantsTab
             activeCompanyId={activeCompanyId}
             canManage={canManage}
@@ -276,11 +282,11 @@ function AdminStaffPageInner() {
           />
         )}
 
-        {tab === "onboarding" && activeCompanyId && (
+        {shownTab === "onboarding" && activeCompanyId && (
           <OnboardingTab activeCompanyId={activeCompanyId} canManage={canManage} />
         )}
 
-        {tab === "teams" && activeCompanyId && canManage && (
+        {shownTab === "teams" && activeCompanyId && canManage && (
           <TeamsTab activeCompanyId={activeCompanyId} canManage={canManage} />
         )}
 

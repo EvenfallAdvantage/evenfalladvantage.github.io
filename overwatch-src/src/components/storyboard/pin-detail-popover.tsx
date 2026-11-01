@@ -67,7 +67,7 @@ export function PinDetailPopover({
           <button
             type="button"
             onClick={onEdit}
-            className="flex-1 rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#d59b3c] bg-[#d59b3c]/10 border border-[#d59b3c]/20 hover:bg-[#d59b3c]/20 transition-colors"
+            className="flex-1 rounded-md px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-brand bg-brand/10 border border-brand/20 hover:bg-brand/20 transition-colors"
           >
             Edit
           </button>

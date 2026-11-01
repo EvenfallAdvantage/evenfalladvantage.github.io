@@ -181,14 +181,14 @@ export function WhatsNewTriggerPill({
         )}
       >
         <span className="relative flex items-center justify-center shrink-0">
-          <Sparkles className="h-4 w-4 text-amber-500" />
+          <Sparkles className="h-4 w-4 text-brand" />
           {unseenCount > 0 && (
             <span
               data-testid="whats-new-unread-dot"
               className="absolute -top-0.5 -right-0.5 flex h-2 w-2"
             >
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-brand" />
             </span>
           )}
         </span>
@@ -198,7 +198,7 @@ export function WhatsNewTriggerPill({
             {unseenCount > 0 ? (
               <Badge
                 variant="outline"
-                className="h-4 px-1.5 text-[9px] border-amber-500/40 bg-amber-500/10 text-amber-500"
+                className="h-4 px-1.5 text-[9px] border-brand/40 bg-brand/10 text-brand"
               >
                 {unseenCount} new
               </Badge>
@@ -221,19 +221,19 @@ export function WhatsNewTriggerPill({
       title="What's New in Overwatch"
       className={cn(
         "relative inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 hover:bg-accent px-2.5 py-1 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors",
-        unseenCount > 0 && "border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400",
+        unseenCount > 0 && "border-brand/40 bg-brand/10 text-brand",
         className,
       )}
     >
-      <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0" />
+      <Sparkles className="h-3.5 w-3.5 text-brand shrink-0" />
       <span className="hidden sm:inline">What&apos;s New</span>
       {unseenCount > 0 && (
         <span
           data-testid="whats-new-unread-dot"
           className="relative flex h-2 w-2"
         >
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
-          <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500" />
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-brand" />
         </span>
       )}
     </button>
@@ -338,10 +338,10 @@ export function WhatsNewModal() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-gradient-to-r from-amber-500/10 via-primary/5 to-transparent px-5 py-4">
+        <div className="flex items-start justify-between gap-3 border-b border-border/60 bg-gradient-to-r from-brand/10 via-primary/5 to-transparent px-5 py-4">
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-amber-500/15 border border-amber-500/30">
+              <span className="inline-flex h-7 w-7 items-center justify-center rounded-lg bg-brand/15 border border-brand/30">
                 <Sparkles className="h-4 w-4 text-amber-500" />
               </span>
               <h2 className="text-base font-bold tracking-tight">

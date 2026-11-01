@@ -67,7 +67,7 @@ export function OnboardingBanner({ user }: OnboardingBannerProps) {
             companySlug: m.companies?.slug ?? "",
             companyLogo: m.companies?.logo_url ?? null,
             brandColor: m.companies?.brand_color ?? "#1d3451",
-            accentColor: m.companies?.accent_color ?? "#d59b3c",
+            accentColor: m.companies?.accent_color ?? "var(--brand-accent, #d59b3c)",
             role: m.role ?? "staff",
             isTrainingProvider: m.companies?.is_training_provider ?? false,
             settings: m.companies?.settings ?? {},
@@ -114,11 +114,11 @@ export function OnboardingBanner({ user }: OnboardingBannerProps) {
   return (
     <>
       {showBanner && (
-        <Card className="border-[#dd8c33]/40 bg-gradient-to-r from-[#dd8c33]/10 via-[#dd8c33]/5 to-transparent">
+        <Card className="border-brand/40 bg-gradient-to-r from-brand/10 via-brand/5 to-transparent">
           <CardContent className="py-5">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-[#dd8c33]/15 border border-[#dd8c33]/25">
-                <UserPlus className="h-6 w-6 text-[#dd8c33]" />
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-brand/15 border border-brand/25">
+                <UserPlus className="h-6 w-6 text-brand" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold">You&apos;re not part of a company yet</h3>
@@ -129,7 +129,7 @@ export function OnboardingBanner({ user }: OnboardingBannerProps) {
               <div className="flex gap-2 w-full sm:w-auto">
                 <Link
                   href="/join"
-                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 h-7 px-3 rounded-lg text-sm font-medium bg-[#dd8c33] hover:bg-[#c47a2a] text-white transition-colors"
+                  className="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 h-7 px-3 rounded-lg text-sm font-medium bg-brand hover:bg-brand/90 text-white transition-colors"
                 >
                   <UserPlus className="h-3.5 w-3.5" /> Join Company
                 </Link>
