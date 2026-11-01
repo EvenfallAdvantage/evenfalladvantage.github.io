@@ -205,7 +205,7 @@ export default function DictatePage() {
   }
 
   return (
-    <PageShell title="REPORTS" subtitle="Voice-to-text report dictation" icon={<Mic className="h-5 w-5" />}>
+    <PageShell title="DICTATION" subtitle="Voice-to-text report dictation" icon={<Mic className="h-5 w-5" />}>
       <div className="space-y-4">
         {/* Report type tabs */}
       <ReportTypeTabs active="dictate" />

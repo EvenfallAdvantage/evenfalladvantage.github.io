@@ -193,7 +193,7 @@ function AdminStaffPageInner() {
           ];
           const meta: Record<Tab, { label: string; badge: number }> = {
             roster: { label: `Roster (${members.length})`, badge: 0 }, teams: { label: "Teams", badge: 0 },
-            geofences: { label: "Geofences", badge: 0 }, forms: { label: "Reports", badge: counts.pendingForms + counts.openIncidents },
+            geofences: { label: "Geofences", badge: 0 }, forms: { label: "Forms", badge: counts.pendingForms + counts.openIncidents },
             "public-reports": { label: "Public Reports", badge: 0 }, approvals: { label: "Approvals", badge: approvalsBadge },
             postings: { label: "Postings", badge: counts.activePostings }, applicants: { label: "Applicants", badge: counts.newApplicants },
             onboarding: { label: "Onboarding", badge: 0 },
@@ -217,7 +217,7 @@ function AdminStaffPageInner() {
             { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0, icon: Users },
             { key: "teams" as Tab, label: "Teams", badge: 0, icon: UsersRound },
             { key: "geofences" as Tab, label: "Geofences", badge: 0, icon: Target },
-            { key: "forms" as Tab, label: "Reports", badge: counts.pendingForms + counts.openIncidents, icon: FileText },
+            { key: "forms" as Tab, label: "Forms", badge: counts.pendingForms + counts.openIncidents, icon: FileText },
             { key: "public-reports" as Tab, label: "Public Reports", badge: 0, icon: QrCode },
             { key: "approvals" as Tab, label: "Approvals", badge: approvalsBadge, icon: CalendarClock },
             { key: "postings" as Tab, label: "Postings", badge: counts.activePostings, icon: Megaphone },

@@ -59,7 +59,7 @@ type PatrolLog = any;
 function PatrolsBoundary({ embedded, children }: { embedded?: boolean; children: ReactNode }) {
   if (embedded) return <>{children}</>;
   return (
-    <PageShell title="WATCH LOG" subtitle="Patrol routes, checkpoints, and scan logs" icon={<Footprints className="h-5 w-5" />}>
+    <PageShell title="PATROLS" subtitle="Patrol routes, checkpoints, and scan logs" icon={<Footprints className="h-5 w-5" />}>
       {children}
     </PageShell>
   );

@@ -7,9 +7,19 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getOwnerIntel } from "@/lib/supabase/db";
 import type { OwnerIntel } from "./shared";
+import { approvalsHref } from "@/lib/personnel/staff-tabs";
 
 interface ActionRequiredProps {
   activeCompanyId: string;
+}
+
+/** Deep-link to the queue that needs attention: Personnel → Approvals (first non-empty view), or Forms. */
+export function actionRequiredHref(a: { timesheets: number; timeCorrections: number; leaveRequests: number; formReviews: number }): string {
+  if (a.timesheets > 0) return approvalsHref("timesheets");
+  if (a.timeCorrections > 0) return approvalsHref("corrections");
+  if (a.leaveRequests > 0) return approvalsHref("leave");
+  if (a.formReviews > 0) return "/admin/staff?tab=forms";
+  return approvalsHref("timesheets");
 }
 
 export function ActionRequired({ activeCompanyId }: ActionRequiredProps) {
@@ -44,7 +54,7 @@ export function ActionRequired({ activeCompanyId }: ActionRequiredProps) {
               {approvals.formReviews > 0 && <span className="text-xs text-muted-foreground">{approvals.formReviews} form{approvals.formReviews !== 1 ? "s" : ""}</span>}
             </div>
           </div>
-          <Link href="/admin/staff">
+          <Link href={actionRequiredHref(approvals)}>
             <Button size="sm" variant="outline" className="gap-1 text-xs border-amber-500/30 text-amber-600 hover:bg-amber-500/10">
               Review <ArrowRight className="h-3 w-3" />
             </Button>

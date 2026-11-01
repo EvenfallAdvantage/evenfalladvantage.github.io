@@ -54,7 +54,7 @@ export default function ChatPage() {
       <SubTabList>
         <Link href="/updates" role="tab" aria-selected="false"
           className="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-background/50 transition-colors whitespace-nowrap shrink-0">
-          Briefing
+          Briefings
         </Link>
         <SubTab active={tab === "channels"} onClick={() => setTab("channels")} icon={Hash}>
           Channels
