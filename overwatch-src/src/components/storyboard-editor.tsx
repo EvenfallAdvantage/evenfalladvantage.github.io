@@ -278,7 +278,7 @@ export default function StoryboardEditor({
               "flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all",
               addMode
                 ? "bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25"
-                : "bg-[#d59b3c]/15 text-[#d59b3c] border border-[#d59b3c]/30 hover:bg-[#d59b3c]/25"
+                : "bg-brand/15 text-brand border border-brand/30 hover:bg-brand/25"
             )}
           >
             {addMode ? (
@@ -328,7 +328,7 @@ export default function StoryboardEditor({
         {!imageLoaded && (
           <div className="absolute inset-0 flex items-center justify-center">
             <div className="flex items-center gap-2 text-xs text-slate-500">
-              <div className="h-3.5 w-3.5 border-2 border-[#d59b3c] border-t-transparent rounded-full animate-spin" />
+              <div className="h-3.5 w-3.5 border-2 border-brand border-t-transparent rounded-full animate-spin" />
               Loading site map...
             </div>
           </div>
@@ -416,7 +416,7 @@ export default function StoryboardEditor({
             <div
               className="w-8 h-8 rounded-full border-2 flex items-center justify-center animate-pulse"
               style={{
-                background: "#d59b3c",
+                background: "var(--brand-accent, #d59b3c)",
                 borderColor: "rgba(255,255,255,0.3)",
                 boxShadow: "0 2px 12px rgba(213,155,60,0.5)",
               }}
@@ -448,7 +448,7 @@ export default function StoryboardEditor({
           return (
             <div className="fixed z-[200]" style={{ left, top }} onClick={e => e.stopPropagation()} onMouseDown={e => e.stopPropagation()}>
               <PinForm
-                initial={{ label: defaultPinValues?.label ?? "", description: defaultPinValues?.description ?? "", icon: defaultPinValues?.icon ?? "pin", color: defaultPinValues?.color ?? "#d59b3c" }}
+                initial={{ label: defaultPinValues?.label ?? "", description: defaultPinValues?.description ?? "", icon: defaultPinValues?.icon ?? "pin", color: defaultPinValues?.color ?? "var(--brand-accent, #d59b3c)" }}
                 onSubmit={handleNewPinSubmit}
                 onCancel={() => { setNewPinPos(null); setAddMode(false); }}
                 submitLabel="Place Pin"
@@ -532,7 +532,7 @@ export default function StoryboardEditor({
               className="rounded-full px-4 py-2 text-xs font-medium backdrop-blur-sm"
               style={{
                 background: "rgba(13,21,32,0.75)",
-                color: "#d59b3c",
+                color: "var(--brand-accent, #d59b3c)",
                 border: "1px solid rgba(213,155,60,0.3)",
               }}
             >

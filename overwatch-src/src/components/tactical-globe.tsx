@@ -353,7 +353,7 @@ function SatPopup({ sat, onClose, flipBelow }: { sat: SatData; onClose: () => vo
         boxShadow: "0 0 20px rgba(221,140,51,0.15)",
       }}
     >
-      <div style={{ fontFamily: "monospace", fontSize: 11, color: "#dd8c33", fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>
+      <div style={{ fontFamily: "monospace", fontSize: 11, color: "var(--brand-accent, #dd8c33)", fontWeight: 700, marginBottom: 4, letterSpacing: 1 }}>
         {sat.name}
       </div>
       <div style={{ fontFamily: "monospace", fontSize: 10, color: "rgba(255,255,255,0.7)", lineHeight: 1.6 }}>

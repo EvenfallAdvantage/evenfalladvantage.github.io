@@ -47,7 +47,7 @@ export function PinLegend({
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 transition-colors cursor-pointer",
                 isActive
-                  ? "bg-[#d59b3c]/5"
+                  ? "bg-brand/5"
                   : "hover:bg-white/[0.02]"
               )}
               style={{ borderColor: "#1a2a3a" }}

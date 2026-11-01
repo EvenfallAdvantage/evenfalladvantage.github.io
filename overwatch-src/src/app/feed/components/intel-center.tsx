@@ -59,7 +59,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
     { label: "Operations", value: ec, icon: MapPin, color: "text-violet-500", bg: "bg-violet-500/10" },
     { label: "Assets", value: ac, icon: Shield, color: "text-emerald-500", bg: "bg-emerald-500/10" },
     { label: "Forms", value: fc, icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10" },
-    { label: "Hours", value: hrs, icon: Clock, color: "text-amber-500", bg: "bg-amber-500/10" },
+    { label: "Hours", value: hrs, icon: Clock, color: "text-brand", bg: "bg-brand/10" },
     { label: "On Duty", value: intel.personnel.onDuty, icon: CheckCircle2, color: intel.personnel.onDuty > 0 ? "text-green-500" : "text-muted-foreground", bg: intel.personnel.onDuty > 0 ? "bg-green-500/10" : "bg-muted" },
   ];
 
@@ -225,7 +225,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
         <Card className="border-border/40 lg:col-span-2">
           <CardContent className="p-3">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-amber-500" /> Weekly Hours</h3>
+              <h3 className="text-xs font-semibold flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-brand" /> Weekly Hours</h3>
               <span className="text-[10px] text-muted-foreground">{hrs}h total</span>
             </div>
             <MiniBarChart data={intel.weeklyHours} color="#f59e0b" />

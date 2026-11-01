@@ -87,9 +87,9 @@ export function PolygonDrawMap({ value, onChange, initialCenter, height = 320 }:
           <img key={t.key} src={t.url} alt="" draggable={false} className="pointer-events-none absolute" style={{ left: t.x, top: t.y, width: TILE, height: TILE }} />
         ))}
         <svg className="pointer-events-none absolute inset-0" width={size.w} height={size.h}>
-          {pts.length >= 3 && <polygon points={pts.map((p) => `${p.x},${p.y}`).join(" ")} fill="rgba(221,140,51,0.25)" stroke="#dd8c33" strokeWidth={2} />}
-          {pts.length === 2 && <line x1={pts[0].x} y1={pts[0].y} x2={pts[1].x} y2={pts[1].y} stroke="#dd8c33" strokeWidth={2} />}
-          {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={i === 0 ? 7 : 5} fill={i === 0 ? "#dd8c33" : "#fff"} stroke="#dd8c33" strokeWidth={2} />)}
+          {pts.length >= 3 && <polygon points={pts.map((p) => `${p.x},${p.y}`).join(" ")} fill="color-mix(in srgb, var(--brand-accent, #dd8c33) 25%, transparent)" stroke="var(--brand-accent, #dd8c33)" strokeWidth={2} />}
+          {pts.length === 2 && <line x1={pts[0].x} y1={pts[0].y} x2={pts[1].x} y2={pts[1].y} stroke="var(--brand-accent, #dd8c33)" strokeWidth={2} />}
+          {pts.map((p, i) => <circle key={i} cx={p.x} cy={p.y} r={i === 0 ? 7 : 5} fill={i === 0 ? "var(--brand-accent, #dd8c33)" : "#fff"} stroke="var(--brand-accent, #dd8c33)" strokeWidth={2} />)}
         </svg>
         <div className="absolute right-2 top-2 flex flex-col gap-1" onPointerDown={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()}>
           <button type="button" aria-label="Zoom in" onClick={() => zoom(1)} className="flex h-10 w-10 items-center justify-center rounded-lg bg-background/90 shadow"><Plus className="h-4 w-4" /></button>

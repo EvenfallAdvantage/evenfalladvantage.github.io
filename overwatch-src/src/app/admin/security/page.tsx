@@ -103,7 +103,7 @@ export default function SecurityDashboardPage() {
       superAdmin
         ? "Platform-wide audit log + NIST 800-171 / CMMC Level 2 controls"
         : `Audit log for ${activeCompany?.companyName ?? "your company"}`,
-      <Shield className="h-5 w-5 text-amber-500" />,
+      <Shield className="h-5 w-5 text-brand" />,
     );
     return () => clearHeader();
   }, [setHeader, clearHeader, superAdmin, activeCompany?.companyName]);
@@ -291,10 +291,10 @@ export default function SecurityDashboardPage() {
 
       {/* Compliance Badge — super-admin only */}
       {superAdmin && (
-        <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 flex items-center gap-4">
-          <Shield className="h-10 w-10 text-amber-500 shrink-0" />
+        <div className="rounded-xl border border-brand/20 bg-brand/5 p-4 flex items-center gap-4">
+          <Shield className="h-10 w-10 text-brand shrink-0" />
           <div>
-            <p className="text-sm font-bold font-mono text-amber-500">MILITARY-GRADE SECURITY ACTIVE</p>
+            <p className="text-sm font-bold font-mono text-brand">MILITARY-GRADE SECURITY ACTIVE</p>
             <p className="text-xs text-muted-foreground mt-0.5">
               This platform implements AES-256-GCM encryption (FIPS 140-2), NIST 800-63B password policy,
               NIST 800-171 session controls, Content Security Policy, brute-force protection, and comprehensive

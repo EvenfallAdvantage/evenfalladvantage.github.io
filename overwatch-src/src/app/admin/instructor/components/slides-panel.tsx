@@ -100,12 +100,12 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
       {slidesLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin mx-auto" /> : (
         <div className="space-y-1">
           {slides.map((s) => (
-            <div key={s.id} className={`flex items-center gap-2 rounded border px-2.5 py-1 text-xs cursor-pointer transition-colors ${editSlide?.id === s.id ? "border-[#dd8c33]/50 bg-[#dd8c33]/5" : previewSlide?.id === s.id ? "border-primary/30 bg-primary/5" : "border-border/30 hover:border-border/60"}`}>
+            <div key={s.id} className={`flex items-center gap-2 rounded border px-2.5 py-1 text-xs cursor-pointer transition-colors ${editSlide?.id === s.id ? "border-brand/50 bg-brand/5" : previewSlide?.id === s.id ? "border-primary/30 bg-primary/5" : "border-border/30 hover:border-border/60"}`}>
               <span className="font-mono text-muted-foreground w-5">{s.slide_number}.</span>
               <span className="flex-1 truncate" onClick={() => { setPreviewSlide(previewSlide?.id === s.id ? null : s); setEditSlide(null); }}>{s.title}</span>
               <div className="flex items-center gap-0.5">
                 {s.slide_type && s.slide_type !== "text" && <Badge className="text-[10px] h-4 px-1">{s.slide_type}</Badge>}
-                <button onClick={() => startEditSlide(s)} className="p-0.5 text-muted-foreground/50 hover:text-[#dd8c33]"><Pencil className="h-3 w-3" /></button>
+                <button onClick={() => startEditSlide(s)} className="p-0.5 text-muted-foreground/50 hover:text-brand"><Pencil className="h-3 w-3" /></button>
                 <button onClick={() => handleDeleteSlide(s.id)} className="p-0.5 text-muted-foreground/50 hover:text-red-500"><Trash2 className="h-3 w-3" /></button>
               </div>
             </div>
@@ -129,12 +129,12 @@ export function SlidesPanel({ moduleId }: SlidesPanelProps) {
         </div>
       )}
       {editSlide && (
-        <div className="rounded-lg border border-[#dd8c33]/30 bg-[#dd8c33]/5 p-3 space-y-2">
-          <h6 className="text-[10px] font-semibold uppercase text-[#dd8c33]">Edit Slide #{editSlide.slide_number}</h6>
+        <div className="rounded-lg border border-brand/30 bg-brand/5 p-3 space-y-2">
+          <h6 className="text-[10px] font-semibold uppercase text-brand">Edit Slide #{editSlide.slide_number}</h6>
           <Input value={esTitle} onChange={(e) => setEsTitle(e.target.value)} placeholder="Slide Title" className="h-8 text-sm" />
           <div className="flex gap-1.5">
             {SLIDE_TYPES.map((t) => (
-              <button key={t.value} onClick={() => setEsType(t.value)} className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] border transition-colors ${esType === t.value ? "border-[#dd8c33] bg-[#dd8c33]/10 text-[#dd8c33]" : "border-border/30 text-muted-foreground hover:border-border/60"}`}>
+              <button key={t.value} onClick={() => setEsType(t.value)} className={`flex items-center gap-1 rounded px-2 py-1 text-[10px] border transition-colors ${esType === t.value ? "border-brand bg-brand/10 text-brand" : "border-border/30 text-muted-foreground hover:border-border/60"}`}>
                 <t.icon className="h-3 w-3" /> {t.label}
               </button>
             ))}

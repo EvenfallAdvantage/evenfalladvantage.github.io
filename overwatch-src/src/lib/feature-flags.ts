@@ -24,6 +24,8 @@ export const TOGGLEABLE_TABS: ToggleableTab[] = [
   { href: "/site-assessment", label: "Site Assessment", description: "Security site assessment reports", section: "Tools" },
   { href: "/armory", label: "Armory", description: "Equipment checkout and returns, moved from Operations", section: "Tools" },
   { href: "/time-off", label: "Leave", description: "Time-off requests", section: "Readiness" },
+  { href: "/admin/staff?tab=teams", label: "Teams", description: "Personnel › Teams", section: "Personnel" },
+  { href: "/admin/staff?tab=approvals", label: "Approvals", description: "Personnel › Approvals: timesheets, corrections, leave and swaps", section: "Personnel" },
   { href: "/admin/staff?tab=forms", label: "Forms", description: "Personnel › Forms: submissions and public reports", section: "Personnel" },
   { href: "/admin/staff?tab=postings", label: "Postings", description: "Job postings", section: "Personnel" },
   { href: "/admin/staff?tab=applicants", label: "Applicants", description: "Applicant pipeline", section: "Personnel" },

@@ -39,11 +39,11 @@ export default function AcademyQuickLinks({ folderCount, quizCount, activeOwCert
           </Card>
         </Link>
         <Link href="/quizzes">
-          <Card className="group relative h-full cursor-pointer overflow-hidden border-border/40 transition-all hover:border-amber-500/40 hover:shadow-lg hover:shadow-amber-500/5 hover:-translate-y-1">
-            <div className="absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-amber-500/5 transition-transform group-hover:scale-150" />
+          <Card className="group relative h-full cursor-pointer overflow-hidden border-border/40 transition-all hover:border-brand/40 hover:shadow-lg hover:shadow-brand/5 hover:-translate-y-1">
+            <div className="absolute top-0 right-0 h-32 w-32 translate-x-8 -translate-y-8 rounded-full bg-brand/5 transition-transform group-hover:scale-150" />
             <CardContent className="relative flex items-start gap-4 p-6">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-amber-500/10 transition-transform group-hover:scale-110">
-                <Target className="h-7 w-7 text-amber-500" />
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-brand/10 transition-transform group-hover:scale-110">
+                <Target className="h-7 w-7 text-brand" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
