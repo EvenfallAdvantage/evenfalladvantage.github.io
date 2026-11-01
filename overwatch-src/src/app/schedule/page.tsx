@@ -28,6 +28,7 @@ import { fmtDate, fmtTime, type Ev, type Shift } from "./components/schedule-hel
 import { ScheduleTab } from "./components/schedule-tab";
 import { ShiftSwapTab } from "./components/shift-swap-tab";
 import { GeofencesTab } from "@/components/ops/geofences-tab";
+import { SWAPS_FLAG, GEOFENCES_FLAG, isFeatureHidden } from "@/lib/feature-flags";
 import { resolveOpsTab, opsRedirect, type OpsTab } from "./components/ops-tabs";
 import { logger } from "@/lib/logger";
 import { resolveStorageUrl } from "@/lib/supabase/db-helpers";
@@ -47,7 +48,12 @@ function SchedulePageInner() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
-  const [tab, setTab] = useState<OpsTab>(() => resolveOpsTab(searchParams.get("tab"), isAdmin));
+  const hidden = activeCompany?.settings?.hiddenTabs;
+  const showSwaps = !isFeatureHidden(hidden, SWAPS_FLAG);
+  const showGeofences = isAdmin && !isFeatureHidden(hidden, GEOFENCES_FLAG);
+  const [tabState, setTab] = useState<OpsTab>(() => resolveOpsTab(searchParams.get("tab"), isAdmin));
+  // HQ Config can switch Swaps / Geofences off; fall back to the map.
+  const tab: OpsTab = (tabState === "swaps" && !showSwaps) || (tabState === "geofences" && !showGeofences) ? "map" : tabState;
 
   // Legacy ?tab=armory → Tools › Armory.
   const router = useRouter();
@@ -260,10 +266,12 @@ function SchedulePageInner() {
             <SubTab active={tab === "schedule"} onClick={() => setTab("schedule")} icon={CalendarDays}>
               Schedule
             </SubTab>
-            <SubTab active={tab === "swaps"} onClick={() => setTab("swaps")} icon={ArrowLeftRight}>
-              Swaps
-            </SubTab>
-            {isAdmin && (
+            {showSwaps && (
+              <SubTab active={tab === "swaps"} onClick={() => setTab("swaps")} icon={ArrowLeftRight}>
+                Swaps
+              </SubTab>
+            )}
+            {showGeofences && (
               <SubTab active={tab === "geofences"} onClick={() => setTab("geofences")} icon={Target}>
                 Geofences
               </SubTab>

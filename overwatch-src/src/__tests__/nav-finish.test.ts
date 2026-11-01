@@ -41,3 +41,23 @@ describe("Swaps in Approvals", () => {
     expect(resolveStaffTab("approvals", "swaps")).toMatchObject({ tab: "approvals", view: "swaps" });
   });
 });
+
+import { TOGGLEABLE_TABS, TOGGLEABLE_SECTIONS } from "@/lib/feature-flags";
+
+describe("HQ Config feature visibility", () => {
+  const navHrefs = new Set(items.flatMap((i) => [i.href, ...(i.children ?? []).map((c) => c.href)]));
+  it("every sidebar toggle points at a real nav entry", () => {
+    for (const t of TOGGLEABLE_TABS.filter((t) => !t.href.startsWith("/schedule?"))) {
+      expect(navHrefs.has(t.href), t.href).toBe(true);
+    }
+  });
+  it("reflects the declutter moves", () => {
+    const sec = (h: string) => TOGGLEABLE_TABS.find((t) => t.href === h)?.section;
+    expect(sec("/armory")).toBe("Tools");
+    expect(sec("/invoices")).toBe("Command");
+    expect(sec("/schedule?tab=geofences")).toBe("Field Ops");
+    expect(sec("/admin/staff?tab=forms")).toBe("Personnel");
+    expect(TOGGLEABLE_TABS.some((t) => t.href.includes("public-reports"))).toBe(false);
+    expect(TOGGLEABLE_SECTIONS).toEqual(["Field Ops", "Academy", "Tools", "Readiness", "Personnel", "Command"]);
+  });
+});

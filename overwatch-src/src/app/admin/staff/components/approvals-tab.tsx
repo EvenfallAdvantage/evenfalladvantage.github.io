@@ -7,6 +7,8 @@ import type { ApprovalView } from "@/lib/personnel/staff-tabs";
 import { TimesheetsTab } from "./timesheets-tab";
 import { CorrectionsTab } from "./corrections-tab";
 import { LeaveTab } from "./leave-tab";
+import { useActiveCompany } from "@/stores/auth-store";
+import { SWAPS_FLAG, isFeatureHidden } from "@/lib/feature-flags";
 import { ShiftSwapTab } from "@/app/schedule/components/shift-swap-tab";
 
 interface ApprovalsTabProps {
@@ -27,11 +29,14 @@ const VIEWS: { key: ApprovalView; label: string; icon: typeof CalendarClock }[] 
 ];
 
 /** One place to review time: timesheets, clock corrections, leave and shift swaps. */
-export function ApprovalsTab({ activeCompanyId, canManage, members, view, onViewChange, counts }: ApprovalsTabProps) {
+export function ApprovalsTab({ activeCompanyId, canManage, members, view: requestedView, onViewChange, counts }: ApprovalsTabProps) {
+  const showSwaps = !isFeatureHidden(useActiveCompany()?.settings?.hiddenTabs, SWAPS_FLAG);
+  const views = showSwaps ? VIEWS : VIEWS.filter((v) => v.key !== "swaps");
+  const view: ApprovalView = requestedView === "swaps" && !showSwaps ? "timesheets" : requestedView;
   return (
     <div className="space-y-4" data-testid="approvals-tab">
       <SubTabList hostAction={false}>
-        {VIEWS.map((v) => (
+        {views.map((v) => (
           <SubTab key={v.key} active={view === v.key} onClick={() => onViewChange(v.key)} icon={v.icon}>
             {v.label}
             {(counts[v.key] ?? 0) > 0 && (
