@@ -1,12 +1,13 @@
 "use client";
 
 import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { setVisibleInterval } from "@/lib/visible-interval";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import {
-  CalendarDays, Loader2, QrCode, Globe, Plus, ArrowLeftRight,
+  CalendarDays, Loader2, QrCode, Globe, Plus, ArrowLeftRight, Target,
 } from "lucide-react";
 import dynamic from "next/dynamic";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,8 @@ import { fmtDate, fmtTime, type Ev, type Shift, type Asset } from "./components/
 import { ScheduleTab } from "./components/schedule-tab";
 import { ArmoryTab } from "./components/armory-tab";
 import { ShiftSwapTab } from "./components/shift-swap-tab";
+import { GeofencesTab } from "@/components/ops/geofences-tab";
+import { resolveOpsTab, type OpsTab } from "./components/ops-tabs";
 import { logger } from "@/lib/logger";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { resolveStorageUrl } from "@/lib/supabase/db-helpers";
@@ -38,7 +41,8 @@ type StaffLoc = { userId: string; name: string; lat: number; lng: number; headin
 
 const TacticalMap = dynamic(() => import("@/components/tactical-map").then(m => ({ default: m.TacticalMap })), { ssr: false, loading: () => <div className="flex justify-center py-24"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 
-export default function SchedulePage() {
+function SchedulePageInner() {
+  const searchParams = useSearchParams();
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const isAdmin = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
@@ -47,7 +51,7 @@ export default function SchedulePage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
-  const [tab, setTab] = useState<"schedule" | "armory" | "map" | "swaps">("map");
+  const [tab, setTab] = useState<OpsTab>(() => resolveOpsTab(searchParams.get("tab"), isAdmin));
 
   // Armory "show create" state
   const [showCreate, setShowCreate] = useState(false);
@@ -342,6 +346,11 @@ export default function SchedulePage() {
             <SubTab active={tab === "armory"} onClick={() => setTab("armory")} icon={QrCode}>
               Armory
             </SubTab>
+            {isAdmin && (
+              <SubTab active={tab === "geofences"} onClick={() => setTab("geofences")} icon={Target}>
+                Geofences
+              </SubTab>
+            )}
           </SubTabList>
         </div>
 
@@ -356,6 +365,11 @@ export default function SchedulePage() {
             sendingReminders={sendingReminders} remindersSent={remindersSent}
             handleSendReminders={handleSendReminders}
           />
+        )}
+
+        {/* ── Geofences Tab (moved from Personnel) ── */}
+        {tab === "geofences" && isAdmin && activeCompanyId && (
+          <GeofencesTab activeCompanyId={activeCompanyId} canManage={isAdmin} />
         )}
 
         {/* ── Swaps Tab ── */}
@@ -406,4 +420,8 @@ export default function SchedulePage() {
       <ConfirmDialog />
     </>
   );
+}
+
+export default function SchedulePage() {
+  return <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}><SchedulePageInner /></Suspense>;
 }

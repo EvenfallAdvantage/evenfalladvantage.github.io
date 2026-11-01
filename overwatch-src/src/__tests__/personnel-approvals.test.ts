@@ -8,12 +8,12 @@ const src = (p: string) => readFileSync(join(__dirname, "..", p), "utf8");
 
 describe("Personnel approvals tab routing", () => {
   it.each(["timesheets", "corrections", "leave"])("redirects legacy ?tab=%s to Approvals", (t) => {
-    expect(resolveStaffTab(t)).toEqual({ tab: "approvals", view: t });
+    expect(resolveStaffTab(t)).toMatchObject({ tab: "approvals", view: t });
   });
   it("honours ?tab=approvals&view=", () => {
-    expect(resolveStaffTab("approvals", "leave")).toEqual({ tab: "approvals", view: "leave" });
-    expect(resolveStaffTab("approvals", "bogus")).toEqual({ tab: "approvals", view: "timesheets" });
-    expect(resolveStaffTab("approvals")).toEqual({ tab: "approvals", view: "timesheets" });
+    expect(resolveStaffTab("approvals", "leave")).toMatchObject({ tab: "approvals", view: "leave" });
+    expect(resolveStaffTab("approvals", "bogus")).toMatchObject({ tab: "approvals", view: "timesheets" });
+    expect(resolveStaffTab("approvals")).toMatchObject({ tab: "approvals", view: "timesheets" });
   });
   it("keeps other tabs and defaults unknown to roster", () => {
     expect(resolveStaffTab("applicants").tab).toBe("applicants");

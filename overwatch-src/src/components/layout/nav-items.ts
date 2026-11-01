@@ -65,9 +65,7 @@ export const NAV_SECTIONS: NavSection[] = [
         children: [
           { title: "Roster", href: "/admin/staff?tab=roster", icon: "Users" },
           { title: "Teams", href: "/admin/staff?tab=teams", icon: "UsersRound" },
-          { title: "Geofences", href: "/admin/staff?tab=geofences", icon: "Target" },
           { title: "Forms", href: "/admin/staff?tab=forms", icon: "FileText" },
-          { title: "Public Reports", href: "/admin/staff?tab=public-reports", icon: "QrCode" },
           { title: "Approvals", href: "/admin/staff?tab=approvals", icon: "CalendarClock" },
           { title: "Postings", href: "/admin/staff?tab=postings", icon: "Megaphone" },
           { title: "Applicants", href: "/admin/staff?tab=applicants", icon: "UserPlus" },
