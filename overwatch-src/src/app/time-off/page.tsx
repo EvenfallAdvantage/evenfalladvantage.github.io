@@ -1,18 +1,17 @@
 "use client";
 
-import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
+import { approvalsHref } from "@/lib/personnel/staff-tabs";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { CalendarOff, Plus, Loader2, Trash2, ClipboardList, Users } from "lucide-react";
+import Link from "next/link";
+import { CalendarOff, Plus, Loader2, Trash2, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
-import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, reviewTimeOffRequest, deleteTimeOffRequest, removeConflictingShifts, getCompanyMembers } from "@/lib/supabase/db";
-import { formatMemberName } from "@/lib/format-names";
+import { getTimeOffRequests, getTimeOffPolicies, createTimeOffRequest, getAllTimeOffRequests, deleteTimeOffRequest } from "@/lib/supabase/db";
 import { useCompanyQuery } from "@/hooks/use-company-query";
-import { parseUTC } from "@/lib/parse-utc";
 import { toast } from "sonner";
 import { PageShell } from "@/components/layout/page-shell";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
@@ -33,8 +32,6 @@ export default function TimeOffPage() {
   const [note, setNote] = useState("");
   const [selectedPolicy, setSelectedPolicy] = useState("");
   const [creating, setCreating] = useState(false);
-  const [tab, setTab] = useState<"mine" | "team">("mine");
-  const [reviewing, setReviewing] = useState<string | null>(null);
   const [deletingReq, setDeletingReq] = useState<string | null>(null);
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
@@ -74,7 +71,7 @@ export default function TimeOffPage() {
                 title: "New Leave Request",
                 body: `${policyName}: ${startDate} — ${endDate}${note ? ` ("${note}")` : ""}`,
                 type: "leave_request",
-                actionUrl: "/admin/staff",
+                actionUrl: approvalsHref("leave"),
               }).catch(() => {});
             }
           }).catch(() => {});
@@ -88,7 +85,7 @@ export default function TimeOffPage() {
   }
 
   async function handleCancelRequest(id: string) {
-    const req = allRequests.find((r: Request) => r.id === id);
+    const req = requests.find((r: Request) => r.id === id);
     const wasApproved = req?.status === "approved";
     const msg = wasApproved
       ? "Cancel this approved leave request? Note: shifts that were removed during approval will need to be manually re-created."
@@ -100,53 +97,13 @@ export default function TimeOffPage() {
     finally { setDeletingReq(null); }
   }
 
-  async function handleReview(id: string, status: "approved" | "denied") {
-    setReviewing(id);
-    try {
-      await reviewTimeOffRequest(id, status);
-      // If approved, remove conflicting shifts and notify managers
-      if (status === "approved" && activeCompanyId) {
-        const req = allRequests.find((r: Request) => r.id === id);
-        if (req?.user_id && req.start_date && req.end_date) {
-          try {
-            const removed = await removeConflictingShifts(req.user_id, req.start_date, req.end_date);
-            if (removed.length > 0) {
-              const u = req.users ?? req;
-              const empName = `${u.first_name ?? ""} ${u.last_name ?? ""}`.trim() || "An employee";
-              const shiftList = removed.map((s: { start_time: string; role?: string; events?: { name?: string } }) =>
-                `${parseUTC(s.start_time).toLocaleDateString()} ${s.events?.name ?? ""}${s.role ? ` (${s.role})` : ""}`
-              ).join(", ");
-              const mbrs = await getCompanyMembers(activeCompanyId);
-              const { dispatch } = await import("@/lib/services/notification-dispatcher");
-              const mgrs = mbrs.filter((m: { role: string; users: { id: string } | { id: string }[] }) =>
-                hasMinRole(m.role as CompanyRole, "manager")
-              );
-              for (const mgr of mgrs) {
-                const mu = Array.isArray(mgr.users) ? mgr.users[0] : mgr.users;
-                if (!mu?.id || mu.id === req.user_id) continue;
-                dispatch({
-                  userId: mu.id, companyId: activeCompanyId,
-                  title: "Shifts Need Coverage",
-                  body: `${empName}'s leave was approved. ${removed.length} shift${removed.length > 1 ? "s" : ""} now open: ${shiftList}`,
-                  type: "shift_coverage", actionUrl: "/admin/events",
-                }).catch(() => {});
-              }
-            }
-          } catch (err) { console.error("Failed to remove conflicting shifts:", err); }
-        }
-      }
-      await load();
-    } catch (err) { console.error(err); }
-    finally { setReviewing(null); }
-  }
-
   const statusColor = (s: string) => {
     if (s === "approved") return "bg-green-500/15 text-green-600";
     if (s === "denied") return "bg-red-500/15 text-red-600";
     return "bg-amber-500/15 text-amber-600";
   };
 
-  const displayRequests = tab === "team" ? allRequests : requests;
+  const displayRequests = requests;
   const pendingCount = allRequests.filter((r: Request) => r.status === "pending").length;
 
   return (
@@ -161,16 +118,16 @@ export default function TimeOffPage() {
       }
     >
       <div className="space-y-4">
-        {/* Admin tabs */}
+        {/* Team leave is reviewed in Personnel → Approvals (one approval queue). */}
         {isAdmin && (
-          <SubTabList>
-            <SubTab active={tab === "mine"} onClick={() => setTab("mine")} icon={ClipboardList}>
-              My Requests
-            </SubTab>
-            <SubTab active={tab === "team"} onClick={() => setTab("team")} icon={Users}>
-              Team Requests {pendingCount > 0 && <Badge className="ml-1 h-4 min-w-4 px-1 text-[10px] bg-amber-500/20 text-amber-600">{pendingCount}</Badge>}
-            </SubTab>
-          </SubTabList>
+          <Link href={approvalsHref("leave")} data-testid="team-leave-link"
+            className="flex min-h-11 items-center justify-between gap-2 rounded-xl border border-border/50 bg-card px-4 py-3 text-sm hover:bg-accent/50">
+            <span>
+              Review team leave in <span className="font-medium">Personnel → Approvals</span>
+              {pendingCount > 0 && <Badge className="ml-2 h-4 min-w-4 px-1 text-[10px] bg-amber-500/20 text-amber-600">{pendingCount} pending</Badge>}
+            </span>
+            <ArrowRight className="h-4 w-4 text-muted-foreground" />
+          </Link>
         )}
 
         {showCreate && (
@@ -219,9 +176,9 @@ export default function TimeOffPage() {
         ) : displayRequests.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-border/60 bg-card/50 p-12 text-center">
             <CalendarOff className="mb-3 h-10 w-10 text-muted-foreground/40" />
-            <p className="text-sm font-medium">{tab === "team" ? "No team requests" : "No leave requests"}</p>
+            <p className="text-sm font-medium">No leave requests</p>
             <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-              {tab === "team" ? "No leave requests from your team yet." : "Click \"Request Leave\" to submit your first request."}
+              Click &quot;Request Leave&quot; to submit your first request.
             </p>
           </div>
         ) : (
@@ -232,39 +189,19 @@ export default function TimeOffPage() {
                   <CalendarOff className="h-5 w-5 text-orange-500" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm">
-                    {r.time_off_policies?.name ?? "Leave Request"}
-                    {tab === "team" && r.users && (
-                      <span className="text-muted-foreground font-normal"> — {formatMemberName(r.users ?? {})}</span>
-                    )}
-                  </p>
+                  <p className="font-medium text-sm">{r.time_off_policies?.name ?? "Leave Request"}</p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(r.start_date).toLocaleDateString()} — {new Date(r.end_date).toLocaleDateString()}
                   </p>
                   {r.note && <p className="text-xs text-muted-foreground mt-0.5">{r.note}</p>}
                 </div>
-                {tab === "team" && r.status === "pending" ? (
-                  <div className="flex gap-1.5">
-                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-green-600 border-green-500/30 hover:bg-green-500/10"
-                      onClick={() => handleReview(r.id, "approved")} disabled={reviewing === r.id}>
-                      {reviewing === r.id ? <Loader2 className="h-3 w-3 animate-spin" /> : "Approve"}
-                    </Button>
-                    <Button size="sm" variant="outline" className="h-7 px-2 text-xs text-red-600 border-red-500/30 hover:bg-red-500/10"
-                      onClick={() => handleReview(r.id, "denied")} disabled={reviewing === r.id}>
-                      Deny
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5">
-                    <Badge className={`text-[10px] ${statusColor(r.status)}`}>{r.status}</Badge>
-                    {tab === "mine" && (
-                      <button onClick={() => handleCancelRequest(r.id)} disabled={deletingReq === r.id}
-                        className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete request">
-                        {deletingReq === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
-                      </button>
-                    )}
-                  </div>
-                )}
+                <div className="flex items-center gap-1.5">
+                  <Badge className={`text-[10px] ${statusColor(r.status)}`}>{r.status}</Badge>
+                  <button onClick={() => handleCancelRequest(r.id)} disabled={deletingReq === r.id}
+                    className="rounded p-1 text-muted-foreground/40 hover:text-red-500 hover:bg-red-500/10" title="Delete request">
+                    {deletingReq === r.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+                  </button>
+                </div>
               </div>
             ))}
           </div>

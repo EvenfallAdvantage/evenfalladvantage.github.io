@@ -6,9 +6,8 @@ import React, { useEffect, useState, useCallback, useRef, Suspense } from "react
 import { useSearchParams } from "next/navigation";
 import {
   Users, Loader2,
-  CalendarOff,
   UserPlus,
-  BookOpenCheck, CalendarClock, FileEdit, FileText, Megaphone,
+  BookOpenCheck, CalendarClock, FileText, Megaphone,
   CheckCircle2,
   UsersRound,
   QrCode,
@@ -25,10 +24,9 @@ import {
 import { type HireResult } from "@/lib/services/hiring-orchestrator";
 import { usePageHeader } from "@/stores/page-header-store";
 import { OnboardingTab } from "./components/onboarding-tab";
-import { CorrectionsTab } from "./components/corrections-tab";
-import { LeaveTab } from "./components/leave-tab";
+import { ApprovalsTab } from "./components/approvals-tab";
+import { resolveStaffTab, type StaffTab, type ApprovalView } from "@/lib/personnel/staff-tabs";
 import { PostingsTab } from "./components/postings-tab";
-import { TimesheetsTab } from "./components/timesheets-tab";
 import { ReportsTab } from "./components/reports-tab";
 import { ApplicantsTab } from "./components/applicants-tab";
 import { RosterTab } from "./components/roster-tab";
@@ -44,7 +42,7 @@ type Member = Record<string, unknown> & {
   users?: { id?: string };
 };
 
-type Tab = "roster" | "timesheets" | "leave" | "forms" | "applicants" | "onboarding" | "corrections" | "postings" | "teams" | "public-reports" | "geofences";
+type Tab = StaffTab;
 
 /* ── Badge count state (lightweight — only counts, no full records) ── */
 interface TabCounts {
@@ -71,15 +69,20 @@ function AdminStaffPageInner() {
   const [joinCode, setJoinCode] = useState("");
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(true);
-  const initialTab = (searchParams.get("tab") as Tab) || "roster";
-  const [tab, setTab] = useState<Tab>(initialTab);
+  // Legacy ?tab=timesheets|corrections|leave links resolve to Approvals with that view.
+  const initial = resolveStaffTab(searchParams.get("tab"), searchParams.get("view"));
+  const [tab, setTab] = useState<Tab>(initial.tab);
+  const [approvalView, setApprovalView] = useState<ApprovalView>(initial.view);
 
   // Sync tab state with URL query param changes (e.g. sidebar nav clicks)
   const tabRef = useRef(tab);
   tabRef.current = tab;
   useEffect(() => {
-    const urlTab = searchParams.get("tab") as Tab | null;
-    if (urlTab && urlTab !== tabRef.current) setTab(urlTab);
+    const raw = searchParams.get("tab");
+    if (!raw) return;
+    const next = resolveStaffTab(raw, searchParams.get("view"));
+    if (next.tab !== tabRef.current) setTab(next.tab);
+    if (next.tab === "approvals") setApprovalView(next.view);
   }, [searchParams]);
 
   const [hireResult, setHireResult] = useState<HireResult | null>(null);
@@ -91,9 +94,7 @@ function AdminStaffPageInner() {
   useEffect(() => {
     const tabIcons: Record<string, React.ReactNode> = {
       roster: <Users className="h-5 w-5" />,
-      timesheets: <CalendarClock className="h-5 w-5" />,
-      corrections: <FileEdit className="h-5 w-5" />,
-      leave: <CalendarOff className="h-5 w-5" />,
+      approvals: <CalendarClock className="h-5 w-5" />,
       forms: <FileText className="h-5 w-5" />,
       postings: <Megaphone className="h-5 w-5" />,
       applicants: <UserPlus className="h-5 w-5" />,
@@ -150,6 +151,8 @@ function AdminStaffPageInner() {
     brandColor: c.brandColor ?? null,
   }));
 
+  const approvalsBadge = counts.pendingTimesheets + counts.pendingCorrections + counts.pendingLeave;
+
   if (loading) {
     return (
       <div className="flex justify-center py-24">
@@ -185,14 +188,13 @@ function AdminStaffPageInner() {
         {(() => {
           const groups: { label: string; keys: Tab[] }[] = [
             { label: "People", keys: ["roster", "teams", "onboarding", "applicants", "postings"] },
-            { label: "Time & pay", keys: ["timesheets", "corrections", "leave"] },
+            { label: "Time & pay", keys: ["approvals"] },
             { label: "Field", keys: ["forms", "public-reports", "geofences"] },
           ];
           const meta: Record<Tab, { label: string; badge: number }> = {
             roster: { label: `Roster (${members.length})`, badge: 0 }, teams: { label: "Teams", badge: 0 },
             geofences: { label: "Geofences", badge: 0 }, forms: { label: "Reports", badge: counts.pendingForms + counts.openIncidents },
-            "public-reports": { label: "Public Reports", badge: 0 }, timesheets: { label: "Timesheets", badge: counts.pendingTimesheets },
-            corrections: { label: "Corrections", badge: counts.pendingCorrections }, leave: { label: "Leave", badge: counts.pendingLeave },
+            "public-reports": { label: "Public Reports", badge: 0 }, approvals: { label: "Approvals", badge: approvalsBadge },
             postings: { label: "Postings", badge: counts.activePostings }, applicants: { label: "Applicants", badge: counts.newApplicants },
             onboarding: { label: "Onboarding", badge: 0 },
           };
@@ -217,9 +219,7 @@ function AdminStaffPageInner() {
             { key: "geofences" as Tab, label: "Geofences", badge: 0, icon: Target },
             { key: "forms" as Tab, label: "Reports", badge: counts.pendingForms + counts.openIncidents, icon: FileText },
             { key: "public-reports" as Tab, label: "Public Reports", badge: 0, icon: QrCode },
-            { key: "timesheets" as Tab, label: "Timesheets", badge: counts.pendingTimesheets, icon: CalendarClock },
-            { key: "corrections" as Tab, label: "Corrections", badge: counts.pendingCorrections, icon: FileEdit },
-            { key: "leave" as Tab, label: "Leave", badge: counts.pendingLeave, icon: CalendarOff },
+            { key: "approvals" as Tab, label: "Approvals", badge: approvalsBadge, icon: CalendarClock },
             { key: "postings" as Tab, label: "Postings", badge: counts.activePostings, icon: Megaphone },
             { key: "applicants" as Tab, label: "Applicants", badge: counts.newApplicants, icon: UserPlus },
             { key: "onboarding" as Tab, label: "Onboarding", badge: 0, icon: BookOpenCheck },
@@ -246,16 +246,15 @@ function AdminStaffPageInner() {
           />
         )}
 
-        {tab === "timesheets" && activeCompanyId && (
-          <TimesheetsTab activeCompanyId={activeCompanyId} canManage={canManage} />
-        )}
-
-        {tab === "corrections" && activeCompanyId && (
-          <CorrectionsTab activeCompanyId={activeCompanyId} canManage={canManage} />
-        )}
-
-        {tab === "leave" && activeCompanyId && (
-          <LeaveTab activeCompanyId={activeCompanyId} canManage={canManage} members={members} />
+        {tab === "approvals" && activeCompanyId && (
+          <ApprovalsTab
+            activeCompanyId={activeCompanyId}
+            canManage={canManage}
+            members={members}
+            view={approvalView}
+            onViewChange={setApprovalView}
+            counts={{ timesheets: counts.pendingTimesheets, corrections: counts.pendingCorrections, leave: counts.pendingLeave }}
+          />
         )}
 
         {tab === "forms" && activeCompanyId && (
