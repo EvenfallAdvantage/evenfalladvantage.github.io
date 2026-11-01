@@ -41,4 +41,17 @@ describe("SubTabs", () => {
     unmount();
     expect(usePageHeader.getState().inlineActionHosts).toBe(before);
   });
+
+  it("renders the page action right-aligned just below the tab strip, not above it", () => {
+    Element.prototype.scrollIntoView = vi.fn();
+    usePageHeader.getState().setHeader("T", "", null, <button>New Form</button>);
+    render(<Strip />);
+    const row = screen.getByTestId("tab-action-row");
+    expect(row.className).toMatch(/justify-end/);
+    const tablist = screen.getByRole("tablist");
+    expect(tablist.compareDocumentPosition(row) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(row.textContent).toBe("New Form");
+    cleanup();
+    usePageHeader.getState().clearHeader();
+  });
 });

@@ -202,7 +202,7 @@ export default function FormsPage() {
             </div>
           </div>
         )}
-        {/* New Form button moved to topbar header actions */}
+        {/* New Form: topbar on desktop; on phones, right-aligned just below the tabs (SubTabList). */}
 
         {/* Report type tabs */}
         {!selected && (

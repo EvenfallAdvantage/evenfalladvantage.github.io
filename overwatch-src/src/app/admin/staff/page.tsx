@@ -1,6 +1,6 @@
 "use client";
 
-import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
+import { SubTab, SubTabList, TabActionRow } from "@/components/ui/sub-tabs";
 import { countsAsPending } from "@/lib/timesheets/accidental";
 import React, { useEffect, useState, useCallback, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
@@ -236,6 +236,7 @@ function AdminStaffPageInner() {
             </SubTab>
           ))}
         </SubTabList>
+        <TabActionRow className="mt-0" />
 
         {/* ── Tab Content ── */}
         {shownTab === "roster" && activeCompanyId && (
