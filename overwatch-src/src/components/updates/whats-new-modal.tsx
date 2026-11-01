@@ -147,7 +147,7 @@ export function WhatsNewTriggerPill({
               </Badge>
             ) : (
               <span className="text-[10px] font-mono text-muted-foreground/70">
-                {RELEASES[0]?.version}
+                {LATEST_VERSION_LABEL}
               </span>
             )}
           </>
@@ -182,6 +182,9 @@ export function WhatsNewTriggerPill({
     </button>
   );
 }
+
+/** Latest version label, from the same merge (curated + build-time git) the changelog list uses. */
+const LATEST_VERSION_LABEL = mergeReleases(RELEASES, GENERATED_RELEASES)[0]?.version;
 
 /**
  * Single Roll-Up Modal + Full Changelog Dialog.
