@@ -53,7 +53,6 @@ export default function AdminSettingsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const internalUserId = useAuthStore((s) => s.user?.id ?? null);
-  const isOwner = activeCompany?.role === "owner";
   const isAdminPlus = ["owner", "admin"].includes(activeCompany?.role ?? "");
 
   // Loaded data
@@ -182,7 +181,8 @@ export default function AdminSettingsPage() {
             joinCode={joinCode}
             canRotateJoinCode={isAdminPlus}
           />
-          {isOwner && (
+          {/* Owners and admins: companies_update RLS allows both (is_company_owner_admin). */}
+          {isAdminPlus && (
             <FeatureVisibilitySection
               companyId={activeCompanyId!}
               initialHiddenTabs={hiddenTabs}
