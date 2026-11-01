@@ -233,7 +233,7 @@ export default function TrainingManagerPage() {
               <CardContent className="py-10 text-center">
                 <BookOpen className="h-10 w-10 mx-auto text-muted-foreground/30 mb-3" />
                 <p className="text-sm font-semibold">No training content yet</p>
-                <p className="text-xs text-muted-foreground mt-1">Create modules in Training Admin and quizzes in Drills to track staff progress here.</p>
+                <p className="text-xs text-muted-foreground mt-1">Create modules in Training HQ and quizzes in Drills to track staff progress here.</p>
               </CardContent>
             </Card>
           )}
@@ -300,7 +300,7 @@ export default function TrainingManagerPage() {
               <CardContent className="py-8 text-center">
                 <BookOpen className="h-8 w-8 mx-auto text-muted-foreground/30 mb-2" />
                 <p className="text-sm font-semibold">No modules yet</p>
-                <p className="text-xs text-muted-foreground">Create modules in Training Admin</p>
+                <p className="text-xs text-muted-foreground">Create modules in Training HQ</p>
               </CardContent>
             </Card>
           ) : (

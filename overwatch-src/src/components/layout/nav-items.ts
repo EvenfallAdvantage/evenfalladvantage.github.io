@@ -32,12 +32,13 @@ export const NAV_SECTIONS: NavSection[] = [
         href: "/academy",
         icon: "School",
         children: [
+          // Learn → Practice → Prove → Reference
           { title: "Academy Hub", href: "/academy", icon: "Compass" },
-          { title: "Field Manual", href: "/knowledge-base", icon: "BookOpen" },
-          { title: "De-Escalation", href: "/training/scenarios", icon: "MessageCircle" },
-          { title: "State Laws", href: "/state-laws", icon: "Scale" },
           { title: "Courses", href: "/courses", icon: "Video" },
+          { title: "De-Escalation", href: "/training/scenarios", icon: "MessageCircle" },
           { title: "Certifications", href: "/certifications", icon: "Award" },
+          { title: "Field Manual", href: "/knowledge-base", icon: "BookOpen" },
+          { title: "State Laws", href: "/state-laws", icon: "Scale" },
         ],
       },
       {
@@ -86,17 +87,10 @@ export const NAV_SECTIONS: NavSection[] = [
         roles: ["owner", "admin", "manager"],
       },
       {
-        title: "Training Admin",
+        title: "Training HQ",
         href: "/admin/training",
         icon: "NotebookPen",
-        roles: ["owner", "admin", "manager"],
-      },
-      {
-        title: "Instructor HQ",
-        href: "/admin/instructor",
-        icon: "GraduationCap",
-        roles: ["owner", "admin", "instructor"],
-        trainingProviderOnly: true,
+        roles: ["owner", "admin", "manager", "instructor"],
       },
       {
         title: "Security",

@@ -1,38 +1,75 @@
 "use client";
 
 import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
-import { useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
-  GraduationCap, Plus, HelpCircle, BookOpen, BarChart3,
+  GraduationCap, Plus, HelpCircle, BookOpen, BarChart3, Calendar, Users, ClipboardCheck, AlertTriangle, Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePageHeader } from "@/stores/page-header-store";
+import { canSeeAllTrainingClasses, type CompanyRole } from "@/lib/permissions";
+import { ensureInternalUser } from "@/lib/supabase/db-helpers";
+import { logger } from "@/lib/logger";
+import { resolveTrainingTab, visibleTrainingTabs, type TrainingHqTab } from "@/lib/training/hq-tabs";
 import type { TrainingModule } from "@/types";
 import { ModulesTab } from "./components/modules-tab";
 import { QuestionBankTab } from "./components/question-bank-tab";
 import { StaffProgressTab } from "./components/staff-progress-tab";
+import { CoursesTab } from "../instructor/components/courses-tab";
+import { ClassesTab } from "../instructor/components/classes-tab";
+import { StudentsTab } from "../instructor/components/students-tab";
+import { AssessmentsTab } from "../instructor/components/assessments-tab";
 
-export default function AdminTrainingPage() {
+const TAB_META: Record<TrainingHqTab, { label: string; icon: React.ElementType }> = {
+  modules: { label: "Modules", icon: GraduationCap },
+  questions: { label: "Question Bank", icon: HelpCircle },
+  progress: { label: "Staff Progress", icon: BarChart3 },
+  courses: { label: "Courses", icon: BookOpen },
+  classes: { label: "Classes", icon: Calendar },
+  students: { label: "Students", icon: Users },
+  assessments: { label: "Assessments", icon: ClipboardCheck },
+};
+
+function TrainingHqInner() {
+  const searchParams = useSearchParams();
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const user = useAuthStore((s) => s.user);
+  const role = (activeCompany?.role ?? "staff") as CompanyRole;
+  const isProvider = activeCompany?.isTrainingProvider ?? false;
+  const visible = useMemo(() => visibleTrainingTabs(role, isProvider), [role, isProvider]);
+  const hasInstructor = visible.includes("courses");
 
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
-  const [tab, setTab] = useState<"modules" | "questions" | "progress">("modules");
+  const [picked, setTab] = useState<TrainingHqTab | null>(null);
+  // Role can load after first render; derive a valid tab instead of syncing state.
+  const tab: TrainingHqTab | null = picked && visible.includes(picked) ? picked : resolveTrainingTab(searchParams.get("tab"), visible);
 
-  // Shared state lifted so modules list is available across tabs
   const [modules, setModules] = useState<TrainingModule[]>([]);
-
-  // New module form toggle (declared before useEffect that references it)
   const [showNewModule, setShowNewModule] = useState(false);
-
-  // Question Bank show form toggle (declared before useEffect that references it)
   const [showNewQ, setShowNewQ] = useState(false);
+  const [triggerNew, setTriggerNew] = useState(0);
+  const [instructorId, setInstructorId] = useState<string | null>(null);
+  const [linking, setLinking] = useState(false);
+
+  const linkInstructor = useCallback(async () => {
+    if (!user?.id || !hasInstructor) return;
+    setLinking(true);
+    // Instructor identity is the Overwatch users.id.
+    try { setInstructorId(await ensureInternalUser()); }
+    catch (e) { logger.swallow("training-hq:user", e, "warn"); }
+    finally { setLinking(false); }
+  }, [user?.id, hasInstructor]);
+
+  useEffect(() => { linkInstructor(); }, [linkInstructor]);
 
   useEffect(() => {
-    setHeader("TRAINING ADMIN", "Manage training modules, slides, and assessment questions",
-      tab === "questions" ? <HelpCircle className="h-5 w-5" /> : tab === "progress" ? <BarChart3 className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />,
+    const Icon = tab ? TAB_META[tab].icon : GraduationCap;
+    const action =
       tab === "modules" ? (
         <Button onClick={() => setShowNewModule(true)} className="gap-1.5" disabled={showNewModule}>
           <Plus className="h-4 w-4" /> New Module
@@ -41,55 +78,72 @@ export default function AdminTrainingPage() {
         <Button onClick={() => setShowNewQ(true)} className="gap-1.5" disabled={showNewQ}>
           <Plus className="h-4 w-4" /> New Question
         </Button>
-      ) : undefined
-    );
+      ) : tab === "courses" ? (
+        <Button size="sm" className="gap-1.5" onClick={() => setTriggerNew((n) => n + 1)}>
+          <Plus className="h-3.5 w-3.5" /> New Course
+        </Button>
+      ) : tab === "classes" ? (
+        <Button size="sm" className="gap-1.5" onClick={() => setTriggerNew((n) => n + 1)} disabled={!instructorId}>
+          <Plus className="h-3.5 w-3.5" /> Schedule Class
+        </Button>
+      ) : tab === "assessments" ? (
+        <Button size="sm" className="gap-1.5" onClick={() => setTriggerNew((n) => n + 1)}>
+          <Plus className="h-3.5 w-3.5" /> New Assessment
+        </Button>
+      ) : undefined;
+    setHeader("TRAINING HQ", "Modules, courses, classes, students and progress", <Icon className="h-5 w-5" />, action);
     return () => clearHeader();
-  }, [setHeader, clearHeader, tab, showNewModule, showNewQ]);
+  }, [setHeader, clearHeader, tab, showNewModule, showNewQ, instructorId]);
+
+  if (!tab) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 gap-3 text-center">
+        <AlertTriangle className="h-10 w-10 text-amber-500" />
+        <h2 className="text-lg font-bold">Access Denied</h2>
+        <p className="text-sm text-muted-foreground max-w-sm">
+          Training HQ is available to managers and above, and to instructors of a training provider company.
+        </p>
+      </div>
+    );
+  }
+
+  const isInstructorTab = tab === "courses" || tab === "classes" || tab === "students" || tab === "assessments";
 
   return (
-    <>
-      <div className="space-y-4">
-        {/* Tabs */}
-        <div>
-          <SubTabList>
-            <SubTab active={tab === "modules"} onClick={() => setTab("modules")} icon={GraduationCap}>
-              Modules
-            </SubTab>
-            <SubTab active={tab === "questions"} onClick={() => setTab("questions")} icon={HelpCircle}>
-              Question Bank
-            </SubTab>
-            <SubTab active={tab === "progress"} onClick={() => setTab("progress")} icon={BarChart3}>
-              Staff Progress
-            </SubTab>
-          </SubTabList>
+    <div className="space-y-4">
+      <SubTabList>
+        {visible.map((t) => (
+          <SubTab key={t} active={tab === t} onClick={() => setTab(t)} icon={TAB_META[t].icon}>
+            {TAB_META[t].label}
+          </SubTab>
+        ))}
+      </SubTabList>
+
+      {tab === "modules" && (
+        <ModulesTab activeCompanyId={activeCompanyId} showNewModule={showNewModule} setShowNewModule={setShowNewModule} modules={modules} setModules={setModules} />
+      )}
+      {tab === "questions" && (
+        <QuestionBankTab activeCompanyId={activeCompanyId} modules={modules} showNewQ={showNewQ} setShowNewQ={setShowNewQ} />
+      )}
+      {tab === "progress" && <StaffProgressTab activeCompanyId={activeCompanyId} modules={modules} />}
+
+      {isInstructorTab && linking ? (
+        <div className="flex flex-col items-center justify-center py-20 gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-sm text-muted-foreground">Loading your profile...</p>
         </div>
-
-        {tab === "modules" && (
-          <ModulesTab
-            activeCompanyId={activeCompanyId}
-            showNewModule={showNewModule}
-            setShowNewModule={setShowNewModule}
-            modules={modules}
-            setModules={setModules}
-          />
-        )}
-
-        {tab === "questions" && (
-          <QuestionBankTab
-            activeCompanyId={activeCompanyId}
-            modules={modules}
-            showNewQ={showNewQ}
-            setShowNewQ={setShowNewQ}
-          />
-        )}
-
-        {tab === "progress" && (
-          <StaffProgressTab
-            activeCompanyId={activeCompanyId}
-            modules={modules}
-          />
-        )}
-      </div>
-    </>
+      ) : (
+        <>
+          {tab === "courses" && <CoursesTab triggerNew={triggerNew} />}
+          {tab === "classes" && <ClassesTab instructorId={instructorId} triggerNew={triggerNew} seeAll={canSeeAllTrainingClasses(role)} />}
+          {tab === "students" && <StudentsTab instructorId={instructorId} />}
+          {tab === "assessments" && <AssessmentsTab triggerNew={triggerNew} />}
+        </>
+      )}
+    </div>
   );
+}
+
+export default function TrainingHqPage() {
+  return <Suspense fallback={<div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>}><TrainingHqInner /></Suspense>;
 }
