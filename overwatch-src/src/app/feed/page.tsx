@@ -68,7 +68,7 @@ export default function FeedPage() {
   };
 
   return (
-    <div className="space-y-6" data-dashboard={variant}>
+    <div className="flex flex-col gap-6" data-dashboard={variant}>
       {/* Active SOS alerts show on every page (components/sos/global-panic-listener). */}
       {dashboardSections(variant).map((s) => {
         const node = render(s);

@@ -62,7 +62,7 @@ export function Topbar({ sidebarCollapsed }: TopbarProps) {
           {icon && <span className="text-primary shrink-0">{icon}</span>}
           <div className="min-w-0">
             <h1 className="text-sm sm:text-base font-bold font-mono uppercase tracking-tight truncate leading-tight">{title}</h1>
-            {subtitle && <p className="text-[10px] text-muted-foreground truncate leading-tight">{subtitle}</p>}
+            {subtitle && <p className="mt-1 text-[10px] text-muted-foreground truncate leading-tight">{subtitle}</p>}
           </div>
         </div>
       )}
