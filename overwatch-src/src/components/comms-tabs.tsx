@@ -6,9 +6,6 @@ import { SubTab, SubTabLink, SubTabList } from "@/components/ui/sub-tabs";
 
 export type CommsTab = "briefings" | "channels" | "messages" | "external" | "scanner";
 
-export const COMMS_TITLE = "COMMS";
-export const COMMS_SUBTITLE = "Briefings, team channels, direct messages, radio scanner, and external groups";
-
 const TABS: { id: CommsTab; label: string; icon: typeof Hash; href: string }[] = [
   { id: "briefings", label: "Briefings", icon: Radar, href: "/updates" },
   { id: "channels", label: "Channels", icon: Hash, href: "/chat" },
@@ -18,8 +15,9 @@ const TABS: { id: CommsTab; label: string; icon: typeof Hash; href: string }[] =
 ];
 
 /**
- * The one Comms tab row, shared by /chat and /updates (Briefings) so every tab,
- * Scanner included, is always present and looks the same. Tabs handled on the
+ * The one Comms tab row, shared by /chat and /updates (Briefings), in the same
+ * SubTabList format as the Incidents/Forms report tabs, so every tab (Scanner
+ * included) is always present. Each tab's page keeps its own heading. Tabs handled on the
  * current page switch in place via onSelect; the rest navigate.
  */
 export function CommsTabs({ active, onSelect, counts = {} }: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { CommsTabs, COMMS_SUBTITLE, COMMS_TITLE } from "@/components/comms-tabs";
+import { CommsTabs } from "@/components/comms-tabs";
 import { useEffect, useState } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Hash, ExternalLink, Mail, Radio } from "lucide-react";
@@ -36,7 +36,7 @@ export default function ChatPage() {
   );
 
   useEffect(() => {
-    setHeader(COMMS_TITLE, COMMS_SUBTITLE,
+    setHeader("COMMS", "Team channels, direct messages, radio scanner, and external groups",
       tab === "external" ? <ExternalLink className="h-5 w-5" /> :
       tab === "messages" ? <Mail className="h-5 w-5" /> :
       tab === "scanner" ? <Radio className="h-5 w-5" /> :

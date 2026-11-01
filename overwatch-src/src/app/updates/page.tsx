@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
 import { Radar, Loader2 } from "lucide-react";
-import { CommsTabs, COMMS_SUBTITLE, COMMS_TITLE } from "@/components/comms-tabs";
+import { CommsTabs } from "@/components/comms-tabs";
 import { useAuthStore } from "@/stores/auth-store";
 import { getPosts, createPost, togglePinPost, deletePost, getChatChannels } from "@/lib/supabase/db";
 import { createClient } from "@/lib/supabase/client";
@@ -41,7 +41,7 @@ export default function UpdatesPage() {
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
   useEffect(() => {
-    setHeader(COMMS_TITLE, COMMS_SUBTITLE, <Radar className="h-5 w-5" />);
+    setHeader("BRIEFINGS", "Team briefings and announcements", <Radar className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
