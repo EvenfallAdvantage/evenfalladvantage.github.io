@@ -12,17 +12,30 @@ import { MobilePageAction } from "@/components/mobile-page-action";
  * Layout-stable by construction:
  * - every tab always renders its icon (only the colour changes), so a click never
  *   changes any tab's width;
- * - on phones the page's header action sits at the right of this row (fixed slot)
- *   instead of in a row above it that appears/disappears per tab.
+ * - on phones the page's header action sits in a right-aligned row just below the
+ *   strip (TabActionRow), never above the tabs.
  */
-export function SubTabList({ children, className, hostAction = true }: { children: ReactNode; className?: string; hostAction?: boolean }) {
-  const ref = useRef<HTMLDivElement>(null);
+/**
+ * Phone-only, right-aligned row for the page's header action, placed just below a tab
+ * strip (or tab picker). While mounted, the shell's above-content action row is suppressed.
+ */
+export function TabActionRow({ className }: { className?: string }) {
   const add = usePageHeader((s) => s.addInlineActionHost);
+  const hasActions = usePageHeader((s) => !!s.actions);
   useEffect(() => {
-    if (!hostAction) return;
     add(1);
     return () => add(-1);
-  }, [add, hostAction]);
+  }, [add]);
+  if (!hasActions) return null;
+  return (
+    <div data-testid="tab-action-row" className={cn("mt-2 flex justify-end sm:hidden", className)}>
+      <MobilePageAction />
+    </div>
+  );
+}
+
+export function SubTabList({ children, className, hostAction = true }: { children: ReactNode; className?: string; hostAction?: boolean }) {
+  const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     // Scroll the strip itself, not scrollIntoView(): in Chrome scrollIntoView moves the
     // sequential-focus starting point, so the first Tab skipped the skip link + nav (WCAG 2.4.3).
@@ -34,14 +47,15 @@ export function SubTabList({ children, className, hostAction = true }: { childre
       else if (r > strip.scrollLeft + strip.clientWidth) strip.scrollLeft = r - strip.clientWidth;
     }
   });
-  return (
+  const strip = (
     <div className={cn("flex items-center gap-2", className)}>
       <div ref={ref} role="tablist" className="flex min-w-0 gap-1 rounded-lg bg-muted/50 p-1 w-fit overflow-x-auto max-w-full scrollbar-hide">
         {children}
       </div>
-      {hostAction && <div className="ml-auto sm:hidden"><MobilePageAction /></div>}
     </div>
   );
+  if (!hostAction) return strip;
+  return <div>{strip}<TabActionRow /></div>;
 }
 
 export function SubTab({ active, onClick, icon: Icon, children, className, disabled, title }: {
