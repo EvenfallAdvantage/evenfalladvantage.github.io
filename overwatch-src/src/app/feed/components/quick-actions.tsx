@@ -2,16 +2,17 @@
 
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { QUICK_ACTIONS } from "./shared";
+import { quickActionsFor } from "./shared";
+import type { DashboardVariant } from "@/lib/dashboard/layout";
 
-export function QuickActions() {
+export function QuickActions({ variant = "officer" }: { variant?: DashboardVariant }) {
   return (
     <div>
       <h2 className="mb-3 section-title">
         Quick Actions
       </h2>
       <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-        {QUICK_ACTIONS.map((action) => (
+        {quickActionsFor(variant).map((action) => (
           <Link key={action.href} href={action.href}>
             <Card className="group cursor-pointer border-border/40 transition-all hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5">
               <CardContent className="flex flex-col items-center gap-2 p-4">

@@ -56,7 +56,7 @@ export function KpiCards({ activeCompanyId }: KpiCardsProps) {
       icon: AlertTriangle,
       color: metrics.openIncidents > 0 ? "text-red-500" : "text-muted-foreground",
       bg: metrics.openIncidents > 0 ? "bg-red-500/10" : "bg-muted",
-      href: "#analytics",
+      href: "/admin/analytics",
       trend: trends?.incidents,
       trendColor: "#ef4444",
     },

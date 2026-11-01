@@ -13,7 +13,13 @@ import {
   MessageCircle,
   Scale,
   Award,
+  Clock,
+  Inbox,
+  Users,
+  BarChart3,
+  type LucideIcon,
 } from "lucide-react";
+import { QUICK_ACTION_HREFS, quickActionKeys, type DashboardVariant, type QuickActionKey } from "@/lib/dashboard/layout";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Timesheet = any;
@@ -129,14 +135,22 @@ export const PROVIDER_LABELS: Record<string, string> = {
   checkr: "Checkr", docusign: "DocuSign", gusto: "Gusto", airtable: "Airtable",
 };
 
-export const QUICK_ACTIONS = [
-  { title: "Comms", href: "/chat", icon: Radio, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { title: "Incidents", href: "/incidents", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" },
-  { title: "Patrols", href: "/patrols", icon: Footprints, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { title: "Deployments", href: "/schedule", icon: CalendarDays, color: "text-amber-500", bg: "bg-amber-500/10" },
-  { title: "Forms", href: "/forms", icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10" },
-  { title: "Training", href: "/academy", icon: GraduationCap, color: "text-violet-500", bg: "bg-violet-500/10" },
-];
+export const QUICK_ACTION_META: Record<QuickActionKey, { title: string; icon: LucideIcon; color: string; bg: string }> = {
+  clock: { title: "Clock", icon: Clock, color: "text-sky-500", bg: "bg-sky-500/10" },
+  incidents: { title: "Incidents", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" },
+  patrols: { title: "Patrols", icon: Footprints, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+  forms: { title: "Forms", icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10" },
+  comms: { title: "Comms", icon: Radio, color: "text-blue-500", bg: "bg-blue-500/10" },
+  training: { title: "Training", icon: GraduationCap, color: "text-violet-500", bg: "bg-violet-500/10" },
+  approvals: { title: "Approvals", icon: Inbox, color: "text-amber-500", bg: "bg-amber-500/10" },
+  deployments: { title: "Deployments", icon: CalendarDays, color: "text-amber-600", bg: "bg-amber-600/10" },
+  personnel: { title: "Personnel", icon: Users, color: "text-teal-500", bg: "bg-teal-500/10" },
+  analytics: { title: "Analytics", icon: BarChart3, color: "text-indigo-500", bg: "bg-indigo-500/10" },
+};
+
+export function quickActionsFor(variant: DashboardVariant) {
+  return quickActionKeys(variant).map((k) => ({ key: k, href: QUICK_ACTION_HREFS[k], ...QUICK_ACTION_META[k] }));
+}
 
 export const TOOLS_GRID = [
   { title: "Geo-Risk", href: "/geo-risk", icon: MapPin, color: "text-cyan-500", bg: "bg-cyan-500/10", desc: "Location risk intel" },
