@@ -3,10 +3,11 @@
 import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { setVisibleInterval } from "@/lib/visible-interval";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
+import { resolveClockTab, type ClockTab } from "@/lib/timeclock/clock-tabs";
 import { Suspense } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { Clock, Loader2, ScanLine, ListChecks, Footprints } from "lucide-react";
+import { Clock, Loader2, ScanLine } from "lucide-react";
 import { cachedRead, isOffline, writeCache } from "@/lib/offline/cached-read";
 import { clockInOffline, clockOutOffline, isPendingSync } from "@/lib/offline/with-offline";
 import {
@@ -34,8 +35,6 @@ import { DarSignoffModal } from "@/components/dar-signoff-modal";
 import { logger } from "@/lib/logger";
 
 const ScanPage = dynamic(() => import("@/app/scan/page"), { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
-const TasksPage = dynamic(() => import("@/app/tasks/page"), { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
-const PatrolsPage = dynamic(() => import("@/app/patrols/page"), { ssr: false, loading: () => <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div> });
 
 function TimeClockInner() {
   const searchParams = useSearchParams();
@@ -44,9 +43,15 @@ function TimeClockInner() {
   const authUser = useAuthStore((s) => s.user);
   const companyId = activeCompany?.companyId ?? "";
 
-  const initialTab = searchParams.get("tab") === "mass-clock" ? "mass-clock" : searchParams.get("tab") === "tasks" ? "tasks" : searchParams.get("tab") === "patrols" ? "patrols" : "clock";
-  const [watchTab, setWatchTab] = useState<"clock" | "mass-clock" | "tasks" | "patrols">(initialTab as "clock" | "mass-clock" | "tasks" | "patrols");
+  const router = useRouter();
   const isManager = hasMinRole((activeCompany?.role ?? "staff") as CompanyRole, "manager");
+  const resolved = resolveClockTab(searchParams.get("tab"), isManager);
+  const [watchTab, setWatchTab] = useState<ClockTab>(resolved.tab);
+
+  // Old ?tab=tasks / ?tab=patrols links now go to their own screens.
+  useEffect(() => {
+    if (resolved.redirect) router.replace(resolved.redirect);
+  }, [resolved.redirect, router]);
 
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
@@ -55,8 +60,6 @@ function TimeClockInner() {
     const icons: Record<string, React.ReactNode> = {
       "clock": <Clock className="h-5 w-5" />,
       "mass-clock": <ScanLine className="h-5 w-5" />,
-      "tasks": <ListChecks className="h-5 w-5" />,
-      "patrols": <Footprints className="h-5 w-5" />,
     };
     setHeader("CLOCK", "Clock in/out and track your duty hours", icons[watchTab] ?? <Clock className="h-5 w-5" />);
     return () => clearHeader();
@@ -257,12 +260,6 @@ function TimeClockInner() {
               Mass Clock
             </SubTab>
           )}
-          <SubTab active={watchTab === "tasks"} onClick={() => setWatchTab("tasks")} icon={ListChecks}>
-            Tasks
-          </SubTab>
-          <SubTab active={watchTab === "patrols"} onClick={() => setWatchTab("patrols")} icon={Footprints}>
-            Patrols
-          </SubTab>
         </SubTabList>
 
         {/* Clock Tab Content */}
@@ -280,13 +277,8 @@ function TimeClockInner() {
         </>}
 
         {/* Mass Clock Tab Content */}
-                {watchTab === "mass-clock" && isManager && <ScanPage embedded />}
+        {watchTab === "mass-clock" && isManager && <ScanPage embedded />}
 
-        {/* Tasks Tab Content */}
-        {watchTab === "tasks" && <TasksPage embedded />}
-
-        {/* Patrols Tab Content */}
-        {watchTab === "patrols" && <PatrolsPage embedded />}
       </div>
 
       {selectedEntry && (
