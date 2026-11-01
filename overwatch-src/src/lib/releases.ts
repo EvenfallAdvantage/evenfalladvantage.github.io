@@ -237,8 +237,9 @@ export function matchReleaseCommitSubject(
   const conv = /^(feat|fix|perf)(?:\(([^)]+)\))?!?:\s*(.+)$/i.exec(subject);
   if (conv) return { type: conv[1].toLowerCase(), scope: (conv[2] ?? "").trim(), desc: conv[3].replace(/\s*\(#\d+\)\s*$/, "").trim() };
   if (!/\(#\d+\)\s*$/.test(subject)) return null;
-  if (/^(chore|docs|ci|test|tests|build|style|refactor|revert|merge)\b/i.test(subject)) return null;
-  if (/^[a-z]+(\([^)]*\))?!?:/i.test(subject)) return null;
+  // Non-release conventional types. Any other "Area: ..." prefix (UX:, Personnel:, HQ Config:)
+  // is a plain PR title and stays in, with the prefix kept as part of the title.
+  if (/^(chore|docs|ci|test|tests|build|style|refactor|revert|merge|wip|release|deps)\b/i.test(subject)) return null;
   return { type: "feat", scope: "", desc: subject.replace(/\s*\(#\d+\)\s*$/, "").trim() };
 }
 
