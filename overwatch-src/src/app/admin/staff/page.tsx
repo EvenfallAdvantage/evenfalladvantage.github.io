@@ -3,15 +3,13 @@
 import { SubTab, SubTabList } from "@/components/ui/sub-tabs";
 import { countsAsPending } from "@/lib/timesheets/accidental";
 import React, { useEffect, useState, useCallback, useRef, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import {
   Users, Loader2,
   UserPlus,
   BookOpenCheck, CalendarClock, FileText, Megaphone,
   CheckCircle2,
   UsersRound,
-  QrCode,
-  Target,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuthStore } from "@/stores/auth-store";
@@ -25,14 +23,12 @@ import { type HireResult } from "@/lib/services/hiring-orchestrator";
 import { usePageHeader } from "@/stores/page-header-store";
 import { OnboardingTab } from "./components/onboarding-tab";
 import { ApprovalsTab } from "./components/approvals-tab";
-import { resolveStaffTab, type StaffTab, type ApprovalView } from "@/lib/personnel/staff-tabs";
+import { resolveStaffTab, type StaffTab, type ApprovalView, type FormsView } from "@/lib/personnel/staff-tabs";
 import { PostingsTab } from "./components/postings-tab";
-import { ReportsTab } from "./components/reports-tab";
 import { ApplicantsTab } from "./components/applicants-tab";
 import { RosterTab } from "./components/roster-tab";
 import { TeamsTab } from "./components/teams-tab";
-import { PublicReportsTab } from "./components/public-reports-tab";
-import { GeofencesTab } from "./components/geofences-tab";
+import { FormsTab } from "./components/forms-tab";
 import { getCompanyPostings } from "@/lib/supabase/db-postings";
 import { logger } from "@/lib/logger";
 
@@ -73,6 +69,12 @@ function AdminStaffPageInner() {
   const initial = resolveStaffTab(searchParams.get("tab"), searchParams.get("view"));
   const [tab, setTab] = useState<Tab>(initial.tab);
   const [approvalView, setApprovalView] = useState<ApprovalView>(initial.view);
+  const [formsView, setFormsView] = useState<FormsView>(initial.formsView);
+  const router = useRouter();
+  // Geofences moved to Operations; old ?tab=geofences links follow it.
+  useEffect(() => {
+    if (initial.redirect) router.replace(initial.redirect);
+  }, [initial.redirect, router]);
 
   // Sync tab state with URL query param changes (e.g. sidebar nav clicks)
   const tabRef = useRef(tab);
@@ -82,8 +84,10 @@ function AdminStaffPageInner() {
     if (!raw) return;
     const next = resolveStaffTab(raw, searchParams.get("view"));
     if (next.tab !== tabRef.current) setTab(next.tab);
+    if (next.redirect) { router.replace(next.redirect); return; }
     if (next.tab === "approvals") setApprovalView(next.view);
-  }, [searchParams]);
+    if (next.tab === "forms") setFormsView(next.formsView);
+  }, [searchParams, router]);
 
   const [hireResult, setHireResult] = useState<HireResult | null>(null);
   const [counts, setCounts] = useState<TabCounts>(ZERO_COUNTS);
@@ -100,8 +104,6 @@ function AdminStaffPageInner() {
       applicants: <UserPlus className="h-5 w-5" />,
       onboarding: <BookOpenCheck className="h-5 w-5" />,
       teams: <UsersRound className="h-5 w-5" />,
-      "public-reports": <QrCode className="h-5 w-5" />,
-      geofences: <Target className="h-5 w-5" />,
     };
     setHeader(
       "PERSONNEL",
@@ -189,12 +191,12 @@ function AdminStaffPageInner() {
           const groups: { label: string; keys: Tab[] }[] = [
             { label: "People", keys: ["roster", "teams", "onboarding", "applicants", "postings"] },
             { label: "Time & pay", keys: ["approvals"] },
-            { label: "Field", keys: ["forms", "public-reports", "geofences"] },
+            { label: "Field", keys: ["forms"] },
           ];
           const meta: Record<Tab, { label: string; badge: number }> = {
             roster: { label: `Roster (${members.length})`, badge: 0 }, teams: { label: "Teams", badge: 0 },
-            geofences: { label: "Geofences", badge: 0 }, forms: { label: "Forms", badge: counts.pendingForms + counts.openIncidents },
-            "public-reports": { label: "Public Reports", badge: 0 }, approvals: { label: "Approvals", badge: approvalsBadge },
+            forms: { label: "Forms", badge: counts.pendingForms + counts.openIncidents },
+            approvals: { label: "Approvals", badge: approvalsBadge },
             postings: { label: "Postings", badge: counts.activePostings }, applicants: { label: "Applicants", badge: counts.newApplicants },
             onboarding: { label: "Onboarding", badge: 0 },
           };
@@ -216,9 +218,7 @@ function AdminStaffPageInner() {
           {([
             { key: "roster" as Tab, label: `Roster (${members.length})`, badge: 0, icon: Users },
             { key: "teams" as Tab, label: "Teams", badge: 0, icon: UsersRound },
-            { key: "geofences" as Tab, label: "Geofences", badge: 0, icon: Target },
             { key: "forms" as Tab, label: "Forms", badge: counts.pendingForms + counts.openIncidents, icon: FileText },
-            { key: "public-reports" as Tab, label: "Public Reports", badge: 0, icon: QrCode },
             { key: "approvals" as Tab, label: "Approvals", badge: approvalsBadge, icon: CalendarClock },
             { key: "postings" as Tab, label: "Postings", badge: counts.activePostings, icon: Megaphone },
             { key: "applicants" as Tab, label: "Applicants", badge: counts.newApplicants, icon: UserPlus },
@@ -258,7 +258,7 @@ function AdminStaffPageInner() {
         )}
 
         {tab === "forms" && activeCompanyId && (
-          <ReportsTab activeCompanyId={activeCompanyId} canManage={canManage} />
+          <FormsTab activeCompanyId={activeCompanyId} canManage={canManage} view={formsView} onViewChange={setFormsView} pendingSubmissions={counts.pendingForms + counts.openIncidents} />
         )}
 
         {tab === "postings" && activeCompanyId && (
@@ -284,13 +284,6 @@ function AdminStaffPageInner() {
           <TeamsTab activeCompanyId={activeCompanyId} canManage={canManage} />
         )}
 
-        {tab === "public-reports" && activeCompanyId && (
-          <PublicReportsTab activeCompanyId={activeCompanyId} canManage={canManage} />
-        )}
-
-        {tab === "geofences" && activeCompanyId && (
-          <GeofencesTab activeCompanyId={activeCompanyId} canManage={canManage} />
-        )}
       </div>
     </>
   );

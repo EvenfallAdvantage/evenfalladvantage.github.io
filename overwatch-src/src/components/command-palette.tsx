@@ -8,7 +8,7 @@ import {
   School, BookOpen, MessageCircle, Scale, Video, Award,
   MapPin, ClipboardCheck, FileText, CalendarOff, Flag, UserCog,
   NotebookPen, GraduationCap, ShieldAlert, Activity, User,
-  Bell, Search, ScanLine, Settings, ListChecks, BarChart3,
+  Bell, Search, ScanLine, Settings, ListChecks, BarChart3, Target,
 } from "lucide-react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useAuthStore } from "@/stores/auth-store";
@@ -19,7 +19,7 @@ const ICON_MAP: Record<string, React.ElementType> = {
   School, BookOpen, MessageCircle, Scale, Video, Award,
   MapPin, ClipboardCheck, FileText, CalendarOff, Flag, UserCog,
   NotebookPen, GraduationCap, ShieldAlert, Activity, User,
-  Bell, Search, ScanLine, Settings, ListChecks, BarChart3,
+  Bell, Search, ScanLine, Settings, ListChecks, BarChart3, Target,
 };
 
 interface CommandItem {
@@ -52,6 +52,7 @@ const COMMANDS: CommandItem[] = [
   { label: "Invoices", href: "/invoices", icon: "FileText", keywords: "billing invoice" },
   { label: "Leave", href: "/time-off", icon: "CalendarOff", keywords: "time off vacation pto" },
   { label: "Forms", href: "/forms", icon: "FileText", keywords: "forms submissions reports" },
+  { label: "Geofences", href: "/schedule?tab=geofences", icon: "Target", keywords: "geofence zones perimeter clock-in radius", roles: ["owner", "admin", "manager"] },
   { label: "Patrols", href: "/patrols", icon: "ScanLine", keywords: "checkpoints routes" },
   // Profile
   { label: "Profile", href: "/profile", icon: "User", keywords: "my profile account" },
