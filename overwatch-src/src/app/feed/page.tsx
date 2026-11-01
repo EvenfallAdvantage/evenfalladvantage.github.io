@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
-import { LayoutDashboard, BarChart3 } from "lucide-react";
-import { hasMinRole, type CompanyRole } from "@/lib/permissions";
+import { useEffect, type ReactNode } from "react";
+import { LayoutDashboard } from "lucide-react";
 import { DashboardSkeleton } from "@/components/loading-skeleton";
 import { useAuthStore } from "@/stores/auth-store";
 import { usePageHeader } from "@/stores/page-header-store";
+import { dashboardSections, dashboardVariant, type DashboardSection } from "@/lib/dashboard/layout";
 
 import { OnboardingBanner } from "./components/onboarding-banner";
 import { ActionRequired } from "./components/action-required";
@@ -18,15 +18,13 @@ import { IntelCenter } from "./components/intel-center";
 import { ComplianceWidget } from "./components/compliance-widget";
 import { OvertimeWidget } from "./components/overtime-widget";
 import { ProfessionalTools } from "./components/professional-tools";
-import { AnalyticsView } from "@/components/analytics/analytics-view";
 import { formatMemberName } from "@/lib/format-names";
 
 export default function FeedPage() {
   const { user, activeCompanyId, getActiveCompany } = useAuthStore();
   const activeCompany = getActiveCompany();
-  const role = activeCompany?.role ?? "staff";
   const hiddenTabs = new Set<string>(activeCompany?.settings?.hiddenTabs ?? []);
-  const isLeadership = hasMinRole((role ?? "staff") as CompanyRole, "manager");
+  const variant = dashboardVariant(activeCompany?.role);
 
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
@@ -47,69 +45,35 @@ export default function FeedPage() {
     return <DashboardSkeleton />;
   }
 
-  const validCompanyId = activeCompanyId ?? null;
+  const cid = activeCompanyId ?? null;
+
+  const render = (section: DashboardSection): ReactNode => {
+    switch (section) {
+      case "onboarding": return <OnboardingBanner user={user} />;
+      case "action-required": return cid ? <ActionRequired activeCompanyId={cid} /> : null;
+      case "pinned-briefing": return cid ? <PinnedBriefing activeCompanyId={cid} userId={user.id} /> : null;
+      case "my-post": return cid ? <MyPostCard activeCompanyId={cid} /> : null;
+      case "duty-status": return <DutyStatus activeCompanyId={activeCompanyId} />;
+      case "kpis": return cid ? <KpiCards activeCompanyId={cid} /> : null;
+      case "quick-actions": return <QuickActions variant={variant} />;
+      case "compliance-overtime": return cid ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ComplianceWidget activeCompanyId={cid} />
+          <OvertimeWidget activeCompanyId={cid} />
+        </div>
+      ) : null;
+      case "intel": return cid ? <IntelCenter activeCompanyId={cid} /> : null;
+      case "professional-tools": return <ProfessionalTools hiddenTabs={hiddenTabs} />;
+    }
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Active SOS alerts now show on every page (components/sos/global-panic-listener). */}
-
-      {/* No-company onboarding banner */}
-      <OnboardingBanner user={user} />
-
-      {/* Action Required — leadership only */}
-      {isLeadership && validCompanyId && (
-        <ActionRequired activeCompanyId={validCompanyId} />
-      )}
-
-      {/* Pinned Briefing — always visible */}
-      {validCompanyId && (
-        <PinnedBriefing activeCompanyId={validCompanyId} userId={user.id} />
-      )}
-
-      {/* My Post (current or next shift + post orders acknowledgement) */}
-      {validCompanyId && (
-        <MyPostCard activeCompanyId={validCompanyId} />
-      )}
-
-      {/* Duty Status — THE hero widget */}
-      <DutyStatus activeCompanyId={activeCompanyId} />
-
-      {/* KPI Cards — leadership only */}
-      {isLeadership && validCompanyId && (
-        <KpiCards activeCompanyId={validCompanyId} />
-      )}
-
-      {/* Quick Actions Grid */}
-      <QuickActions />
-
-      {/* Compliance + Overtime — leadership only */}
-      {isLeadership && validCompanyId && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <ComplianceWidget activeCompanyId={validCompanyId} />
-          <OvertimeWidget activeCompanyId={validCompanyId} />
-        </div>
-      )}
-
-      {/* Intel Center — leadership only */}
-      {isLeadership && validCompanyId && (
-        <IntelCenter activeCompanyId={validCompanyId} />
-      )}
-
-      {/* Professional Tools */}
-      <ProfessionalTools hiddenTabs={hiddenTabs} />
-
-      {/* Analytics — leadership only */}
-      {isLeadership && (
-        <div id="analytics">
-          <div className="mb-3 flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            <h2 className="section-title">
-              Analytics
-            </h2>
-          </div>
-          <AnalyticsView />
-        </div>
-      )}
+    <div className="space-y-6" data-dashboard={variant}>
+      {/* Active SOS alerts show on every page (components/sos/global-panic-listener). */}
+      {dashboardSections(variant).map((s) => {
+        const node = render(s);
+        return node ? <div key={s} className="contents">{node}</div> : null;
+      })}
     </div>
   );
 }
