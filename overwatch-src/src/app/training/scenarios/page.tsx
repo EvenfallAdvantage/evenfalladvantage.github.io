@@ -346,7 +346,10 @@ export default function ScenariosPage() {
             const hasAudioContent = Object.keys(scenario.audioMap).length > 0;
             return (
               <Card key={scenario.id} className={`border-border/40 hover:border-primary/30 transition-all cursor-pointer overflow-hidden ${completed ? "border-green-500/20" : ""}`}
-                onClick={() => startScenario(scenario)}>
+                onClick={() => {
+                  if (scenario.contentNote && !window.confirm(`${scenario.contentNote}\n\nStart this scenario?`)) return;
+                  startScenario(scenario);
+                }}>
                 <CardContent className="p-0">
                   <div className="flex">
                     {/* Preview thumbnail */}
@@ -374,6 +377,9 @@ export default function ScenariosPage() {
                           )}
                         </div>
                         <p className="text-[10px] text-muted-foreground mt-0.5">{scenario.description}</p>
+                        {scenario.contentNote && (
+                          <p data-testid="scenario-content-note" className="text-[10px] text-amber-600 mt-1">{scenario.contentNote}</p>
+                        )}
                         <div className="flex items-center gap-2 mt-1.5">
                           {scenario.subjectId && (
                             <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">

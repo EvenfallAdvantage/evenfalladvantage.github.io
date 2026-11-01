@@ -37,4 +37,29 @@ describe("de-escalation scenario assets", () => {
     const s = scenarios.find((x) => x.id === "denied-entry-id")!;
     expect(Object.keys(s.audioMap).sort()).toEqual(Object.keys(s.steps).sort());
   });
+
+  it.each([
+    ["assault-disclosure", 4],
+    ["service-dog-entry", 5],
+  ] as const)("%s has subject %i images and audio for every step", (id, subject) => {
+    const s = scenarios.find((x) => x.id === id)!;
+    expect(s.subjectId).toBe(subject);
+    expect(Object.keys(s.audioMap).sort()).toEqual(Object.keys(s.steps).sort());
+    for (const state of STATES) {
+      expect(fs.existsSync(path.join(ROOT, `images/de_escalation/${subject}-${state}.jpg`))).toBe(true);
+    }
+  });
+
+  it("every choice points to an existing step", () => {
+    for (const s of scenarios) {
+      for (const step of Object.values(s.steps)) {
+        for (const c of step.choices ?? []) expect(s.steps[c.next], `${s.id}->${c.next}`).toBeDefined();
+      }
+    }
+  });
+
+  it("assault-disclosure has a content note with the RAINN hotline", () => {
+    const s = scenarios.find((x) => x.id === "assault-disclosure")!;
+    expect(s.contentNote).toMatch(/800-656-HOPE/);
+  });
 });
