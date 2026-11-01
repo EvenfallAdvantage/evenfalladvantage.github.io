@@ -81,7 +81,7 @@ export default function IncidentsPage() {
 
   useEffect(() => {
     setHeader(
-      "REPORTS",
+      "INCIDENTS",
       "Incident reports and field documentation",
       <AlertTriangle className="h-5 w-5" />,
       <div className="flex w-full gap-2 sm:w-auto">

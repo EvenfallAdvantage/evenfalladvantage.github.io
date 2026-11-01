@@ -58,7 +58,7 @@ function TimeClockInner() {
       "tasks": <ListChecks className="h-5 w-5" />,
       "patrols": <Footprints className="h-5 w-5" />,
     };
-    setHeader("WATCH LOG", "Clock in/out and track your duty hours", icons[watchTab] ?? <Clock className="h-5 w-5" />);
+    setHeader("CLOCK", "Clock in/out and track your duty hours", icons[watchTab] ?? <Clock className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader, watchTab]);
 

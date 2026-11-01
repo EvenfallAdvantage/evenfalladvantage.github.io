@@ -35,7 +35,7 @@ const COMMANDS: CommandItem[] = [
   { label: "Dashboard", href: "/feed", icon: "LayoutDashboard", keywords: "home feed" },
   { label: "Comms", href: "/chat", icon: "Radio", keywords: "chat messages channels" },
   { label: "Directory", href: "/directory", icon: "Users", keywords: "roster staff contacts" },
-  { label: "Watch Log", href: "/timeclock", icon: "Clock", keywords: "timeclock clock in out" },
+  { label: "Clock", href: "/timeclock", icon: "Clock", keywords: "timeclock clock in out watch log" },
   { label: "Incidents", href: "/incidents", icon: "AlertTriangle", keywords: "reports incidents" },
   { label: "Quick incident report", href: "/incidents?quick=1", icon: "AlertTriangle", keywords: "quick report incident fast" },
   { label: "Tasks", href: "/tasks", icon: "ListChecks", keywords: "tasks todo work assignments" },

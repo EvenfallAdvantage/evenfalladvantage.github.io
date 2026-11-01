@@ -134,7 +134,7 @@ export const QUICK_ACTIONS = [
   { title: "Incidents", href: "/incidents", icon: AlertTriangle, color: "text-red-500", bg: "bg-red-500/10" },
   { title: "Patrols", href: "/patrols", icon: Footprints, color: "text-emerald-500", bg: "bg-emerald-500/10" },
   { title: "Deployments", href: "/schedule", icon: CalendarDays, color: "text-amber-500", bg: "bg-amber-500/10" },
-  { title: "Reports", href: "/forms", icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10" },
+  { title: "Forms", href: "/forms", icon: ClipboardList, color: "text-rose-500", bg: "bg-rose-500/10" },
   { title: "Training", href: "/academy", icon: GraduationCap, color: "text-violet-500", bg: "bg-violet-500/10" },
 ];
 

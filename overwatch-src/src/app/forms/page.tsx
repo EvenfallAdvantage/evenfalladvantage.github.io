@@ -55,7 +55,7 @@ export default function FormsPage() {
 
   useEffect(() => {
     setHeader(
-      "REPORTS",
+      "FORMS",
       "Field reports, submissions, and documentation",
       <ClipboardList className="h-5 w-5" />,
       isAdmin ? (

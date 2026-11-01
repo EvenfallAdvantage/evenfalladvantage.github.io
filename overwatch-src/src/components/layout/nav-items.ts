@@ -18,8 +18,8 @@ export const NAV_SECTIONS: NavSection[] = [
     label: "Field Ops",
     items: [
       { title: "Operations", href: "/schedule", icon: "Globe" },
-      { title: "Watch Clock", href: "/timeclock", icon: "Clock" },
-      { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
+      { title: "Clock", href: "/timeclock", icon: "Clock" },
+      { title: "Incidents", href: "/incidents", icon: "AlertTriangle" },
     ],
   },
   {
@@ -63,13 +63,19 @@ export const NAV_SECTIONS: NavSection[] = [
           { title: "Roster", href: "/admin/staff?tab=roster", icon: "Users" },
           { title: "Teams", href: "/admin/staff?tab=teams", icon: "UsersRound" },
           { title: "Geofences", href: "/admin/staff?tab=geofences", icon: "Target" },
-          { title: "Reports", href: "/admin/staff?tab=forms", icon: "FileText" },
+          { title: "Forms", href: "/admin/staff?tab=forms", icon: "FileText" },
           { title: "Public Reports", href: "/admin/staff?tab=public-reports", icon: "QrCode" },
           { title: "Approvals", href: "/admin/staff?tab=approvals", icon: "CalendarClock" },
           { title: "Postings", href: "/admin/staff?tab=postings", icon: "Megaphone" },
           { title: "Applicants", href: "/admin/staff?tab=applicants", icon: "UserPlus" },
           { title: "Onboarding", href: "/admin/staff?tab=onboarding", icon: "BookOpenCheck" },
         ],
+      },
+      {
+        title: "Analytics",
+        href: "/admin/analytics",
+        icon: "BarChart3",
+        roles: ["owner", "admin", "manager"],
       },
       {
         title: "Ops Planning",
@@ -97,6 +103,12 @@ export const NAV_SECTIONS: NavSection[] = [
         roles: ["owner", "admin"],
       },
       {
+        title: "HQ Config",
+        href: "/admin/settings",
+        icon: "Settings",
+        roles: ["owner", "admin"],
+      },
+      {
         title: "System Health",
         href: "/admin/health",
         icon: "Activity",
@@ -107,8 +119,8 @@ export const NAV_SECTIONS: NavSection[] = [
 ];
 
 export const MOBILE_NAV_ITEMS: NavItem[] = [
-  { title: "Watch", href: "/timeclock", icon: "Clock" },
-  { title: "Reports", href: "/incidents", icon: "AlertTriangle" },
+  { title: "Clock", href: "/timeclock", icon: "Clock" },
+  { title: "Incidents", href: "/incidents", icon: "AlertTriangle" },
   { title: "Home", href: "/feed", icon: "LayoutDashboard" },
   { title: "Comms", href: "/chat", icon: "Radio" },
   { title: "More", href: "/more", icon: "Menu" },
@@ -122,8 +134,8 @@ export const MOBILE_NAV_ITEMS: NavItem[] = [
  */
 export const OFFICER_MOBILE_NAV_ITEMS: NavItem[] = [
   { title: "Clock", href: "/timeclock", icon: "Clock" },
-  { title: "Patrol", href: "/patrols", icon: "Footprints" },
-  { title: "Report", href: "/incidents", icon: "AlertTriangle" },
+  { title: "Patrols", href: "/patrols", icon: "Footprints" },
+  { title: "Incidents", href: "/incidents", icon: "AlertTriangle" },
   { title: "Chat", href: "/chat", icon: "Radio" },
   { title: "More", href: "/more", icon: "Menu" },
 ];
