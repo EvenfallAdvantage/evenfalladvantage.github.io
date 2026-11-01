@@ -56,10 +56,19 @@ type PatrolRoute = any;
 type PatrolLog = any;
 
 
-function PatrolsBoundary({ embedded, children }: { embedded?: boolean; children: ReactNode }) {
+type PatrolTab = "scan" | "checkpoints" | "routes" | "log";
+const PATROL_HEADS: Record<PatrolTab, { title: string; subtitle: string; icon: React.ElementType }> = {
+  scan: { title: "PATROL SCAN", subtitle: "Scan a checkpoint tag on your round", icon: ScanLine },
+  checkpoints: { title: "CHECKPOINTS", subtitle: "NFC/QR checkpoint tags and their locations", icon: MapPin },
+  routes: { title: "PATROL ROUTES", subtitle: "Ordered checkpoint routes for rounds", icon: Route },
+  log: { title: "PATROL ACTIVITY", subtitle: "Recent checkpoint scans and rounds", icon: Footprints },
+};
+
+function PatrolsBoundary({ embedded, tab, children }: { embedded?: boolean; tab: PatrolTab; children: ReactNode }) {
   if (embedded) return <>{children}</>;
+  const h = PATROL_HEADS[tab];
   return (
-    <PageShell title="PATROLS" subtitle="Patrol routes, checkpoints, and scan logs" icon={<Footprints className="h-5 w-5" />}>
+    <PageShell title={h.title} subtitle={h.subtitle} icon={<h.icon className="h-5 w-5" />}>
       {children}
     </PageShell>
   );
@@ -72,7 +81,7 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
 
   const { confirm, ConfirmDialog } = useConfirmDialog();
 
-  const [tab, setTab] = useState<"scan" | "checkpoints" | "routes" | "log">("scan");
+  const [tab, setTab] = useState<PatrolTab>("scan");
   const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
   const [routes, setRoutes] = useState<PatrolRoute[]>([]);
   const [logs, setLogs] = useState<PatrolLog[]>([]);
@@ -204,7 +213,7 @@ export default function PatrolsPage({ embedded = false }: { embedded?: boolean }
   ];
 
   return (
-    <PatrolsBoundary embedded={embedded}>
+    <PatrolsBoundary embedded={embedded} tab={tab}>
       <div className="space-y-4">
         {/* Outer tabs — only when standalone (embedded hides these; the Watch Log host renders its own tab bar) */}
         {!embedded && (

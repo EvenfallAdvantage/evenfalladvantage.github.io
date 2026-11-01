@@ -22,14 +22,14 @@ import { ClassesTab } from "../instructor/components/classes-tab";
 import { StudentsTab } from "../instructor/components/students-tab";
 import { AssessmentsTab } from "../instructor/components/assessments-tab";
 
-const TAB_META: Record<TrainingHqTab, { label: string; icon: React.ElementType }> = {
-  modules: { label: "Modules", icon: GraduationCap },
-  questions: { label: "Question Bank", icon: HelpCircle },
-  progress: { label: "Staff Progress", icon: BarChart3 },
-  courses: { label: "Courses", icon: BookOpen },
-  classes: { label: "Classes", icon: Calendar },
-  students: { label: "Students", icon: Users },
-  assessments: { label: "Assessments", icon: ClipboardCheck },
+const TAB_META: Record<TrainingHqTab, { label: string; icon: React.ElementType; title: string; subtitle: string }> = {
+  modules: { label: "Modules", icon: GraduationCap, title: "TRAINING MODULES", subtitle: "Build and publish training modules" },
+  questions: { label: "Question Bank", icon: HelpCircle, title: "QUESTION BANK", subtitle: "Questions used across quizzes and assessments" },
+  progress: { label: "Staff Progress", icon: BarChart3, title: "STAFF PROGRESS", subtitle: "Who has completed which training" },
+  courses: { label: "Courses", icon: BookOpen, title: "COURSES", subtitle: "Instructor-led courses you offer" },
+  classes: { label: "Classes", icon: Calendar, title: "CLASSES", subtitle: "Scheduled class sessions" },
+  students: { label: "Students", icon: Users, title: "STUDENTS", subtitle: "Enrolled students and their records" },
+  assessments: { label: "Assessments", icon: ClipboardCheck, title: "ASSESSMENTS", subtitle: "Graded assessments and results" },
 };
 
 function TrainingHqInner() {
@@ -91,7 +91,7 @@ function TrainingHqInner() {
           <Plus className="h-3.5 w-3.5" /> New Assessment
         </Button>
       ) : undefined;
-    setHeader("TRAINING HQ", "Modules, courses, classes, students and progress", <Icon className="h-5 w-5" />, action);
+    setHeader(tab ? TAB_META[tab].title : "TRAINING HQ", tab ? TAB_META[tab].subtitle : "Modules, courses, classes, students and progress", <Icon className="h-5 w-5" />, action);
     return () => clearHeader();
   }, [setHeader, clearHeader, tab, showNewModule, showNewQ, instructorId]);
 
