@@ -88,6 +88,29 @@ interface WhatsNewTriggerPillProps {
 }
 
 /**
+ * Live GitHub releases (sessionStorage-cached for 15 min by fetchLatestGitHubReleases),
+ * shared by the sidebar badge and the modal so both show the same newest version.
+ */
+export function useLiveReleases(enabled = true): ReleaseNote[] {
+  const [live, setLive] = useState<ReleaseNote[]>([]);
+  useEffect(() => {
+    if (!enabled) return;
+    const ctl = new AbortController();
+    void fetchLatestGitHubReleases({ signal: ctl.signal }).then((fetched) => {
+      if (!ctl.signal.aborted && fetched.length > 0) setLive(fetched);
+    });
+    return () => ctl.abort();
+  }, [enabled]);
+  return live;
+}
+
+/** Newest version label from the same merge (curated + build-time git + live GitHub) the changelog list uses. */
+export function useLatestVersionLabel(): string | undefined {
+  const live = useLiveReleases();
+  return useMemo(() => mergeReleases(RELEASES, GENERATED_RELEASES, live)[0]?.version, [live]);
+}
+
+/**
  * Subtle "What's New" trigger pill in the app chrome (sidebar & topbar) with a
  * pulsing indicator dot whenever any release (major or minor) is unseen.
  */
@@ -100,6 +123,7 @@ export function WhatsNewTriggerPill({
   const activeCompany = useActiveCompany();
   const userRole = activeCompany?.role ?? "staff";
   const lastSeenId = useLastSeenReleaseId(userId);
+  const latestVersionLabel = useLatestVersionLabel();
 
   const unseenCount = useMemo(() => {
     const unseen = getUnseenReleases(lastSeenId, RELEASES);
@@ -147,7 +171,7 @@ export function WhatsNewTriggerPill({
               </Badge>
             ) : (
               <span className="text-[10px] font-mono text-muted-foreground/70">
-                {LATEST_VERSION_LABEL}
+                {latestVersionLabel}
               </span>
             )}
           </>
@@ -183,8 +207,6 @@ export function WhatsNewTriggerPill({
   );
 }
 
-/** Latest version label, from the same merge (curated + build-time git) the changelog list uses. */
-const LATEST_VERSION_LABEL = mergeReleases(RELEASES, GENERATED_RELEASES)[0]?.version;
 
 /**
  * Single Roll-Up Modal + Full Changelog Dialog.
@@ -201,7 +223,6 @@ export function WhatsNewModal() {
 
   const [manualOpen, setManualOpen] = useState(false);
   const [view, setView] = useState<"rollup" | "changelog">("rollup");
-  const [liveReleases, setLiveReleases] = useState<ReleaseNote[]>([]);
   const lastSeenId = useLastSeenReleaseId(userId);
 
   const autoOpen = useMemo(
@@ -231,16 +252,7 @@ export function WhatsNewModal() {
     return () => window.removeEventListener(WHATS_NEW_OPEN_EVENT, handler);
   }, [userId]);
 
-  useEffect(() => {
-    if (!open) return;
-    const ctl = new AbortController();
-    void fetchLatestGitHubReleases({ signal: ctl.signal }).then((fetched) => {
-      if (!ctl.signal.aborted && fetched.length > 0) {
-        setLiveReleases(fetched);
-      }
-    });
-    return () => ctl.abort();
-  }, [open]);
+  const liveReleases = useLiveReleases(open);
 
   const changelogReleases = useMemo(
     () => mergeReleases(RELEASES, GENERATED_RELEASES, liveReleases),

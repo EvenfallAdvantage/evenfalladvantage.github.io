@@ -1,11 +1,116 @@
 [
   {
+    "id": "git-2026-11-01",
+    "date": "Nov 1, 2026",
+    "version": "git-2026.11.01",
+    "title": "De-escalation scenarios 4 (assault disclosure) and 5 (service dog entry) with images, audio, content note & 3 more",
+    "tier": "major",
+    "highlights": [
+      {
+        "id": "git-d212b03d",
+        "title": "De-escalation scenarios 4 (assault disclosure) and 5 (service dog entry) with images, audio, content note",
+        "summary": "De-escalation scenarios 4 (assault disclosure) and 5 (service dog entry) with images, audio, content note.",
+        "roles": [
+          "all"
+        ],
+        "icon": "Sparkles"
+      },
+      {
+        "id": "git-dc36ab37",
+        "title": "Whats New: Sidebar version label uses latest merged release, not curated RELEASES[0]",
+        "summary": "Sidebar version label uses latest merged release, not curated RELEASES[0].",
+        "roles": [
+          "all"
+        ],
+        "icon": "Sparkles"
+      },
+      {
+        "id": "git-480814fa",
+        "title": "Reframe scenario 3 photos for app crop + What's New newest-first with vX.Y versions",
+        "summary": "Reframe scenario 3 photos for app crop + What's New newest-first with vX.Y versions.",
+        "roles": [
+          "all"
+        ],
+        "icon": "Sparkles"
+      },
+      {
+        "id": "git-0cd1a7dc",
+        "title": "Training: Images + audio for de-escalation scenario 3 (Denied Entry)",
+        "summary": "Images + audio for de-escalation scenario 3 (Denied Entry).",
+        "roles": [
+          "all"
+        ],
+        "icon": "Sparkles"
+      }
+    ]
+  },
+  {
+    "id": "git-2026-10-31",
+    "date": "Oct 31, 2026",
+    "version": "git-2026.10.31",
+    "title": "A11y: Keep GlobalStatusBar clear of the layers launcher on phones (axe target-size) & 1 more",
+    "tier": "minor",
+    "highlights": [
+      {
+        "id": "git-43674c33",
+        "title": "A11y: Keep GlobalStatusBar clear of the layers launcher on phones (axe target-size)",
+        "summary": "Keep GlobalStatusBar clear of the layers launcher on phones (axe target-size).",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/schedule",
+        "tryLabel": "Open Tactical Map",
+        "icon": "Compass"
+      },
+      {
+        "id": "git-97a76f45",
+        "title": "A11y: 24px hit area for GlobalStatusBar share/data-sources buttons (axe target-size)",
+        "summary": "24px hit area for GlobalStatusBar share/data-sources buttons (axe target-size).",
+        "roles": [
+          "all"
+        ],
+        "icon": "Sparkles"
+      }
+    ]
+  },
+  {
     "id": "git-2026-10-28",
     "date": "Oct 28, 2026",
     "version": "git-2026.10.28",
-    "title": "Timesheets: Expand CSV export columns and allow break edits in time change requests & 7 more",
+    "title": "Map: Shrink road closure/crash icons to CCTV size (12px, 14px severe) with HiDPI logical sizing & 7 more",
     "tier": "major",
     "highlights": [
+      {
+        "id": "git-cdd42c5d",
+        "title": "Map: Shrink road closure/crash icons to CCTV size (12px, 14px severe) with HiDPI logical sizing",
+        "summary": "Shrink road closure/crash icons to CCTV size (12px, 14px severe) with HiDPI logical sizing.",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/schedule",
+        "tryLabel": "Open Tactical Map",
+        "icon": "Car"
+      },
+      {
+        "id": "git-b3d6dcc1",
+        "title": "Map: Render HiDPI billboards at logical size (restore pre-#215 icon sizes)",
+        "summary": "Render HiDPI billboards at logical size (restore pre-#215 icon sizes).",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/schedule",
+        "tryLabel": "Open Tactical Map",
+        "icon": "Compass"
+      },
+      {
+        "id": "git-d835cd52",
+        "title": "Whats New: Avoid TOCTOU existsSync check in generate-releases script",
+        "summary": "Avoid TOCTOU existsSync check in generate-releases script.",
+        "roles": [
+          "all"
+        ],
+        "icon": "Sparkles"
+      },
       {
         "id": "git-0c91d17d",
         "title": "Timesheets: Expand CSV export columns and allow break edits in time change requests",
@@ -62,40 +167,6 @@
         "tryHref": "/schedule",
         "tryLabel": "Open Tactical Map",
         "icon": "Compass"
-      },
-      {
-        "id": "git-d621bffb",
-        "title": "Map: Add Live Traffic Flow & Road Closures/Crashes in Roads & Cameras group",
-        "summary": "Add Live Traffic Flow & Road Closures/Crashes in Roads & Cameras group.",
-        "roles": [
-          "all"
-        ],
-        "tryHref": "/schedule",
-        "tryLabel": "Open Tactical Map",
-        "icon": "Car"
-      },
-      {
-        "id": "git-9c669e38",
-        "title": "Tactical Map: Top-center operational GlobalStatusBar and collapsible MapToolsBar",
-        "summary": "Top-center operational GlobalStatusBar and collapsible MapToolsBar.",
-        "roles": [
-          "all"
-        ],
-        "tryHref": "/schedule",
-        "tryLabel": "Open Tactical Map",
-        "icon": "Compass"
-      },
-      {
-        "id": "git-2ca69521",
-        "title": "Timesheets Ops: Fix mobile timesheet row overlap and add Quick Fill post count",
-        "summary": "Fix mobile timesheet row overlap and add Quick Fill post count.",
-        "roles": [
-          "supervisor",
-          "admin"
-        ],
-        "tryHref": "/admin/staff",
-        "tryLabel": "Open Staff",
-        "icon": "Smartphone"
       }
     ]
   },

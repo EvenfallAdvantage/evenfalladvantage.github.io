@@ -198,6 +198,22 @@ export interface GitHubCommitPayload {
 }
 
 /**
+ * Match a commit subject as a release highlight. Conventional feat/fix/perf commits match
+ * directly; squash-merged PR titles ("Some feature (#224)") that are not chore/docs/ci/etc.
+ * are treated as feat so every merged PR shows up in What's New.
+ */
+export function matchReleaseCommitSubject(
+  subject: string,
+): { type: string; scope: string; desc: string } | null {
+  const conv = /^(feat|fix|perf)(?:\(([^)]+)\))?!?:\s*(.+)$/i.exec(subject);
+  if (conv) return { type: conv[1].toLowerCase(), scope: (conv[2] ?? "").trim(), desc: conv[3].replace(/\s*\(#\d+\)\s*$/, "").trim() };
+  if (!/\(#\d+\)\s*$/.test(subject)) return null;
+  if (/^(chore|docs|ci|test|tests|build|style|refactor|revert|merge)\b/i.test(subject)) return null;
+  if (/^[a-z]+(\([^)]*\))?!?:/i.test(subject)) return null;
+  return { type: "feat", scope: "", desc: subject.replace(/\s*\(#\d+\)\s*$/, "").trim() };
+}
+
+/**
  * Parse GitHub `/commits` API payload into grouped ReleaseNote items.
  */
 export function parseGitHubCommitsToReleases(
@@ -216,11 +232,9 @@ export function parseGitHubCommitsToReleases(
     const rawDate = (item.commit?.author?.date ?? "").slice(0, 10);
     if (!sha || !firstLine || !/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) continue;
 
-    const match = /^(feat|fix|perf)(?:\(([^)]+)\))?!?:\s*(.+)$/i.exec(firstLine);
+    const match = matchReleaseCommitSubject(firstLine);
     if (!match) continue;
-    const type = match[1].toLowerCase();
-    const scope = (match[2] ?? "").trim();
-    const desc = match[3].replace(/\s*\(#\d+\)\s*$/, "").trim();
+    const { type, scope, desc } = match;
     if (!desc) continue;
     if (scope && MARKETING_ONLY_SCOPES.has(scope.toLowerCase())) continue;
 
