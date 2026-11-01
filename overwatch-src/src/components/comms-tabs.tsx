@@ -6,6 +6,15 @@ import { SubTab, SubTabLink, SubTabList } from "@/components/ui/sub-tabs";
 
 export type CommsTab = "briefings" | "channels" | "messages" | "external" | "scanner";
 
+/** Page heading per Comms tab, in the Incidents style (TITLE + one-line subtitle + icon). */
+export const COMMS_TAB_HEADERS: Record<CommsTab, { title: string; subtitle: string; icon: typeof Hash }> = {
+  briefings: { title: "BRIEFINGS", subtitle: "Team briefings and announcements", icon: Radar },
+  channels: { title: "CHANNELS", subtitle: "Team channels and group chat", icon: Hash },
+  messages: { title: "MESSAGES", subtitle: "Direct messages with your team", icon: Mail },
+  external: { title: "EXTERNAL GROUPS", subtitle: "Linked WhatsApp and Signal groups", icon: ExternalLink },
+  scanner: { title: "SCANNER", subtitle: "Radio scanner and radio log", icon: Radio },
+};
+
 const TABS: { id: CommsTab; label: string; icon: typeof Hash; href: string }[] = [
   { id: "briefings", label: "Briefings", icon: Radar, href: "/updates" },
   { id: "channels", label: "Channels", icon: Hash, href: "/chat" },

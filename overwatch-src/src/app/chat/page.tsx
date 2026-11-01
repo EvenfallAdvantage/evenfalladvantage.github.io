@@ -1,9 +1,8 @@
 "use client";
 
-import { CommsTabs } from "@/components/comms-tabs";
+import { CommsTabs, COMMS_TAB_HEADERS } from "@/components/comms-tabs";
 import { useEffect, useState } from "react";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { Hash, ExternalLink, Mail, Radio } from "lucide-react";
 import { DirectMessages } from "@/components/direct-messages";
 import { useSearchParams } from "next/navigation";
 import { useAuthStore } from "@/stores/auth-store";
@@ -15,6 +14,7 @@ import { RadioLogPanel } from "./components/radio-log-panel";
 import { SdrTuner } from "./components/sdr-tuner";
 
 type Tab = "channels" | "external" | "messages" | "scanner";
+
 
 export default function ChatPage() {
   const { activeCompanyId } = useAuthStore();
@@ -36,11 +36,8 @@ export default function ChatPage() {
   );
 
   useEffect(() => {
-    setHeader("COMMS", "Team channels, direct messages, radio scanner, and external groups",
-      tab === "external" ? <ExternalLink className="h-5 w-5" /> :
-      tab === "messages" ? <Mail className="h-5 w-5" /> :
-      tab === "scanner" ? <Radio className="h-5 w-5" /> :
-      <Hash className="h-5 w-5" />);
+    const h = COMMS_TAB_HEADERS[tab];
+    setHeader(h.title, h.subtitle, <h.icon className="h-5 w-5" />);
     return () => clearHeader();
   }, [setHeader, clearHeader, tab]);
 
