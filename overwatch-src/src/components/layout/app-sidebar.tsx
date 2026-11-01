@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
-import { NAV_SECTIONS } from "./nav-items";
+import { NAV_SECTIONS, navPathname } from "./nav-items";
 import { useAuthStore } from "@/stores/auth-store";
 import { invalidateCompanyQueries } from "@/lib/query-client";
 import { formatMemberName, memberInitials } from "@/lib/format-names";
@@ -152,7 +152,7 @@ function isNavMatch(href: string, pathname: string, siblings?: NavItem[]): boole
 }
 
 export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
-  const pathname = usePathname();
+  const pathname = navPathname(usePathname());
   const router = useRouter();
   const { user, activeCompanyId, setActiveCompany, clearSession } = useAuthStore();
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
