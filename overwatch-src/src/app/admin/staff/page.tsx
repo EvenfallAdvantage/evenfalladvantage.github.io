@@ -95,23 +95,6 @@ function AdminStaffPageInner() {
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
 
-  useEffect(() => {
-    const tabIcons: Record<string, React.ReactNode> = {
-      roster: <Users className="h-5 w-5" />,
-      approvals: <CalendarClock className="h-5 w-5" />,
-      forms: <FileText className="h-5 w-5" />,
-      postings: <Megaphone className="h-5 w-5" />,
-      applicants: <UserPlus className="h-5 w-5" />,
-      onboarding: <BookOpenCheck className="h-5 w-5" />,
-      teams: <UsersRound className="h-5 w-5" />,
-    };
-    setHeader(
-      "PERSONNEL",
-      "Manage team members, timesheets, leave, and submissions",
-      tabIcons[tab] ?? <Users className="h-5 w-5" />,
-    );
-    return () => clearHeader();
-  }, [setHeader, clearHeader, tab]);
 
   const myRole = user?.companies.find((c: { companyId: string }) => c.companyId === activeCompanyId)?.role ?? "staff";
   // Managers can change roles too, within the one-level-below rule enforced by update_member_role.
@@ -158,6 +141,21 @@ function AdminStaffPageInner() {
     (user?.companies.find((c: { companyId: string }) => c.companyId === activeCompanyId) as { settings?: { hiddenTabs?: string[] } } | undefined)?.settings?.hiddenTabs,
   );
   const shownTab: Tab = hiddenStaff.has(tab) ? "roster" : tab;
+
+  useEffect(() => {
+    const heads: Record<Tab, [string, string, React.ReactNode]> = {
+      roster: ["ROSTER", "Team members, roles and contact details", <Users key="i" className="h-5 w-5" />],
+      teams: ["TEAMS", "Group officers into teams", <UsersRound key="i" className="h-5 w-5" />],
+      forms: ["PERSONNEL FORMS", "Submitted field forms and public reports", <FileText key="i" className="h-5 w-5" />],
+      approvals: ["APPROVALS", "Timesheets, corrections, leave and shift swaps", <CalendarClock key="i" className="h-5 w-5" />],
+      postings: ["JOB POSTINGS", "Open positions you are hiring for", <Megaphone key="i" className="h-5 w-5" />],
+      applicants: ["APPLICANTS", "Candidates who applied to your postings", <UserPlus key="i" className="h-5 w-5" />],
+      onboarding: ["ONBOARDING", "New-hire onboarding progress", <BookOpenCheck key="i" className="h-5 w-5" />],
+    };
+    const [title, subtitle, icon] = heads[shownTab] ?? heads.roster;
+    setHeader(title, subtitle, icon);
+    return () => clearHeader();
+  }, [setHeader, clearHeader, shownTab]);
 
   const approvalsBadge = counts.pendingTimesheets + counts.pendingCorrections + counts.pendingLeave;
 

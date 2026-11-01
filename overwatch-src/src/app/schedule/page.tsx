@@ -84,9 +84,14 @@ function SchedulePageInner() {
   const [mapLoaded, setMapLoaded] = useState(false);
 
   useEffect(() => {
-    setHeader("OPERATIONS", "Your assigned shifts and operations",
-      tab === "map" ? <Globe className="h-5 w-5" /> : <CalendarDays className="h-5 w-5" />,
-    );
+    const heads: Record<string, [string, string, React.ReactNode]> = {
+      map: ["TACTICAL MAP", "Live map of posts, officers and conditions", <Globe key="i" className="h-5 w-5" />],
+      schedule: ["SCHEDULE", "Your assigned shifts and operations", <CalendarDays key="i" className="h-5 w-5" />],
+      swaps: ["SHIFT SWAPS", "Trade shifts with teammates", <ArrowLeftRight key="i" className="h-5 w-5" />],
+      geofences: ["GEOFENCES", "Site boundaries for clock-in and alerts", <Target key="i" className="h-5 w-5" />],
+    };
+    const [title, subtitle, icon] = heads[tab] ?? heads.schedule;
+    setHeader(title, subtitle, icon);
     return () => clearHeader();
   }, [setHeader, clearHeader, tab, isAdmin]);
 

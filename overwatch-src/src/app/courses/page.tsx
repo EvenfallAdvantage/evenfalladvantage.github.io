@@ -168,7 +168,11 @@ function CoursesContent() {
   const ownedCount = purchasedCourses.size;
 
   return (
-    <PageShell title="COURSES" subtitle="Professional security training courses" icon={<Video className="h-5 w-5" />}>
+    <PageShell
+      title={pageTab === "conference" ? "LIVE SESSIONS" : "COURSES"}
+      subtitle={pageTab === "conference" ? "Join live training sessions" : "Professional security training courses"}
+      icon={pageTab === "conference" ? <Video className="h-5 w-5" /> : <ShoppingCart className="h-5 w-5" />}
+    >
       <div className="space-y-4">
         {/* Status banners from Stripe redirect */}
         {status === "success" && (
