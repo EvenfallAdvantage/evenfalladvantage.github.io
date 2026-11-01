@@ -50,6 +50,29 @@ export function matchReleaseCommitSubject(subject) {
   return { type: "feat", scope: "", desc: subject.replace(/\s*\(#\d+\)\s*$/, "").trim() };
 }
 
+/** Extended icon rules after the core checks; keep in sync with src/lib/releases.ts. */
+const EXTENDED_ICON_RULES = [
+  [/\b(training|de-?escalation|scenarios?|courses?|lessons?|quiz(zes)?|certifications?)\b/, "GraduationCap", "/training/scenarios", "Open Training"],
+  [/\b(a11y|accessibility|aria|screen ?readers?|contrast|hit areas?|keyboard)\b/, "Accessibility"],
+  [/\b(security|dependabot|cve|vuln(erabilit(y|ies))?|codeql|secrets?|xss|csp|sanitiz\w*|toctou)\b/, "ShieldCheck"],
+  [/(what'?s[\s-]new|\bchangelog\b|\breleases?\b)/, "Megaphone"],
+  [/\b(perf|performance|faster|speed|latency|lazy|cach(e|ing)|optimi[sz]\w*)\b/, "Gauge"],
+  [/\b(audio|tts|voice|sound)\b/, "Volume2"],
+  [/\b(images?|photos?|pictures?|avatars?)\b/, "Image"],
+  [/\b(notifications?|alerts?|push|reminders?)\b/, "Bell"],
+  [/\b(chat|messages?|messaging|radio|comms)\b/, "MessageSquare"],
+  [/\b(reports?|exports?|pdf|csv|docs?)\b/, "FileText"],
+  [/\b(fix(es|ed)?|bugs?|crash(es)?|regressions?)\b/, "Wrench"],
+];
+
+/** @param {string} combined */
+export function inferExtendedIcon(combined) {
+  for (const [re, icon, tryHref, tryLabel] of EXTENDED_ICON_RULES) {
+    if (re.test(combined)) return tryHref ? { icon, tryHref, tryLabel } : { icon };
+  }
+  return { icon: "Sparkles" };
+}
+
 /**
  * Infer route link, label, icon, and role eligibility from commit scope + subject.
  * @param {string} scope
@@ -88,6 +111,8 @@ export function inferHighlightMeta(scope, description) {
     icon = "Layers";
   } else if (/\b(invite|auth|login|password|key)\b/.test(combined)) {
     icon = "KeyRound";
+  } else {
+    ({ icon, tryHref, tryLabel } = { tryHref, tryLabel, ...inferExtendedIcon(combined) });
   }
 
   return { roles, tryHref, tryLabel, icon };

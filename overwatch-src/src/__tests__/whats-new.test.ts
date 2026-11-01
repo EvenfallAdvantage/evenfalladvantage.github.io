@@ -340,3 +340,35 @@ describe("squash-merged PR titles appear in What's New", () => {
     expect(merged[0].date).toBe("Nov 1, 2026");
   });
 });
+
+describe("What's New extended icon inference", () => {
+  const icon = (msg: string) =>
+    parseGitHubCommitsToReleases([
+      { sha: "0123456789abcdef", commit: { message: msg, author: { date: "2026-11-01T12:00:00Z" } } },
+    ])[0].highlights[0];
+  it.each([
+    ["feat(training): de-escalation scenarios 4 and 5", "GraduationCap"],
+    ["fix(a11y): 24px hit area for share button", "Accessibility"],
+    ["fix(security): bump dependabot alert deps", "ShieldCheck"],
+    ["fix(whats-new): badge follows changelog", "Megaphone"],
+    ["perf: faster page load", "Gauge"],
+    ["feat: kokoro tts voice for scenarios", "GraduationCap"],
+    ["feat: new tts voice", "Volume2"],
+    ["fix: crash on load", "Wrench"],
+    ["feat(map): traffic layer", "Car"],
+    ["feat(timeclock): break pill", "Coffee"],
+    ["feat: something novel", "Sparkles"],
+  ])("%s -> %s", (msg, expected) => {
+    expect(icon(msg).icon).toBe(expected);
+  });
+  it("training highlights link to scenarios", () => {
+    expect(icon("feat(training): new scenario").tryHref).toBe("/training/scenarios");
+  });
+  it("generator uses the same rules", async () => {
+    const gen = await import("../../scripts/generate-releases.mjs");
+    expect(gen.inferHighlightMeta("a11y", "hit area").icon).toBe("Accessibility");
+    expect(gen.inferHighlightMeta("training", "new scenario").tryHref).toBe("/training/scenarios");
+    expect(gen.inferHighlightMeta("map", "traffic").icon).toBe("Car");
+    expect(gen.inferHighlightMeta("", "something novel").icon).toBe("Sparkles");
+  });
+});

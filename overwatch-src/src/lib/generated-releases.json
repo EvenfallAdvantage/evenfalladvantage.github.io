@@ -3,9 +3,18 @@
     "id": "git-2026-11-01",
     "date": "Nov 1, 2026",
     "version": "git-2026.11.01",
-    "title": "De-escalation scenarios 4 (assault disclosure) and 5 (service dog entry) with images, audio, content note & 3 more",
+    "title": "Whats New: Badge and list follow live GitHub commits & 4 more",
     "tier": "major",
     "highlights": [
+      {
+        "id": "git-a37f0086",
+        "title": "Whats New: Badge and list follow live GitHub commits",
+        "summary": "Badge and list follow live GitHub commits; include squash-merged PRs; full-history deploy checkout.",
+        "roles": [
+          "all"
+        ],
+        "icon": "Megaphone"
+      },
       {
         "id": "git-d212b03d",
         "title": "De-escalation scenarios 4 (assault disclosure) and 5 (service dog entry) with images, audio, content note",
@@ -13,7 +22,9 @@
         "roles": [
           "all"
         ],
-        "icon": "Sparkles"
+        "tryHref": "/training/scenarios",
+        "tryLabel": "Open Training",
+        "icon": "GraduationCap"
       },
       {
         "id": "git-dc36ab37",
@@ -22,7 +33,7 @@
         "roles": [
           "all"
         ],
-        "icon": "Sparkles"
+        "icon": "Megaphone"
       },
       {
         "id": "git-480814fa",
@@ -31,7 +42,9 @@
         "roles": [
           "all"
         ],
-        "icon": "Sparkles"
+        "tryHref": "/training/scenarios",
+        "tryLabel": "Open Training",
+        "icon": "GraduationCap"
       },
       {
         "id": "git-0cd1a7dc",
@@ -40,7 +53,9 @@
         "roles": [
           "all"
         ],
-        "icon": "Sparkles"
+        "tryHref": "/training/scenarios",
+        "tryLabel": "Open Training",
+        "icon": "GraduationCap"
       }
     ]
   },
@@ -69,7 +84,7 @@
         "roles": [
           "all"
         ],
-        "icon": "Sparkles"
+        "icon": "Accessibility"
       }
     ]
   },
@@ -109,7 +124,7 @@
         "roles": [
           "all"
         ],
-        "icon": "Sparkles"
+        "icon": "ShieldCheck"
       },
       {
         "id": "git-0c91d17d",
