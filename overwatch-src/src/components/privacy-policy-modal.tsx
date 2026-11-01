@@ -108,15 +108,17 @@ export function PrivacyPolicyModal({ open, onClose }: PrivacyPolicyModalProps) {
           </section>
 
           <section>
-            <h3 className="text-white font-semibold mb-2">7. CCPA Compliance</h3>
-            <p>If you are a California resident, you have additional rights under the California Consumer Privacy Act (CCPA), including:</p>
+            <h3 className="text-white font-semibold mb-2">7. California Privacy Rights (CCPA / CPRA)</h3>
+            <p>If you are a California resident, you have the right to:</p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
-              <li>The right to know what personal information is collected, used, shared, or sold</li>
-              <li>The right to delete personal information held by businesses</li>
-              <li>The right to opt-out of the sale of personal information</li>
-              <li>The right to non-discrimination for exercising your CCPA rights</li>
+              <li><strong className="text-white">Know and access</strong> the personal information we hold (use Security → Privacy → Export my data)</li>
+              <li><strong className="text-white">Delete</strong> it (Security → Privacy → Erase my data), subject to records your employer or the law requires us to keep</li>
+              <li><strong className="text-white">Correct</strong> inaccurate information (edit it in Profile, or ask us or your company admin)</li>
+              <li><strong className="text-white">Opt out of sale or sharing</strong>: we do not sell or share personal information for cross-context advertising</li>
+              <li><strong className="text-white">Limit use of sensitive information</strong>: we use precise location (clock-in, patrol scans, SOS, location sharing), license/ID numbers and log-in credentials only to provide the service and keep it secure</li>
+              <li><strong className="text-white">Non-discrimination</strong> for exercising these rights</li>
             </ul>
-            <p className="mt-2">We do not sell personal information as defined under the CCPA. To submit a CCPA request, please contact us using the information below.</p>
+            <p className="mt-2">We honor the Global Privacy Control browser signal. Dictation audio is transcribed on your device and is not sent to us. We respond to requests within 45 days; authorized agents may submit requests with your signed permission. Full details: <a className="underline" href="https://www.evenfalladvantage.com/privacy-policy.html#california" target="_blank" rel="noopener noreferrer">Privacy Policy, Section 13</a>.</p>
           </section>
 
           <section>
