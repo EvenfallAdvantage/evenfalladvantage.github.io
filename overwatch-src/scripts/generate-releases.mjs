@@ -166,6 +166,8 @@ export function parseGitLogToReleases(logText) {
 
     const match = matchReleaseCommitSubject(subject);
     if (!match) continue;
+    const prM = /\(#(\d+)\)\s*$/.exec(subject);
+    const prNum = prM ? Number(prM[1]) : null;
 
     const { type, scope, desc } = match;
     if (!desc) continue;
@@ -180,6 +182,7 @@ export function parseGitLogToReleases(logText) {
 
     const highlight = {
       id: `git-${sha.slice(0, 8)}`,
+      ...(prNum ? { pr: prNum } : {}),
       title,
       summary,
       roles,
@@ -218,8 +221,10 @@ export function parseGitLogToReleases(logText) {
 export function generateReleasesFile(outputPath = OUTPUT_PATH) {
   mkdirSync(dirname(outputPath), { recursive: true });
   try {
-    const logText = execSync('git log -n 80 --date=short --pretty=format:"%H%x09%ad%x09%s"', {
+    const logText = execSync('git log -n 80 --date=short-local --pretty=format:"%H%x09%ad%x09%s"', {
       cwd: resolve(__dirname, "../.."),
+      // Group by UTC (Zulu) day, matching the live GitHub parser.
+      env: { ...process.env, TZ: "UTC" },
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"],
     });
