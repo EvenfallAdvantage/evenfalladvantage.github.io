@@ -10,6 +10,23 @@ export interface ReleaseHighlight {
   tryHref?: string;
   tryLabel?: string;
   icon?: string;
+  /** Source PR number, when known (used to dedupe across sources). */
+  pr?: number;
+}
+
+/** Calendar day (YYYY-MM-DD) of a timestamp in UTC (Zulu); same rule as the build-time generator. */
+export function utcIsoDate(timestamp: string): string {
+  const t = Date.parse(timestamp);
+  if (Number.isNaN(t)) return "";
+  return new Date(t).toISOString().slice(0, 10);
+}
+
+/** Stable cross-source identity for a highlight: PR number, else short SHA, else title. */
+export function highlightDedupeKey(h: ReleaseHighlight): string {
+  if (typeof h.pr === "number") return `pr:${h.pr}`;
+  const m = /^(?:git|gh)-([0-9a-f]{8})$/i.exec(h.id);
+  if (m) return `sha:${m[1].toLowerCase()}`;
+  return `title:${h.title.toLowerCase()}`;
 }
 
 export interface ReleaseNote {
@@ -259,7 +276,8 @@ export function parseGitHubCommitsToReleases(
     const sha = (item.sha ?? "").trim();
     const rawMsg = (item.commit?.message ?? "").trim();
     const firstLine = rawMsg.split(/\r?\n/)[0]?.trim() ?? "";
-    const rawDate = (item.commit?.author?.date ?? "").slice(0, 10);
+    const rawDate = utcIsoDate(item.commit?.author?.date ?? "");
+    const prMatch = /\(#(\d+)\)\s*$/.exec(firstLine);
     if (!sha || !firstLine || !/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) continue;
 
     const match = matchReleaseCommitSubject(firstLine);
@@ -283,6 +301,7 @@ export function parseGitHubCommitsToReleases(
 
     const highlight: ReleaseHighlight = {
       id: `gh-${sha.slice(0, 8)}`,
+      ...(prMatch ? { pr: Number(prMatch[1]) } : {}),
       title,
       summary,
       roles: meta.roles,
@@ -333,33 +352,39 @@ export function mergeReleases(
   const byDate = new Map<string, ReleaseNote>();
   const order: string[] = [];
 
+  // One global identity set so a PR appears exactly once, even if two sources
+  // placed it on different days (e.g. differing timezone offsets).
+  const seen = new Set<string>();
+  const seenTitles = new Set<string>();
+  const take = (h: ReleaseHighlight) => {
+    const key = highlightDedupeKey(h);
+    const t = h.title.toLowerCase();
+    if (seen.has(key) || seenTitles.has(t)) return false;
+    seen.add(key);
+    seenTitles.add(t);
+    return true;
+  };
+
   for (const r of curated) {
-    byDate.set(r.date, {
-      ...r,
-      highlights: [...r.highlights],
-    });
+    byDate.set(r.date, { ...r, highlights: r.highlights.filter(take) });
     order.push(r.date);
   }
 
   for (const list of extraLists) {
     for (const rel of list) {
       if (!rel || !Array.isArray(rel.highlights) || rel.highlights.length === 0) continue;
+      const fresh = rel.highlights.filter(take);
+      if (fresh.length === 0) continue;
       const existing = byDate.get(rel.date);
       if (!existing) {
         byDate.set(rel.date, {
           ...rel,
-          highlights: [...rel.highlights],
+          highlights: fresh,
+          title: fresh.length > 1 ? `${fresh[0].title} & ${fresh.length - 1} more` : fresh[0].title,
         });
         order.push(rel.date);
       } else {
-        const seenIds = new Set(existing.highlights.map((h) => h.id));
-        const seenTitles = new Set(existing.highlights.map((h) => h.title.toLowerCase()));
-        for (const h of rel.highlights) {
-          if (seenIds.has(h.id) || seenTitles.has(h.title.toLowerCase())) continue;
-          seenIds.add(h.id);
-          seenTitles.add(h.title.toLowerCase());
-          existing.highlights.push(h);
-        }
+        existing.highlights.push(...fresh);
       }
     }
   }
