@@ -17,46 +17,23 @@ import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { logger } from "@/lib/logger";
 import { useAuthStore } from "@/stores/auth-store";
 import { hasMinRole, type CompanyRole } from "@/lib/permissions";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCompanyQuery } from "@/hooks/use-company-query";
+import {
+  createInvoice, updateInvoice, updateInvoiceStatus, deleteInvoice, getCompanyInvoices,
+  getNextInvoiceNumber, canDeleteInvoice, invoiceAutosaveKey, INVOICE_STATUSES,
+  type Invoice, type InvoiceStatus,
+} from "@/lib/supabase/db-invoices";
+import { EMPTY_FORM, toSaveParams, fromInvoice, type InvoiceData, type LineItem } from "@/lib/invoice-form";
 
-type LineItem = {
-  id: number;
-  description: string;
-  quantity: number;
-  rate: number;
+const STATUS_VARIANT: Record<InvoiceStatus, string> = {
+  draft: "bg-muted text-muted-foreground",
+  sent: "bg-blue-500/15 text-blue-500",
+  viewed: "bg-indigo-500/15 text-indigo-500",
+  paid: "bg-green-500/15 text-green-600",
+  overdue: "bg-red-500/15 text-red-500",
+  cancelled: "bg-muted text-muted-foreground line-through",
 };
-
-type InvoiceData = {
-  yourName: string;
-  yourBusiness: string;
-  yourAddress: string;
-  yourCity: string;
-  yourState: string;
-  yourZip: string;
-  yourEmail: string;
-  yourPhone: string;
-  clientName: string;
-  clientCompany: string;
-  clientAddress: string;
-  clientCity: string;
-  clientState: string;
-  clientZip: string;
-  invoiceNumber: string;
-  invoiceDate: string;
-  dueDate: string;
-  paymentTerms: string;
-  notes: string;
-  taxRate: string;
-};
-
-const EMPTY_FORM: InvoiceData = {
-  yourName: "", yourBusiness: "", yourAddress: "", yourCity: "", yourState: "", yourZip: "",
-  yourEmail: "", yourPhone: "",
-  clientName: "", clientCompany: "", clientAddress: "", clientCity: "", clientState: "", clientZip: "",
-  invoiceNumber: "", invoiceDate: new Date().toISOString().split("T")[0], dueDate: "",
-  paymentTerms: "", notes: "", taxRate: "0",
-};
-
-const STORAGE_KEY = "overwatch_invoice_current";
 
 /** Invoices are a Command tool: managers and above only. */
 export default function InvoicesPage() {
@@ -70,10 +47,22 @@ export default function InvoicesPage() {
       </div>
     );
   }
-  return <InvoicesEditor />;
+  // Remount per company so nothing from one company's editor leaks into another.
+  return <InvoicesEditor key={activeCompany?.companyId ?? "none"} />;
 }
 
 function InvoicesEditor() {
+  const activeCompany = useAuthStore((s) => s.getActiveCompany());
+  const userId = useAuthStore((s) => s.user?.id ?? "");
+  const companyId = activeCompany?.companyId ?? "";
+  const role = activeCompany?.role ?? null;
+  const storageKey = companyId && userId ? invoiceAutosaveKey(companyId, userId) : null;
+  const queryClient = useQueryClient();
+  const { data: invoices = [], isLoading: listLoading } = useCompanyQuery("invoices", (cid) => getCompanyInvoices(cid));
+  const [currentId, setCurrentId] = useState<string | null>(null);
+  const [currentStatus, setCurrentStatus] = useState<InvoiceStatus>("draft");
+  const [saving, setSaving] = useState(false);
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const setHeader = usePageHeader((s) => s.setHeader);
   const clearHeader = usePageHeader((s) => s.clearHeader);
@@ -92,28 +81,79 @@ function InvoicesEditor() {
     return () => clearHeader();
   }, [setHeader, clearHeader]);
 
-  // Load from localStorage
+  // Unsaved-work autosave, keyed by company + user (never shared across companies).
   useEffect(() => {
+    if (!storageKey) return;
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      localStorage.removeItem("overwatch_invoice_current"); // legacy unscoped key
+      const saved = localStorage.getItem(storageKey);
       if (saved) {
         const data = JSON.parse(saved);
         if (data.form) setForm(data.form);
         if (data.items) setItems(data.items);
         if (data.nextId) setNextId(data.nextId);
         if (data.logoUrl) setLogoUrl(data.logoUrl);
+        if (data.currentId) setCurrentId(data.currentId);
+        if (data.currentStatus) setCurrentStatus(data.currentStatus);
       }
     } catch (e) { logger.swallow("invoices:load-draft", e, "debug"); }
-  }, []);
+  }, [storageKey]);
 
-  // Save to localStorage on changes
-  const save = useCallback(() => {
+  const autosave = useCallback(() => {
+    if (!storageKey) return;
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({ form, items, nextId, logoUrl }));
+      localStorage.setItem(storageKey, JSON.stringify({ form, items, nextId, logoUrl, currentId, currentStatus }));
     } catch (e) { logger.swallow("invoices:save-draft", e, "debug"); }
-  }, [form, items, nextId, logoUrl]);
+  }, [storageKey, form, items, nextId, logoUrl, currentId, currentStatus]);
 
-  useEffect(() => { save(); }, [save]);
+  useEffect(() => { autosave(); }, [autosave]);
+
+  const refreshList = () => queryClient.invalidateQueries({ queryKey: ["invoices", companyId] });
+
+  function loadIntoEditor(inv: Invoice) {
+    const { form: f, items: it, logoUrl: logo } = fromInvoice(inv);
+    setForm(f); setItems(it); setNextId(it.length + 1); setLogoUrl(logo);
+    setCurrentId(inv.id); setCurrentStatus(inv.status); setSaveMsg(null);
+  }
+
+  async function newInvoice() {
+    if ((form.clientName || items.length) && !await confirm({ description: "Start a new invoice? Unsaved changes will be lost." })) return;
+    const num = companyId ? await getNextInvoiceNumber(companyId).catch(() => "") : "";
+    setForm({ ...EMPTY_FORM, invoiceNumber: num, invoiceDate: new Date().toISOString().split("T")[0] });
+    setItems([]); setNextId(1); setLogoUrl(null); setCurrentId(null); setCurrentStatus("draft"); setSaveMsg(null);
+  }
+
+  async function saveInvoice() {
+    if (!companyId) return;
+    const params = toSaveParams(form, items, logoUrl);
+    if (!params.invoiceNumber) { setSaveMsg("Add an invoice number first"); return; }
+    setSaving(true);
+    try {
+      if (currentId) {
+        const ok = await updateInvoice(currentId, params);
+        setSaveMsg(ok ? "Saved" : "Save failed");
+      } else {
+        const id = await createInvoice(companyId, params);
+        if (id) { setCurrentId(id); setCurrentStatus("draft"); }
+        setSaveMsg(id ? "Saved" : "Save failed");
+      }
+      await refreshList();
+    } finally { setSaving(false); }
+  }
+
+  async function changeStatus(status: InvoiceStatus) {
+    if (!currentId) return;
+    const ok = await updateInvoiceStatus(currentId, status, status === "paid" ? new Date().toISOString().split("T")[0] : undefined);
+    if (ok) { setCurrentStatus(status); await refreshList(); } else setSaveMsg("Status update failed");
+  }
+
+  async function removeInvoice(inv: Invoice) {
+    if (!canDeleteInvoice(role, inv.status)) return;
+    if (!await confirm({ description: `Delete draft ${inv.invoiceNumber}? This cannot be undone.` })) return;
+    const ok = await deleteInvoice(inv.id);
+    if (ok && inv.id === currentId) { setCurrentId(null); setCurrentStatus("draft"); }
+    await refreshList();
+  }
 
   function updateField(field: keyof InvoiceData, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -140,7 +180,9 @@ function InvoicesEditor() {
     setItems([]);
     setNextId(1);
     setLogoUrl(null);
-    localStorage.removeItem(STORAGE_KEY);
+    setCurrentId(null);
+    setCurrentStatus("draft");
+    if (storageKey) localStorage.removeItem(storageKey);
   }
 
   function handleLogoUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -369,8 +411,58 @@ function InvoicesEditor() {
   return (
     <>
       <div className="space-y-6">
+        {/* Saved invoices for the active company */}
+        <Card data-testid="invoice-list">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm flex items-center justify-between">
+              <span>Saved invoices</span>
+              <Button variant="outline" size="sm" className="gap-1.5 h-7 text-xs" onClick={newInvoice}>
+                <Plus className="h-3.5 w-3.5" /> New
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {listLoading ? (
+              <p className="text-xs text-muted-foreground">Loading…</p>
+            ) : invoices.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No saved invoices for this company yet.</p>
+            ) : (
+              <ul className="divide-y divide-border">
+                {invoices.map((inv) => (
+                  <li key={inv.id} className={`flex items-center gap-3 py-2 text-sm ${inv.id === currentId ? "font-semibold" : ""}`}>
+                    <span className="font-mono w-24 shrink-0">{inv.invoiceNumber}</span>
+                    <span className="flex-1 truncate">{inv.clientName || "—"}</span>
+                    <span className="tabular-nums">${inv.total.toFixed(2)}</span>
+                    <Badge className={`text-[10px] capitalize ${STATUS_VARIANT[inv.status] ?? ""}`}>{inv.status}</Badge>
+                    <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => loadIntoEditor(inv)}>Open</Button>
+                    {canDeleteInvoice(role, inv.status) && (
+                      <Button variant="ghost" size="sm" className="h-7 text-xs text-destructive" aria-label={`Delete ${inv.invoiceNumber}`} onClick={() => removeInvoice(inv)}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Action buttons */}
-        <div className="flex flex-wrap gap-2 justify-end">
+        <div className="flex flex-wrap gap-2 justify-end items-center">
+          {saveMsg && <span className="text-xs text-muted-foreground mr-auto">{saveMsg}</span>}
+          {currentId && (
+            <select
+              aria-label="Invoice status"
+              className="h-8 rounded-md border border-input bg-background px-2 text-xs capitalize"
+              value={currentStatus}
+              onChange={(e) => changeStatus(e.target.value as InvoiceStatus)}
+            >
+              {INVOICE_STATUSES.map((st) => <option key={st} value={st}>{st}</option>)}
+            </select>
+          )}
+          <Button variant="outline" size="sm" className="gap-1.5" onClick={saveInvoice} disabled={saving || !companyId}>
+            <Save className="h-3.5 w-3.5" /> {saving ? "Saving…" : currentId ? "Save changes" : "Save invoice"}
+          </Button>
           <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setShowPreview(!showPreview)}>
             {showPreview ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
             <span className="hidden sm:inline">{showPreview ? "Hide" : "Show"}</span> Preview

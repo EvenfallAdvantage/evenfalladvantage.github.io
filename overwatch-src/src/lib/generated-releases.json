@@ -3,59 +3,82 @@
     "id": "git-2026-11-01",
     "date": "Nov 1, 2026",
     "version": "git-2026.11.01",
-    "title": "Whats New: Badge and list follow live GitHub commits & 4 more",
+    "title": "UX: restore dashboard section gaps, roomier cards, title-subtitle gap & 7 more",
     "tier": "major",
     "highlights": [
       {
-        "id": "git-a37f0086",
-        "title": "Whats New: Badge and list follow live GitHub commits",
-        "summary": "Badge and list follow live GitHub commits; include squash-merged PRs; full-history deploy checkout.",
+        "id": "git-ae1d61f6",
+        "title": "UX: restore dashboard section gaps, roomier cards, title-subtitle gap",
+        "summary": "UX: restore dashboard section gaps, roomier cards, title-subtitle gap.",
+        "roles": [
+          "all"
+        ],
+        "icon": "Sparkles"
+      },
+      {
+        "id": "git-7b11062f",
+        "title": "UX: drop leftover Clock/Mass Clock tab row from /patrols",
+        "summary": "UX: drop leftover Clock/Mass Clock tab row from /patrols.",
+        "roles": [
+          "all"
+        ],
+        "tryHref": "/timeclock",
+        "tryLabel": "Open Timeclock",
+        "icon": "Coffee"
+      },
+      {
+        "id": "git-62121e41",
+        "title": "UX: per-tab page headings across multi-tab screens",
+        "summary": "UX: per-tab page headings across multi-tab screens.",
+        "roles": [
+          "all"
+        ],
+        "icon": "Sparkles"
+      },
+      {
+        "id": "git-9e77975b",
+        "title": "UX: each Comms tab gets its own heading",
+        "summary": "UX: each Comms tab gets its own heading.",
+        "roles": [
+          "all"
+        ],
+        "icon": "MessageSquare"
+      },
+      {
+        "id": "git-9e9c7684",
+        "title": "UX: Briefings uses the Comms tab row (Incidents-style tabs",
+        "summary": "UX: Briefings uses the Comms tab row (Incidents-style tabs; Scanner stays).",
+        "roles": [
+          "all"
+        ],
+        "icon": "MessageSquare"
+      },
+      {
+        "id": "git-665e0e66",
+        "title": "UX: page action sits right-aligned just below the tabs on phones",
+        "summary": "UX: page action sits right-aligned just below the tabs on phones.",
+        "roles": [
+          "all"
+        ],
+        "icon": "Sparkles"
+      },
+      {
+        "id": "git-93a8de10",
+        "title": "What's New: include Area-prefixed PR titles (UX:, Personnel:) in highlights",
+        "summary": "What's New: include Area-prefixed PR titles (UX:, Personnel:) in highlights.",
         "roles": [
           "all"
         ],
         "icon": "Megaphone"
       },
       {
-        "id": "git-d212b03d",
-        "title": "De-escalation scenarios 4 (assault disclosure) and 5 (service dog entry) with images, audio, content note",
-        "summary": "De-escalation scenarios 4 (assault disclosure) and 5 (service dog entry) with images, audio, content note.",
+        "id": "git-71d5e2b5",
+        "title": "HQ Config: show Feature Visibility to admins, not just owners",
+        "summary": "HQ Config: show Feature Visibility to admins, not just owners.",
         "roles": [
           "all"
         ],
-        "tryHref": "/training/scenarios",
-        "tryLabel": "Open Training",
-        "icon": "GraduationCap"
-      },
-      {
-        "id": "git-dc36ab37",
-        "title": "Whats New: Sidebar version label uses latest merged release, not curated RELEASES[0]",
-        "summary": "Sidebar version label uses latest merged release, not curated RELEASES[0].",
-        "roles": [
-          "all"
-        ],
-        "icon": "Megaphone"
-      },
-      {
-        "id": "git-480814fa",
-        "title": "Reframe scenario 3 photos for app crop + What's New newest-first with vX.Y versions",
-        "summary": "Reframe scenario 3 photos for app crop + What's New newest-first with vX.Y versions.",
-        "roles": [
-          "all"
-        ],
-        "tryHref": "/training/scenarios",
-        "tryLabel": "Open Training",
-        "icon": "GraduationCap"
-      },
-      {
-        "id": "git-0cd1a7dc",
-        "title": "Training: Images + audio for de-escalation scenario 3 (Denied Entry)",
-        "summary": "Images + audio for de-escalation scenario 3 (Denied Entry).",
-        "roles": [
-          "all"
-        ],
-        "tryHref": "/training/scenarios",
-        "tryLabel": "Open Training",
-        "icon": "GraduationCap"
+        "icon": "Sparkles"
       }
     ]
   },

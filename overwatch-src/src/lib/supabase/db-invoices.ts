@@ -4,7 +4,7 @@
  * Persistent invoicing with bill rates, timesheet-based generation,
  * status tracking, and payment link integration.
  *
- * Table: invoices (must be created via SQL migration)
+ * Table: invoices (RLS: owner/admin/manager full; client role reads sent+ only)
  *   id, company_id, invoice_number, client_name, client_email,
  *   event_id, status, subtotal, tax_rate, tax_amount, total,
  *   due_date, paid_date, notes, line_items (jsonb), created_at
@@ -47,7 +47,72 @@ export interface Invoice {
   paidDate: string | null;
   notes: string;
   lineItems: InvoiceLineItem[];
+  /** Free-form header fields (sender/client address, terms, logo…). */
+  details: Record<string, unknown>;
   createdAt: string;
+  updatedAt: string | null;
+}
+
+export const INVOICE_STATUSES: InvoiceStatus[] = ["draft", "sent", "viewed", "paid", "overdue", "cancelled"];
+
+/** Statuses a client-role member may read (mirrors invoices_select_client RLS). */
+export const CLIENT_VISIBLE_STATUSES: InvoiceStatus[] = ["sent", "viewed", "paid", "overdue"];
+
+/** Mirrors invoices_delete RLS: owners/admins only, drafts only. */
+export function canDeleteInvoice(role: string | null | undefined, status: InvoiceStatus): boolean {
+  return (role === "owner" || role === "admin") && status === "draft";
+}
+
+/** Per company + user key for unsaved local autosave, so nothing crosses companies. */
+export function invoiceAutosaveKey(companyId: string, userId: string): string {
+  return `overwatch_invoice_autosave:${companyId}:${userId}`;
+}
+
+export interface InvoiceSaveParams {
+  invoiceNumber: string;
+  clientName: string;
+  clientEmail?: string;
+  eventId?: string;
+  lineItems: InvoiceLineItem[];
+  taxRate?: number;
+  dueDate?: string;
+  notes?: string;
+  details?: Record<string, unknown>;
+}
+
+function computeTotals(lineItems: InvoiceLineItem[], taxRatePct: number) {
+  const subtotal = Math.round(lineItems.reduce((sum, li) => sum + li.amount, 0) * 100) / 100;
+  const taxAmount = Math.round(subtotal * taxRatePct) / 100;
+  return { subtotal, taxAmount, total: Math.round((subtotal + taxAmount) * 100) / 100 };
+}
+
+/**
+ * Update an existing invoice's contents (totals recomputed).
+ */
+export async function updateInvoice(invoiceId: string, params: InvoiceSaveParams): Promise<boolean> {
+  const supabase = createClient();
+  const taxRate = params.taxRate ?? 0;
+  const { subtotal, taxAmount, total } = computeTotals(params.lineItems, taxRate);
+  const { error } = await supabase
+    .from("invoices")
+    .update({
+      invoice_number: params.invoiceNumber,
+      client_name: params.clientName,
+      client_email: params.clientEmail ?? "",
+      event_id: params.eventId ?? null,
+      subtotal,
+      tax_rate: taxRate,
+      tax_amount: taxAmount,
+      total,
+      due_date: params.dueDate || null,
+      notes: params.notes ?? "",
+      line_items: params.lineItems,
+      details: params.details ?? {},
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", invoiceId);
+  if (error) console.error("[Invoices] Update failed:", error.message);
+  return !error;
 }
 
 // ─── CRUD ─────────────────────────────────────────────────
@@ -57,23 +122,12 @@ export interface Invoice {
  */
 export async function createInvoice(
   companyId: string,
-  params: {
-    invoiceNumber: string;
-    clientName: string;
-    clientEmail?: string;
-    eventId?: string;
-    lineItems: InvoiceLineItem[];
-    taxRate?: number;
-    dueDate?: string;
-    notes?: string;
-  }
+  params: InvoiceSaveParams
 ): Promise<string | null> {
   const supabase = createClient();
   const id = crypto.randomUUID();
-  const subtotal = params.lineItems.reduce((sum, li) => sum + li.amount, 0);
   const taxRate = params.taxRate ?? 0;
-  const taxAmount = Math.round(subtotal * taxRate) / 100;
-  const total = subtotal + taxAmount;
+  const { subtotal, taxAmount, total } = computeTotals(params.lineItems, taxRate);
 
   const { error } = await supabase
     .from("invoices")
@@ -89,10 +143,11 @@ export async function createInvoice(
       tax_rate: taxRate,
       tax_amount: taxAmount,
       total,
-      due_date: params.dueDate ?? null,
+      due_date: params.dueDate || null,
       paid_date: null,
       notes: params.notes ?? "",
       line_items: params.lineItems,
+      details: params.details ?? {},
       ...ts(),
     });
 
@@ -160,7 +215,9 @@ export async function getCompanyInvoices(companyId: string): Promise<Invoice[]> 
     paidDate: inv.paid_date,
     notes: inv.notes ?? "",
     lineItems: inv.line_items ?? [],
+    details: inv.details ?? {},
     createdAt: inv.created_at,
+    updatedAt: inv.updated_at ?? null,
   }));
 }
 
