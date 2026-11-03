@@ -40,7 +40,7 @@
    "name": "Sensor radome",
    "description": "RF-transparent nose cover with sealing band.",
    "explode": [
-    0.036,
+    0.069,
     0.0,
     -0.0
    ],
@@ -55,9 +55,9 @@
    "name": "Display bezel",
    "description": "Rear bezel framing the circular status display.",
    "explode": [
-    -0.04,
-    0.0,
-    -0.0
+    -0.063,
+    -0.028,
+    0.01
    ],
    "label_anchor": [
     0.0,
@@ -70,9 +70,9 @@
    "name": "Display window",
    "description": "Protective window in front of the display.",
    "explode": [
-    -0.03,
-    0.0,
-    -0.0
+    -0.043,
+    -0.007,
+    0.005
    ],
    "label_anchor": [
     0.0,
@@ -85,8 +85,8 @@
    "name": "Round display",
    "description": "Circular status display with a self-levelling UI (in development).",
    "explode": [
-    -0.02,
-    0.0,
+    -0.023,
+    0.024,
     -0.0
    ],
    "label_anchor": [
@@ -101,8 +101,8 @@
    "description": "Knurled, sealed rotary control for menus and settings.",
    "explode": [
     0.0,
-    0.0,
-    0.03
+    -0.001,
+    0.041
    ],
    "label_anchor": [
     0.0007,
@@ -115,9 +115,9 @@
    "name": "Port seals",
    "description": "Flexible covers that seal the charging and data ports and the power switch.",
    "explode": [
-    0.0,
     0.01,
-    0.02
+    -0.033,
+    0.046
    ],
    "label_anchor": [
     -0.0154,
@@ -128,22 +128,22 @@
   {
    "node": "electronics",
    "name": "Electronics module",
-   "description": "Processing, GNSS, motion sensing and power electronics (simplified).",
+   "description": "Processing, satellite positioning and motion-sensing boards (illustrative).",
    "explode": [
     0.0,
-    0.017,
+    0.022,
     -0.0
    ],
    "label_anchor": [
-    0.0,
-    0.0109,
+    -0.0036,
+    0.0097,
     -0.0
    ]
   },
   {
    "node": "battery",
    "name": "Battery pack",
-   "description": "Rechargeable lithium battery.",
+   "description": "Rechargeable lithium pack with protection circuit (illustrative).",
    "explode": [
     0.0,
     -0.007,
@@ -151,7 +151,7 @@
    ],
    "label_anchor": [
     0.0,
-    0.0051,
+    0.0047,
     -0.0
    ]
   },

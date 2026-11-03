@@ -15,9 +15,9 @@
     -0.0
    ],
    "label_anchor": [
-    0.045,
-    0.1127,
-    -0.2619
+    0.04,
+    0.0636,
+    -0.1698
    ]
   },
   {
@@ -26,133 +26,133 @@
    "description": "Hinged lid with a convoluted foam liner.",
    "explode": [
     0.0,
-    0.092,
-    -0.16
+    0.15,
+    -0.137
    ],
    "label_anchor": [
     0.0,
-    0.2507,
-    -0.0274
+    0.1624,
+    -0.0231
    ]
   },
   {
    "node": "foam_insert",
-   "name": "Foam insert",
-   "description": "CNC-cut foam with a shaped pocket and finger notches for every module.",
+   "name": "CNC foam insert",
+   "description": "Deep CNC-cut pockets with finger notches for every component.",
    "explode": [
     0.0,
-    0.08,
+    0.164,
     -0.0
    ],
    "label_anchor": [
-    0.0,
-    0.094,
-    -0.0
+    -0.1573,
+    0.0075,
+    0.1032
    ]
   },
   {
-   "node": "field_server",
-   "name": "Field server",
-   "description": "Fanless, ruggedised edge computer that runs the local network and apps.",
+   "node": "mini_pc",
+   "name": "Mini server",
+   "description": "Low-power x86 mini PC running every Overwatch service locally.",
    "explode": [
-    0.0,
-    0.298,
-    -0.0
+    -0.055,
+    0.505,
+    -0.041
    ],
    "label_anchor": [
-    0.0047,
-    0.0358,
-    -0.0
+    -0.0075,
+    0.0204,
+    -0.0039
    ]
   },
   {
-   "node": "access_point",
-   "name": "Wi-Fi access point",
-   "description": "Wide-area Wi-Fi access point for nearby devices.",
+   "node": "travel_router",
+   "name": "WiFi router",
+   "description": "Compact WiFi 6 router that serves the private network.",
    "explode": [
-    0.0,
-    0.298,
-    -0.0
+    0.068,
+    0.649,
+    -0.068
    ],
    "label_anchor": [
     0.0,
-    0.0185,
+    0.017,
     -0.0
    ]
   },
   {
    "node": "lora_gateway",
-   "name": "Long-range gateway",
-   "description": "Long-range low-power radio gateway with antenna.",
+   "name": "LoRa gateway",
+   "description": "Mesh gateway linking field radios to the server.",
    "explode": [
-    0.0,
-    0.298,
-    -0.0
+    0.232,
+    0.314,
+    -0.137
    ],
    "label_anchor": [
-    -0.036,
-    0.015,
+    0.0425,
+    0.0122,
+    0.0397
+   ]
+  },
+  {
+   "node": "gnss_puck",
+   "name": "GNSS time source",
+   "description": "GPS receiver that keeps the kit clock accurate offline.",
+   "explode": [
+    0.273,
+    0.205,
+    0.014
+   ],
+   "label_anchor": [
+    0.0,
+    0.008,
     -0.0
    ]
   },
   {
-   "node": "radio_1",
-   "name": "Handheld radio",
-   "description": "Team handheld radio with display, keypad, push-to-talk and antenna.",
+   "node": "tbeam_radios",
+   "name": "Team-lead radios",
+   "description": "GPS mesh radios with screens for team leads.",
    "explode": [
-    0.0,
-    0.229,
-    -0.0
+    0.082,
+    0.376,
+    0.205
    ],
    "label_anchor": [
-    -0.0,
-    0.0172,
-    0.024
+    0.0,
+    0.0182,
+    -0.0112
    ]
   },
   {
-   "node": "radio_2",
-   "name": "Handheld radio",
-   "description": "Team handheld radio with display, keypad, push-to-talk and antenna.",
+   "node": "card_trackers",
+   "name": "Card trackers",
+   "description": "Rugged credit-card-size GPS mesh trackers.",
    "explode": [
-    0.0,
-    0.229,
-    -0.0
+    0.164,
+    0.492,
+    0.123
    ],
    "label_anchor": [
-    -0.0,
-    0.0173,
-    0.024
+    -0.0065,
+    0.0098,
+    0.0071
    ]
   },
   {
-   "node": "radio_3",
-   "name": "Handheld radio",
-   "description": "Team handheld radio with display, keypad, push-to-talk and antenna.",
+   "node": "battery",
+   "name": "LiFePO4 battery",
+   "description": "12 V lithium iron phosphate battery in a padded sleeve; no inverter.",
    "explode": [
+    -0.273,
     0.0,
-    0.229,
-    -0.0
+    -0.034
    ],
    "label_anchor": [
-    -0.0,
-    0.0173,
-    0.024
-   ]
-  },
-  {
-   "node": "power_unit",
-   "name": "Portable power unit",
-   "description": "Portable battery power station with a status display, AC outlets and USB ports.",
-   "explode": [
-    -0.137,
-    0.0,
-    -0.0
-   ],
-   "label_anchor": [
-    0.0,
-    0.1413,
-    -0.0
+    0.0234,
+    0.138,
+    0.0435
    ]
   }
  ]

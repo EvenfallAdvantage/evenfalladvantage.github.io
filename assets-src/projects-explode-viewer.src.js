@@ -123,11 +123,16 @@ export async function mount(root) {
     const w = stage.clientWidth, h = stage.clientHeight, show = factor > 0.6;
     labelLayer.classList.toggle('is-on', show);
     if (!show) return;
+    // Project anchors, then nudge labels vertically so collapsed tags never overlap.
+    const pts = [];
     for (const e of entries) {
       v.copy(e.local); e.node.localToWorld(v); v.project(camera);
-      e.tag.style.transform = `translate(${(v.x * .5 + .5) * w}px, ${(-v.y * .5 + .5) * h}px)`;
       e.tag.classList.toggle('is-sel', e.p.node === selected);
+      if (!e._w || (e.p.node !== selected && !e.tag.matches(':hover'))) { e._w = e.tag.offsetWidth; e._h = e.tag.offsetHeight; }
+      pts.push({ Z: e, x: (v.x * .5 + .5) * w, y: (-v.y * .5 + .5) * h });
     }
+    xvDeclutter(pts, w, h);
+    for (const o of pts) o.Z.tag.style.transform = `translate(${o.x}px, ${o.y}px)`;
   }
 
   // Click/tap on the model to pick a part (ignore drags).
@@ -169,3 +174,6 @@ export async function mount(root) {
   if (status) status.textContent = entries.length + ' parts loaded. Drag to orbit, hover or tap to explode.';
   window.__xv = window.__xv || {}; window.__xv[root.dataset.slug] = { setTarget, select, get factor() { return factor; }, parts: entries.length };
 }
+
+// Greedy vertical declutter for label tags (sorted top to bottom).
+function xvDeclutter(L,W,H){L.sort((a,b)=>a.y-b.y);let D=[];for(let o of L){let w=o.Z._w||60,h=o.Z._h||18,x=Math.min(Math.max(o.x,w/2+2),W-w/2-2),y0=o.y,best=y0;for(let k=0;k<13;k++){let y=y0+(k%2?1:-1)*Math.ceil(k/2)*(h+3);if(k===0)y=y0;y=Math.min(Math.max(y,h/2+2),H-h/2-2);if(!D.some(r=>Math.abs(r.x-x)<(r.w+w)/2+3&&Math.abs(r.y-y)<(r.h+h)/2+2)){best=y;break}}o.x=x,o.y=best,D.push({x,y:best,w,h})}}

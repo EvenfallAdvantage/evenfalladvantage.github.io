@@ -10,8 +10,8 @@
    "name": "Head and beak",
    "description": "Raven-styled nose section that houses the forward-looking sensors.",
    "explode": [
-    -0.215,
-    0.013,
+    -0.125,
+    0.008,
     -0.0
    ],
    "label_anchor": [
@@ -25,8 +25,8 @@
    "name": "Forward fuselage",
    "description": "Front body section carrying flight electronics.",
    "explode": [
-    -0.107,
-    0.04,
+    -0.062,
+    0.023,
     -0.0
    ],
    "label_anchor": [
@@ -56,7 +56,7 @@
    "description": "Removable top hatch for quick access between flights.",
    "explode": [
     0.0,
-    0.148,
+    0.086,
     -0.0
    ],
    "label_anchor": [
@@ -70,8 +70,8 @@
    "name": "Aft fuselage",
    "description": "Rear body section blending into the tail.",
    "explode": [
-    0.107,
-    0.04,
+    0.062,
+    0.023,
     -0.0
    ],
    "label_anchor": [
@@ -86,13 +86,13 @@
    "description": "Solar-skinned wing with raven-style feathered tip.",
    "explode": [
     0.0,
-    0.027,
-    -0.201
+    0.016,
+    -0.094
    ],
    "label_anchor": [
-    -0.0246,
-    0.0283,
-    -0.0926
+    -0.0431,
+    0.0316,
+    -0.0534
    ]
   },
   {
@@ -101,13 +101,13 @@
    "description": "Solar-skinned wing with raven-style feathered tip.",
    "explode": [
     0.0,
-    0.027,
-    0.201
+    0.016,
+    0.094
    ],
    "label_anchor": [
-    -0.0246,
-    0.0283,
-    0.0926
+    -0.0431,
+    0.0317,
+    0.0534
    ]
   },
   {
@@ -115,7 +115,7 @@
    "name": "Tail boom",
    "description": "Lightweight carbon boom linking the body to the tail.",
    "explode": [
-    0.201,
+    0.101,
     0.0,
     -0.0
    ],
@@ -130,14 +130,14 @@
    "name": "Left tail surface",
    "description": "V-tail surface with a moving control section.",
    "explode": [
-    0.282,
-    0.04,
-    -0.094
+    0.164,
+    0.023,
+    -0.055
    ],
    "label_anchor": [
     0.0,
-    0.0152,
-    -0.0229
+    0.0213,
+    -0.0208
    ]
   },
   {
@@ -145,14 +145,14 @@
    "name": "Right tail surface",
    "description": "V-tail surface with a moving control section.",
    "explode": [
-    0.282,
-    0.04,
-    0.094
+    0.164,
+    0.023,
+    0.055
    ],
    "label_anchor": [
     -0.0,
-    0.0152,
-    0.0229
+    0.0213,
+    0.0208
    ]
   },
   {
@@ -160,7 +160,7 @@
    "name": "Motor and folding prop",
    "description": "Rear pusher motor with a prop that folds away when perched or gliding.",
    "explode": [
-    0.369,
+    0.164,
     0.0,
     -0.0
    ],
@@ -176,13 +176,13 @@
    "description": "Compact camera turret for watching from the air or a perch; camera lens on the underside.",
    "explode": [
     0.0,
-    -0.107,
+    -0.078,
     -0.0
    ],
    "label_anchor": [
-    0.0081,
-    0.0102,
-    -0.0062
+    0.0125,
+    0.0159,
+    -0.0096
    ]
   },
   {
@@ -191,12 +191,12 @@
    "description": "Landing skid with talon-style grips for perching on ledges.",
    "explode": [
     0.0,
-    -0.201,
+    -0.133,
     -0.0
    ],
    "label_anchor": [
-    0.0032,
-    0.0381,
+    0.0042,
+    0.0496,
     -0.0
    ]
   }
