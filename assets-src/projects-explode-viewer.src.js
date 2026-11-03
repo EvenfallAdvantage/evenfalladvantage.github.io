@@ -67,13 +67,16 @@ export async function mount(root) {
     controls.minDistance = size * 0.4; controls.maxDistance = size * 3;
   };
 
-  let lastT = 0, factor = 0, target = 0, selected = null, raf = 0, visible = false, dirty = true, sizeDirty = true, SW = 1, SH = 1, slow = 0, lowQ = false;
+  let lastT = 0, factor = 0, target = 0, selected = null, raf = 0, visible = false, ready = false, hovPart = null, dirty = true, sizeDirty = true, SW = 1, SH = 1, slow = 0, lowQ = false;
   function applyFactor(f) { for (const e of entries) e.node.position.copy(e.rest).addScaledVector(e.dir, f); }
   function setTarget(t, instant) {
     target = Math.max(0, Math.min(1, t));
+    if (target > 0) { spinUntil = 0; controls.autoRotate = false; }
     if (instant || REDUCED) { factor = target; applyFactor(factor); }
     toggle.setAttribute('aria-pressed', String(target > 0.5));
     toggle.querySelector('span').textContent = target > 0.5 ? 'Assemble' : 'Explode';
+    const ic = toggle.querySelector('i'); if (ic) ic.className = 'fas ' + (target > 0.5 ? 'fa-down-left-and-up-right-to-center' : 'fa-up-right-and-down-left-from-center');
+    toggle.setAttribute('aria-label', target > 0.5 ? 'Assemble the model' : 'Explode the model');
     kick();
   }
 
@@ -88,11 +91,12 @@ export async function mount(root) {
       const ghost = !!selected && !on;
       e.node.traverse(o => { if (o.isMesh) { const base = o.userData.base || (o.userData.base = o.material); o.material = ghost ? base.userData.ghost : base; } });
     }
+    if (hovPart) glow(hovPart, true);
     list.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.node === selected)));
     const e = entries.find(x => x.p.node === selected);
     info.innerHTML = '';
     if (e) { const h = document.createElement('h3'); h.textContent = e.p.name; const d = document.createElement('p'); d.textContent = e.p.description; info.append(h, d); }
-    else { const d = document.createElement('p'); d.className = 'xv-hint'; d.textContent = (matchMedia('(hover: hover)').matches ? 'Hover the model to explode it, then point at a label.' : 'Tap the model to explode it, then tap a label.'); info.append(d); }
+    else { const d = document.createElement('p'); d.className = 'xv-hint'; d.textContent = (matchMedia('(hover: hover)').matches ? 'Press Explode to separate the parts, then point at a label.' : 'Tap Explode to separate the parts, then tap a label.'); info.append(d); }
     kick();
   }
 
@@ -110,11 +114,11 @@ export async function mount(root) {
   });
   select(null);
 
-  toggle.addEventListener('click', () => { pinned = target <= 0.5; setTarget(pinned ? 1 : 0); });
+  // Float the toggle over the stage so it is always visible next to the model.
+  toggle.classList.add('xv-toggle-float'); stage.appendChild(toggle);
+  // Explode/assemble only through the button (no hover or canvas-tap toggling).
+  toggle.addEventListener('click', () => setTarget(target > 0.5 ? 0 : 1));
   // Desktop: hover explodes, leave reassembles. Touch: tap toggles.
-  let pinned = false;
-  stage.addEventListener('pointerenter', ev => { if (ev.pointerType === 'mouse') setTarget(1); });
-  stage.addEventListener('pointerleave', ev => { if (ev.pointerType === 'mouse' && !pinned) setTarget(0); });
   // Floating labels anchored to each part.
   const labelLayer = document.createElement('div'); labelLayer.className = 'xv-labels'; stage.appendChild(labelLayer);
   for (const e of entries) {
@@ -151,7 +155,6 @@ export async function mount(root) {
   const ray = new THREE.Raycaster(); let down = null;
   canvas.addEventListener('pointerdown', ev => { down = [ev.clientX, ev.clientY]; controls.autoRotate = false; });
   canvas.addEventListener('pointerup', ev => {
-    if (down && ev.pointerType !== 'mouse' && Math.hypot(ev.clientX - down[0], ev.clientY - down[1]) <= 6 && !hitPart(ev)) { pinned = target <= 0.5; setTarget(pinned ? 1 : 0); return; }
     if (!down || Math.hypot(ev.clientX - down[0], ev.clientY - down[1]) > 6) return;
     const r = canvas.getBoundingClientRect();
     ray.setFromCamera(new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1), camera);
@@ -159,6 +162,28 @@ export async function mount(root) {
     let o = hit && hit.object; while (o && !o.userData.part) o = o.parent;
     if (o) select(o.userData.part);
   });
+  // Component hover: highlight the part under the cursor (emissive uniform only, precompiled
+  // materials, no swaps) and show its tooltip when exploded. At most one raycast per frame.
+  let hovEv = null, hovRaf = 0;
+  function glow(e, on) { if (!e || e.p.node === selected) return; for (const m of e.mats) { if (m.emissive) m.emissive.setHex(on ? 0x5c86b8 : 0); if ('emissiveIntensity' in m) m.emissiveIntensity = on ? 0.35 : 0; } }
+  function setHover(e) {
+    if (e === hovPart) return;
+    glow(hovPart, false); hovPart = e; glow(e, true);
+    canvas.style.cursor = e ? 'pointer' : '';
+    if (target > 0.5) { if (e) labelLayer._hover = e; else if (labelLayer._hover && !labelLayer._hover.tag.matches(':hover')) labelLayer._hover = null; }
+    kick();
+  }
+  canvas.addEventListener('pointermove', ev => {
+    if (ev.pointerType !== 'mouse' || ev.buttons) return;
+    hovEv = ev; if (hovRaf) return;
+    hovRaf = requestAnimationFrame(() => {
+      hovRaf = 0; const r = canvas.getBoundingClientRect();
+      ray.setFromCamera(new THREE.Vector2(((hovEv.clientX - r.left) / r.width) * 2 - 1, -((hovEv.clientY - r.top) / r.height) * 2 + 1), camera);
+      const hit = ray.intersectObject(model, true)[0]; let o = hit && hit.object; while (o && !o.userData.part) o = o.parent;
+      setHover(o ? entries.find(x => x.p.node === o.userData.part) : null);
+    });
+  });
+  canvas.addEventListener('pointerleave', () => { if (hovRaf) { cancelAnimationFrame(hovRaf); hovRaf = 0; } setHover(null); });
   controls.addEventListener('change', kick);
   function hitPart(ev) { const r = canvas.getBoundingClientRect(); ray.setFromCamera(new THREE.Vector2(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1), camera); return target > 0.5 && ray.intersectObject(model, true).length > 0; }
 
@@ -174,12 +199,17 @@ export async function mount(root) {
   function live() { return visible && !document.hidden; }
   new IntersectionObserver(es => {
     visible = es[0].isIntersecting;
-    if (visible && !spun) { spun = true; spinUntil = performance.now() + 6000; controls.autoRotate = true; }
+    if (visible && ready && !spun) startIntro();
     if (live()) kick(); else if (raf) { cancelAnimationFrame(raf); raf = 0; lastT = 0; }
   }).observe(stage);
   document.addEventListener('visibilitychange', () => { if (live()) kick(); else if (raf) { cancelAnimationFrame(raf); raf = 0; lastT = 0; } });
   canvas.addEventListener('pointerdown', () => { spinUntil = 0; controls.autoRotate = false; });
 
+  function startIntro() {
+    spun = true;
+    if (stage.matches(':hover') || target > 0) return;
+    controls.autoRotateSpeed = 0.5; spinUntil = performance.now() + 3000; controls.autoRotate = true; kick();
+  }
   function kick() { dirty = true; if (!raf && live()) raf = requestAnimationFrame(tick); }
   const lastCam = new THREE.Matrix4();
   function tick(t) {
@@ -204,14 +234,29 @@ export async function mount(root) {
     if (live() && (moved || controls.autoRotate)) raf = requestAnimationFrame(tick); else lastT = 0;
   }
 
-  for (const o of meshes) { o.userData.base = o.material; o.material = o.material.userData.ghost; }
-  renderer.compile(scene, camera);
-  for (const o of meshes) o.material = o.userData.base;
-  renderer.compile(scene, camera);
+  // Staged startup: async shader compile (both material variants), then label DOM/measurements in
+  // idle time, then the poster crossfades and the intro may play; hover arms last.
+  const idle = () => new Promise(res => (window.requestIdleCallback || setTimeout)(res, { timeout: 300 }));
   fit(); resize();
+  for (const o of meshes) { o.userData.base = o.material; o.material = o.material.userData.ghost; }
+  await (renderer.compileAsync ? renderer.compileAsync(scene, camera) : renderer.compile(scene, camera));
+  for (const o of meshes) o.material = o.userData.base;
+  await (renderer.compileAsync ? renderer.compileAsync(scene, camera) : renderer.compile(scene, camera));
+  performance.mark('xv-compiled');
+  await idle();
+  { // pre-create dots/pills and measure them once, hidden, at the exploded pose
+    const w = SW, h = SH; applyFactor(1); model.updateMatrixWorld(true);
+    labelLayer.style.visibility = 'hidden'; labelLayer.classList.add('is-on');
+    xvLayout(entries.map(e => { v.copy(e.local); e.node.localToWorld(v); v.project(camera); return { Z: e, x: (v.x * .5 + .5) * w, y: (-v.y * .5 + .5) * h }; }), w, h, null, labelLayer, true);
+    labelLayer.classList.remove('is-on'); labelLayer.style.visibility = ''; labelKey = ''; applyFactor(factor);
+  }
+  await idle();
   setTarget(parseFloat(root.dataset.start || '0'), true);
-  root.classList.add('is-ready');
-  if (status) status.textContent = entries.length + ' parts loaded. Drag to orbit, hover or tap to explode.';
+  renderer.render(scene, camera);
+  performance.mark('xv-ready');
+  ready = true; root.classList.add('is-ready');
+  if (visible && !spun) startIntro();
+  if (status) status.textContent = entries.length + ' parts loaded. Drag to orbit; use the Explode button to separate the parts.';
   window.__xv = window.__xv || {}; window.__xv[root.dataset.slug] = { setTarget, select, get factor() { return factor; }, parts: entries.length, info: renderer.info };
 }
 
