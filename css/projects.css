@@ -303,7 +303,7 @@ body.pj-lb-open { overflow: hidden; }
 .xv-stage { position: relative; aspect-ratio: 16 / 10; border-radius: 12px; overflow: hidden; background: radial-gradient(circle at 50% 40%, #ffffff, #e6ebf2 75%); box-shadow: var(--shadow); touch-action: pan-y; }
 .xv-poster, .xv-poster img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; transition: opacity .4s ease; }
 .xv-poster-x { opacity: 0; }
-.xv.is-static .xv-stage:hover .xv-poster-x, .xv.is-static .xv-stage:focus-within .xv-poster-x { opacity: 1; }
+.xv.is-static.is-x .xv-poster-x { opacity: 1; }
 .xv.is-ready .xv-poster, .xv.is-ready .xv-loading { opacity: 0; pointer-events: none; }
 .xv-loading { position: absolute; left: 1rem; bottom: .75rem; margin: 0; font-size: .85rem; color: var(--pj-muted); font-family: var(--font-primary); opacity: 0; }
 .xv.is-loading .xv-loading { opacity: 1; }
@@ -349,3 +349,21 @@ body.pj-lb-open { overflow: hidden; }
 .xv-toggle-float { position: absolute; left: 12px; bottom: 12px; z-index: 4; padding: .55rem 1rem; font-weight: 700; border-radius: 999px; box-shadow: 0 3px 10px rgba(0,0,0,.25); }
 .xv-toggle:focus-visible { outline: 3px solid var(--pj-orange); outline-offset: 3px; }
 .xv-toggle[aria-pressed="true"]:focus-visible { outline-color: var(--pj-navy); }
+
+/* Whole project card is one link (stretched-link pattern on the title <a>). */
+.pj-project { cursor: pointer; }
+.pj-project h2 { position: static; } /* let the title link's ::after cover the whole card */
+.pj-stretch { color: inherit; text-decoration: none; }
+.pj-stretch::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.pj-stretch:focus-visible { outline: none; }
+.pj-project:has(.pj-stretch:focus-visible) { outline: 3px solid var(--pj-orange); outline-offset: 3px; }
+.pj-project:hover .pj-stretch { color: var(--pj-orange); }
+
+/* Bottom CTA band: dark navy so the light text passes WCAG AA. */
+.pj-cta-band { background: radial-gradient(circle at 85% 15%, #2c4a70, var(--pj-navy) 60%); color: #fff; text-align: center; padding: clamp(2.5rem, 6vw, 4rem) 0; }
+.projects-page main .pj-cta-band h2 { color: #fff; margin: 0 0 .75rem; }
+.pj-cta-band p { color: #e6ebf2; margin: 0 auto 1.5rem; max-width: 40rem; line-height: 1.6; }
+
+/* Explode toggle: always above the canvas drag layer and label layers. */
+.xv-stage > .xv-toggle-float { z-index: 20; cursor: pointer; pointer-events: auto; touch-action: manipulation; }
+.xv-stage > .xv-toggle-float * { pointer-events: none; }

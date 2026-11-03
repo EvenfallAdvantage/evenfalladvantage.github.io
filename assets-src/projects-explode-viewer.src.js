@@ -117,7 +117,9 @@ export async function mount(root) {
   // Float the toggle over the stage so it is always visible next to the model.
   toggle.classList.add('xv-toggle-float'); stage.appendChild(toggle);
   // Explode/assemble only through the button (no hover or canvas-tap toggling).
-  toggle.addEventListener('click', () => setTarget(target > 0.5 ? 0 : 1));
+  toggle.addEventListener('click', ev => { ev.stopPropagation(); setTarget(target > 0.5 ? 0 : 1); });
+  // Keep the button's press away from the orbit/drag layer and label hover logic.
+  for (const t of ['pointerdown', 'pointerup', 'mousedown', 'touchstart']) toggle.addEventListener(t, ev => ev.stopPropagation(), { passive: true });
   // Desktop: hover explodes, leave reassembles. Touch: tap toggles.
   // Floating labels anchored to each part.
   const labelLayer = document.createElement('div'); labelLayer.className = 'xv-labels'; stage.appendChild(labelLayer);

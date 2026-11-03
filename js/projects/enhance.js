@@ -87,14 +87,25 @@
   }
 
   // 5. Lazy exploded 3D viewer (WebGL + module support required; posters stay otherwise)
+  // No-WebGL fallback: the Explode button (only) swaps between the assembled and exploded posters.
+  function xvStatic(root) {
+    if (root.classList.contains('is-static')) return;
+    root.classList.add('is-static');
+    var t = root.querySelector('.xv-toggle'); if (!t) return;
+    t.addEventListener('click', function () {
+      var on = !root.classList.contains('is-x'); root.classList.toggle('is-x', on);
+      t.setAttribute('aria-pressed', String(on));
+      var sp = t.querySelector('span'); if (sp) sp.textContent = on ? 'Assemble' : 'Explode';
+    });
+  }
   $$('.xv').forEach(function (root) {
     var c = document.createElement('canvas');
     var gl = c.getContext && (c.getContext('webgl2') || c.getContext('webgl'));
-    if (!gl) { root.classList.add('is-static'); return; }
+    if (!gl) { xvStatic(root); return; }
     var go = function () {
       root.classList.add('is-loading');
       import('/js/projects/explode-viewer.js').then(function (m) { return m.mount(root); })
-        .catch(function (err) { console.warn('3D viewer unavailable', err); root.classList.add('is-static'); })
+        .catch(function (err) { console.warn('3D viewer unavailable', err); xvStatic(root); })
         .then(function () { root.classList.remove('is-loading'); });
     };
     if (!hasIO) return go();

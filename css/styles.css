@@ -4156,3 +4156,16 @@ footer {
         grid-template-columns: 1fr;
     }
 }
+
+/* Agent Westwood: the drawer is a <section>, so shield it from the global section padding/zebra background. */
+section.westwood-drawer,
+section.westwood-drawer:nth-child(even) { padding: 0; margin: 0; background: #112033; }
+.westwood-messages { background: #112033; }
+.westwood-chips-scroll {
+    flex-wrap: wrap;
+    overflow: visible;
+    padding-bottom: 0;
+    scrollbar-width: none;
+}
+.westwood-chips-scroll::-webkit-scrollbar { display: none; }
+.westwood-chip { flex-shrink: 1; white-space: nowrap; }
