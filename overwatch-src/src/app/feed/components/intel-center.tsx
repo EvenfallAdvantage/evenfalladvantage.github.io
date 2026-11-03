@@ -20,12 +20,17 @@ import {
   type CompanyStats, type IntelData, type OwnerIntel,
 } from "./shared";
 import { logger } from "@/lib/logger";
+import { WidgetSkeleton } from "./widget-states";
 
 interface IntelCenterProps {
   activeCompanyId: string;
+  /** Feature Visibility hrefs hidden by HQ Config. */
+  hiddenTabs?: readonly string[];
 }
 
-export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
+export function IntelCenter({ activeCompanyId, hiddenTabs = [] }: IntelCenterProps) {
+  const showHiring = !hiddenTabs.includes("/admin/staff?tab=applicants");
+  const showOnboarding = !hiddenTabs.includes("/admin/staff?tab=onboarding");
   const [companyStats, setCompanyStats] = useState<CompanyStats | null>(null);
   const [intel, setIntel] = useState<IntelData | null>(null);
   const [ownerIntel, setOwnerIntel] = useState<OwnerIntel | null>(null);
@@ -46,7 +51,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
     return () => { cancelled = true; };
   }, [activeCompanyId]);
 
-  if (!companyStats || !intel) return null;
+  if (!companyStats || !intel) return <WidgetSkeleton rows={4} />;
 
   const mc = companyStats.memberCount;
   const ec = companyStats.eventCount;
@@ -110,8 +115,9 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
       </div>
 
       {/* Owner Row: Pipeline + Integrations + Payroll */}
-      <div className="grid gap-3 lg:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {/* Hiring Pipeline */}
+        {showHiring && (
         <Card className="border-border/40">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
@@ -146,6 +152,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Integration Health */}
         <Card className="border-border/40">
@@ -221,14 +228,18 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
       </div>
 
       {/* Charts Row */}
-      <div className="grid gap-3 lg:grid-cols-3">
-        <Card className="border-border/40 lg:col-span-2">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <Card className="border-border/40 sm:col-span-2">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-xs font-semibold flex items-center gap-1.5"><Clock className="h-3.5 w-3.5 text-brand" /> Weekly Hours</h3>
               <span className="text-[10px] text-muted-foreground">{hrs}h total</span>
             </div>
-            <MiniBarChart data={intel.weeklyHours} color="#f59e0b" />
+            {hrs > 0 || intel.weeklyHours.some((v: number) => v > 0) ? (
+              <MiniBarChart data={intel.weeklyHours} color="#f59e0b" />
+            ) : (
+              <p className="flex h-[60px] items-center justify-center text-[11px] text-muted-foreground">No hours logged this week yet</p>
+            )}
             <div className="flex justify-between mt-1">
               {intel.dayLabels.map((d) => <span key={d} className="text-[10px] text-muted-foreground">{d}</span>)}
             </div>
@@ -261,7 +272,11 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
               <h3 className="text-xs font-semibold flex items-center gap-1.5"><AlertTriangle className="h-3.5 w-3.5 text-red-500" /> Incidents</h3>
               <span className="text-[10px] text-muted-foreground">{(intel.weeklyIncidents).reduce((a: number, b: number) => a + b, 0)} this week</span>
             </div>
-            <MiniBarChart data={intel.weeklyIncidents} color="#ef4444" />
+            {intel.weeklyIncidents.some((v: number) => v > 0) ? (
+              <MiniBarChart data={intel.weeklyIncidents} color="#ef4444" />
+            ) : (
+              <p className="flex h-[60px] items-center justify-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400"><CheckCircle2 className="h-3.5 w-3.5" /> No incidents this week</p>
+            )}
             <div className="flex justify-between mt-1">
               {intel.dayLabels.map((d) => <span key={d} className="text-[10px] text-muted-foreground">{d}</span>)}
             </div>
@@ -294,6 +309,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
         </Card>
 
         {/* Onboarding */}
+        {showOnboarding && (
         <Card className="border-border/40">
           <CardContent className="p-4">
             <h3 className="text-xs font-semibold mb-2 flex items-center gap-1.5"><UserCheck className="h-3.5 w-3.5 text-cyan-500" /> Onboarding</h3>
@@ -318,6 +334,7 @@ export function IntelCenter({ activeCompanyId }: IntelCenterProps) {
             )}
           </CardContent>
         </Card>
+        )}
 
         {/* Activity */}
         <Card className="border-border/40">

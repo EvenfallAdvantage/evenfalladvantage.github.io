@@ -207,7 +207,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
       {/* Duty Status Widget */}
       <Card className={`overflow-hidden ${isClockedIn ? "border-green-500/30" : "border-border/50"}`}>
         <CardContent className="p-0">
-          <div className={`flex items-center gap-3 sm:gap-4 p-4 sm:p-5 ${isClockedIn ? "bg-gradient-to-r from-green-500/10 via-green-500/5 to-transparent" : "bg-gradient-to-r from-primary/5 to-transparent"}`}>
+          <div className={`flex flex-wrap items-center gap-3 sm:gap-4 p-4 sm:p-5 ${isClockedIn ? "bg-gradient-to-r from-green-500/10 via-green-500/5 to-transparent" : "bg-gradient-to-r from-primary/5 to-transparent"}`}>
             <div className={`relative flex h-12 w-12 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl ${isClockedIn ? "bg-green-500/15" : "bg-primary/10"}`}>
               {loading ? (
                 <Loader2 className="h-6 w-6 sm:h-7 sm:w-7 animate-spin text-muted-foreground" />
@@ -221,7 +221,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
                 </span>
               )}
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 basis-[9rem] min-w-0">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold ${isClockedIn ? "bg-green-500/20 text-green-600" : "bg-muted text-muted-foreground"}`}>
                   <Zap className="h-3 w-3" />

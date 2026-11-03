@@ -6,6 +6,7 @@ import {
   ChevronRight, BarChart3,
 } from "lucide-react";
 import Link from "next/link";
+import { WidgetSkeleton } from "./widget-states";
 import { Card, CardContent } from "@/components/ui/card";
 import { getDashboardMetrics, getDashboardTrends } from "@/lib/supabase/db";
 import type { DashboardTrends } from "@/lib/supabase/db-analytics";
@@ -33,7 +34,7 @@ export function KpiCards({ activeCompanyId }: KpiCardsProps) {
     return () => { cancelled = true; };
   }, [activeCompanyId]);
 
-  if (!metrics) return null;
+  if (!metrics) return <WidgetSkeleton rows={2} />;
 
   // For tiles whose underlying domain has trend data (incidents, patrols,
   // form submissions/reports) we link to /admin/analytics so the manager can
@@ -106,18 +107,19 @@ export function KpiCards({ activeCompanyId }: KpiCardsProps) {
         <h2 className="section-title">
           Operational Status
         </h2>
-        <button
-          onClick={() => document.getElementById("analytics")?.scrollIntoView({ behavior: "smooth" })}
+        <Link
+          href="/admin/analytics"
           className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
         >
           <BarChart3 className="h-3 w-3" />
           View analytics
           <ChevronRight className="h-3 w-3" />
-        </button>
+        </Link>
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+      {/* Phone: one swipeable row; sm+: grid */}
+      <div className="-mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-6">
         {kpis.map((kpi) => (
-          <Link key={kpi.label} href={kpi.href}>
+          <Link key={kpi.label} href={kpi.href} className="min-w-[8.5rem] shrink-0 snap-start sm:min-w-0">
             <Card className="group cursor-pointer border-border/40 transition-all hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -134,7 +136,7 @@ export function KpiCards({ activeCompanyId }: KpiCardsProps) {
                     <Sparkline data={kpi.trend} color={kpi.trendColor ?? "#6366f1"} width={50} height={14} ariaLabel={`${kpi.label} 7-day trend`} />
                   )}
                 </div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5">{kpi.label}</div>
+                <div className="text-[10px] text-muted-foreground uppercase tracking-wider mt-0.5 truncate" title={kpi.label}>{kpi.label}</div>
               </CardContent>
             </Card>
           </Link>

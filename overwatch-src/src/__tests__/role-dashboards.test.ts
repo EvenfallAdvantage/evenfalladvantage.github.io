@@ -11,7 +11,7 @@ describe("role-based dashboards", () => {
   });
   it("officer home is shift-focused, no leadership widgets", () => {
     const s = dashboardSections("officer");
-    expect(s.slice(0, 4)).toEqual(["onboarding", "pinned-briefing", "my-post", "duty-status"]);
+    expect(s.slice(0, 4)).toEqual(["onboarding", "duty-status", "my-week", "pinned-briefing"]);
     for (const x of ["action-required", "kpis", "compliance-overtime", "intel"] as const) expect(s).not.toContain(x);
   });
   it("leadership home leads with approvals and KPIs", () => {

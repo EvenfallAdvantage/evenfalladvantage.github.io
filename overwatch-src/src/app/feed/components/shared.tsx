@@ -19,7 +19,7 @@ import {
   BarChart3,
   type LucideIcon,
 } from "lucide-react";
-import { QUICK_ACTION_HREFS, quickActionKeys, type DashboardVariant, type QuickActionKey } from "@/lib/dashboard/layout";
+import { QUICK_ACTION_HREFS, visibleQuickActionKeys, type DashboardVariant, type QuickActionKey } from "@/lib/dashboard/layout";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type Timesheet = any;
@@ -148,8 +148,8 @@ export const QUICK_ACTION_META: Record<QuickActionKey, { title: string; icon: Lu
   analytics: { title: "Analytics", icon: BarChart3, color: "text-indigo-500", bg: "bg-indigo-500/10" },
 };
 
-export function quickActionsFor(variant: DashboardVariant) {
-  return quickActionKeys(variant).map((k) => ({ key: k, href: QUICK_ACTION_HREFS[k], ...QUICK_ACTION_META[k] }));
+export function quickActionsFor(variant: DashboardVariant, hiddenTabs: readonly string[] = []) {
+  return visibleQuickActionKeys(variant, hiddenTabs).map((k) => ({ key: k, href: QUICK_ACTION_HREFS[k], ...QUICK_ACTION_META[k] }));
 }
 
 export const TOOLS_GRID = [
