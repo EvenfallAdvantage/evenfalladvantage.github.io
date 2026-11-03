@@ -26,6 +26,7 @@ export async function mount(root) {
   canvas.setAttribute('role', 'img');
   stage.appendChild(canvas);
 
+  const PERF = /[?&]perf=1/.test(location.search) ? xvPerf(stage) : null;
   const scene = new THREE.Scene();
   scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 2.2));
   const key = new THREE.DirectionalLight(0xffffff, 2.4); key.position.set(3, 5, 4); scene.add(key);
@@ -42,13 +43,13 @@ export async function mount(root) {
   const gltf = await loader.loadAsync(root.dataset.model);
   const model = gltf.scene; scene.add(model);
 
-  const entries = [];
+  const entries = [], meshes = [];
   for (const p of parts.parts) {
     const node = model.getObjectByName(p.node);
     if (!node) continue;
     const mats = [];
     const cl = new Map(); // one clone per source material per part (highlighting is per part)
-    node.traverse(o => { if (o.isMesh) { if (!cl.has(o.material)) { const m = o.material.clone(); cl.set(o.material, m); mats.push(m); } o.material = cl.get(o.material); o.userData.part = p.node; } });
+    node.traverse(o => { if (o.isMesh) { if (!cl.has(o.material)) { const m = o.material.clone(); const g = m.clone(); g.transparent = true; g.opacity = 0.35; g.depthWrite = false; m.userData.ghost = g; cl.set(o.material, m); mats.push(m); } o.material = cl.get(o.material); meshes.push(o); o.userData.part = p.node; } });
     entries.push({ p, node, rest: node.position.clone(), dir: new THREE.Vector3(...p.explode), mats });
   }
 
@@ -66,7 +67,7 @@ export async function mount(root) {
     controls.minDistance = size * 0.4; controls.maxDistance = size * 3;
   };
 
-  let lastT = 0, factor = 0, target = 0, selected = null, raf = 0, visible = false, dirty = true, sizeDirty = true;
+  let lastT = 0, factor = 0, target = 0, selected = null, raf = 0, visible = false, dirty = true, sizeDirty = true, SW = 1, SH = 1, slow = 0, lowQ = false;
   function applyFactor(f) { for (const e of entries) e.node.position.copy(e.rest).addScaledVector(e.dir, f); }
   function setTarget(t, instant) {
     target = Math.max(0, Math.min(1, t));
@@ -83,8 +84,9 @@ export async function mount(root) {
       for (const m of e.mats) {
         if (m.emissive) m.emissive.setHex(on ? 0xdd8c33 : 0x000000);
         if ('emissiveIntensity' in m) m.emissiveIntensity = on ? 0.45 : 0;
-        m.transparent = !!selected && !on; m.opacity = selected && !on ? 0.35 : 1;
       }
+      const ghost = !!selected && !on;
+      e.node.traverse(o => { if (o.isMesh) { const base = o.userData.base || (o.userData.base = o.material); o.material = ghost ? base.userData.ghost : base; } });
     }
     list.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.node === selected)));
     const e = entries.find(x => x.p.node === selected);
@@ -128,7 +130,7 @@ export async function mount(root) {
   const v = new THREE.Vector3();
   let labelKey = '';
   function placeLabels(moved) {
-    const w = stage.clientWidth, h = stage.clientHeight, show = factor > 0.6;
+    const w = SW, h = SH, show = factor > 0.6;
     labelLayer.classList.toggle('is-on', show);
     if (!show) return;
     // Project anchors; xvLayout places dots, leader lines, pills and the tooltip.
@@ -162,7 +164,7 @@ export async function mount(root) {
 
   const resize = () => {
     const w = stage.clientWidth, h = stage.clientHeight;
-    if (!w || !h) return;
+    if (!w || !h) return; SW = w; SH = h;
     renderer.setSize(w, h, false); camera.aspect = w / h; camera.updateProjectionMatrix(); sizeDirty = true; kick();
   };
   new ResizeObserver(resize).observe(stage);
@@ -190,11 +192,22 @@ export async function mount(root) {
     camera.updateMatrixWorld();
     const camMoved = !lastCam.equals(camera.matrixWorld); if (camMoved) lastCam.copy(camera.matrixWorld);
     const moved = anim || camMoved || sizeDirty;
-    if (moved || dirty) { renderer.render(scene, camera); placeLabels(moved); }
+    if (moved || dirty) {
+      const t0 = performance.now();
+      renderer.render(scene, camera); placeLabels(moved);
+      const ft = performance.now() - t0 + (dt > 0.05 && lastT ? 50 : 0);
+      if (PERF) PERF.frame(ft);
+      // Quality fallback: several slow frames -> DPR 1 and hide minor labels.
+      if (!lowQ && ft > 50 && ++slow >= 4) { lowQ = true; renderer.setPixelRatio(1); renderer.setSize(SW, SH, false); stage.classList.add('xv-lowq'); sizeDirty = true; }
+    }
     sizeDirty = false; dirty = false;
     if (live() && (moved || controls.autoRotate)) raf = requestAnimationFrame(tick); else lastT = 0;
   }
 
+  for (const o of meshes) { o.userData.base = o.material; o.material = o.material.userData.ghost; }
+  renderer.compile(scene, camera);
+  for (const o of meshes) o.material = o.userData.base;
+  renderer.compile(scene, camera);
   fit(); resize();
   setTarget(parseFloat(root.dataset.start || '0'), true);
   root.classList.add('is-ready');
@@ -260,3 +273,11 @@ function xvFit(d,box,c,obj){const k=[],v=d.position.clone().sub(c);
   if(obj)obj.traverse(o=>{const g=o.isMesh&&o.geometry&&o.geometry.attributes.position;if(!g)return;const st=Math.max(1,Math.floor(g.count/400));for(let i=0;i<g.count;i+=st)k.push(box.min.clone().fromBufferAttribute(g,i).applyMatrix4(o.matrixWorld))});
   if(!k.length)for(let i=0;i<8;i++)k.push(box.min.clone().set(i&1?box.max.x:box.min.x,i&2?box.max.y:box.min.y,i&4?box.max.z:box.min.z));
   for(let n=0;n<4;n++){d.lookAt(c);d.updateMatrixWorld();let m=0;for(const p of k){const q=p.clone().project(d);m=Math.max(m,Math.abs(q.x),Math.abs(q.y))}if(!(m>0))return;v.multiplyScalar(Math.min(1.6,Math.max(.4,m/.8)));d.position.copy(c).add(v)}d.updateMatrixWorld()}
+
+// ?perf=1 debug overlay: fps, frame ms, long tasks.
+function xvPerf(stage){const d=document.createElement("div");d.style.cssText="position:absolute;right:6px;top:6px;z-index:9;background:rgba(0,0,0,.75);color:#0f0;font:11px/1.3 monospace;padding:4px 6px;border-radius:4px;pointer-events:none;white-space:pre";stage.appendChild(d);
+ let n=0,t0=performance.now(),fps=0,max=0,lt=0,ltMax=0;window.__xvLT=[];
+ try{new PerformanceObserver(l=>{for(const e of l.getEntries()){lt++;ltMax=Math.max(ltMax,e.duration);__xvLT.push(Math.round(e.duration))}}).observe({type:"longtask",buffered:true})}catch{}
+ const draw=()=>{d.textContent=`fps ${fps}  frame max ${max.toFixed(1)}ms\nlong tasks ${lt}  max ${Math.round(ltMax)}ms\nDPR ${Math.min(devicePixelRatio,1.5)}${stage.classList.contains("xv-lowq")?" (low-q)":""}`};
+ setInterval(()=>{const t=performance.now();fps=Math.round(n*1000/(t-t0));n=0;t0=t;draw();max=0},1000);draw();
+ return{frame(ms){n++;max=Math.max(max,ms);performance.mark("xv-frame")}}}
