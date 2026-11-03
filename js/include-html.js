@@ -26,8 +26,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Set active navigation link based on current page
     function setActiveNavLink() {
-        const path = window.location.pathname;
-        const page = path.split('/').pop();
+        // Normalise so /projects, /projects.html, /projects/ and /projects/huginn all match
+        // (GitHub Pages also serves pages without the .html extension).
+        const path = window.location.pathname.replace(/\/index\.html$/, '/').replace(/\.html$/, '').replace(/(.)\/+$/, '$1');
+        const page = (path.split('/').pop() || 'index') + '.html';
         
         const navHomeElements = document.querySelectorAll('#nav-home');
         const navBlogElements = document.querySelectorAll('#nav-blog');
@@ -40,10 +42,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const footerNavLoginElements = document.querySelectorAll('#footer-nav-login');
         
         // Add active class to appropriate navigation elements
-        if (path === '/' || page === 'index.html' || path.endsWith('/')) {
+        if (path === '/' || page === 'index.html') {
             navHomeElements.forEach(el => el.classList.add('active'));
             footerNavHomeElements.forEach(el => el.classList.add('active'));
-        } else if (page === 'projects.html' || path.includes('/projects/')) {
+        } else if (path === '/projects' || path.startsWith('/projects/')) {
             document.querySelectorAll('#nav-projects, #footer-nav-projects').forEach(el => el.classList.add('active'));
         } else if (page === 'blog.html' || path.includes('case-studies')) {
             navBlogElements.forEach(el => el.classList.add('active'));

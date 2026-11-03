@@ -1,0 +1,189 @@
+{
+ "model": "SynScope",
+ "units": "metres",
+ "up": "+Y",
+ "root": "SynScope",
+ "note": "Nodes rest assembled. Explode: add 'explode' (scaled 0..1) to each node's rest translation. 'label_anchor' is a tooltip point in the node's local frame.",
+ "parts": [
+  {
+   "node": "lower_housing",
+   "name": "Lower housing",
+   "description": "Weather-sealed main body with integrated mount clamp.",
+   "explode": [
+    0.0,
+    -0.01,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0004,
+    0.0229,
+    0.0156
+   ]
+  },
+  {
+   "node": "upper_housing",
+   "name": "Upper housing",
+   "description": "Top cover that closes over the electronics.",
+   "explode": [
+    0.0,
+    0.036,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0117,
+    -0.0
+   ]
+  },
+  {
+   "node": "radome",
+   "name": "Sensor radome",
+   "description": "RF-transparent nose cover with sealing band.",
+   "explode": [
+    0.069,
+    0.0,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0003,
+    0.0275,
+    -0.0
+   ]
+  },
+  {
+   "node": "display_bezel",
+   "name": "Display bezel",
+   "description": "Rear bezel framing the circular status display.",
+   "explode": [
+    -0.063,
+    -0.028,
+    0.01
+   ],
+   "label_anchor": [
+    0.0,
+    0.021,
+    -0.0
+   ]
+  },
+  {
+   "node": "display_window",
+   "name": "Display window",
+   "description": "Protective window in front of the display.",
+   "explode": [
+    -0.043,
+    -0.007,
+    0.005
+   ],
+   "label_anchor": [
+    0.0,
+    0.0179,
+    -0.0
+   ]
+  },
+  {
+   "node": "display",
+   "name": "Round display",
+   "description": "Circular status display with a self-levelling UI (in development).",
+   "explode": [
+    -0.023,
+    0.024,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0178,
+    -0.0
+   ]
+  },
+  {
+   "node": "control_knob",
+   "name": "Control knob",
+   "description": "Knurled, sealed rotary control for menus and settings.",
+   "explode": [
+    0.0,
+    -0.001,
+    0.041
+   ],
+   "label_anchor": [
+    0.0007,
+    0.009,
+    -0.0006
+   ]
+  },
+  {
+   "node": "port_covers",
+   "name": "Port seals",
+   "description": "Flexible covers that seal the charging and data ports and the power switch.",
+   "explode": [
+    0.01,
+    -0.033,
+    0.046
+   ],
+   "label_anchor": [
+    -0.0154,
+    0.0122,
+    0.0242
+   ]
+  },
+  {
+   "node": "electronics",
+   "name": "Electronics module",
+   "description": "Processing, satellite positioning and motion-sensing boards (illustrative).",
+   "explode": [
+    0.0,
+    0.022,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0036,
+    0.0097,
+    -0.0
+   ]
+  },
+  {
+   "node": "battery",
+   "name": "Battery pack",
+   "description": "Rechargeable lithium pack with protection circuit (illustrative).",
+   "explode": [
+    0.0,
+    -0.007,
+    -0.026
+   ],
+   "label_anchor": [
+    0.0,
+    0.0047,
+    -0.0
+   ]
+  },
+  {
+   "node": "internal_deck",
+   "name": "Internal deck",
+   "description": "Internal carrier for the electronics (simplified).",
+   "explode": [
+    0.0,
+    0.007,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0017,
+    -0.0
+   ]
+  },
+  {
+   "node": "mount_rail",
+   "name": "Mounting rail and clamp bolts",
+   "description": "Rail interface for mounting on a scope or accessory rail.",
+   "explode": [
+    0.0,
+    -0.03,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0014,
+    0.0057,
+    0.0008
+   ]
+  }
+ ]
+}

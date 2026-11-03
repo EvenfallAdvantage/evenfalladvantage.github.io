@@ -1,0 +1,159 @@
+{
+ "model": "Overwatch Tactical",
+ "units": "metres",
+ "up": "+Y",
+ "root": "OverwatchTactical",
+ "note": "Nodes rest assembled. Explode: add 'explode' (scaled 0..1) to each node's rest translation. 'label_anchor' is a tooltip point in the node's local frame.",
+ "parts": [
+  {
+   "node": "case_base",
+   "name": "Rugged case",
+   "description": "Waterproof hard case with latches, hinges and carry handles.",
+   "explode": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "label_anchor": [
+    0.04,
+    0.0621,
+    -0.1698
+   ]
+  },
+  {
+   "node": "case_lid",
+   "name": "Case lid",
+   "description": "Hinged lid with a convoluted foam liner.",
+   "explode": [
+    0.0,
+    0.15,
+    -0.137
+   ],
+   "label_anchor": [
+    0.0,
+    0.1624,
+    -0.0231
+   ]
+  },
+  {
+   "node": "foam_insert",
+   "name": "CNC foam insert",
+   "description": "Deep CNC-cut pockets with finger notches for every component.",
+   "explode": [
+    0.0,
+    0.164,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.1573,
+    0.0075,
+    0.1032
+   ]
+  },
+  {
+   "node": "mini_pc",
+   "name": "Mini server",
+   "description": "Low-power x86 mini PC running every Overwatch service locally.",
+   "explode": [
+    -0.055,
+    0.505,
+    -0.041
+   ],
+   "label_anchor": [
+    -0.0075,
+    0.0204,
+    -0.0039
+   ]
+  },
+  {
+   "node": "travel_router",
+   "name": "WiFi router",
+   "description": "Compact WiFi 6 router that serves the private network.",
+   "explode": [
+    0.068,
+    0.649,
+    -0.068
+   ],
+   "label_anchor": [
+    0.0,
+    0.017,
+    -0.0
+   ]
+  },
+  {
+   "node": "lora_gateway",
+   "name": "LoRa gateway",
+   "description": "Mesh gateway linking field radios to the server.",
+   "explode": [
+    0.232,
+    0.314,
+    -0.137
+   ],
+   "label_anchor": [
+    0.0425,
+    0.0122,
+    0.0397
+   ]
+  },
+  {
+   "node": "gnss_puck",
+   "name": "GNSS time source",
+   "description": "GPS receiver that keeps the kit clock accurate offline.",
+   "explode": [
+    0.273,
+    0.205,
+    0.014
+   ],
+   "label_anchor": [
+    0.0,
+    0.008,
+    -0.0
+   ]
+  },
+  {
+   "node": "tbeam_radios",
+   "name": "Team-lead radios",
+   "description": "GPS mesh radios with screens for team leads.",
+   "explode": [
+    0.082,
+    0.376,
+    0.205
+   ],
+   "label_anchor": [
+    0.0,
+    0.0182,
+    -0.0112
+   ]
+  },
+  {
+   "node": "card_trackers",
+   "name": "Card trackers",
+   "description": "Rugged credit-card-size GPS mesh trackers.",
+   "explode": [
+    0.164,
+    0.492,
+    0.123
+   ],
+   "label_anchor": [
+    -0.0065,
+    0.0098,
+    0.0071
+   ]
+  },
+  {
+   "node": "battery",
+   "name": "LiFePO4 battery",
+   "description": "12 V lithium iron phosphate battery in a padded sleeve; no inverter.",
+   "explode": [
+    -0.273,
+    0.0,
+    -0.034
+   ],
+   "label_anchor": [
+    0.0234,
+    0.137,
+    0.0435
+   ]
+  }
+ ]
+}

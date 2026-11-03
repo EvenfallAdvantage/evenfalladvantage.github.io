@@ -47,11 +47,15 @@
                 <h1 id="pj-title">SynScope</h1>
                 <p class="pj-tagline">See what stands beyond.</p>
                 <p class="pj-sub">A compact, rail-mounted sensor pod that brings radar, thermal and navigation data together on one small round display, readable at a glance.</p>
-                <div class="pj-ctas"><a class="pj-btn pj-btn-primary" href="#design">Explore the design</a><a class="pj-btn pj-btn-ghost" href="mailto:contact@evenfalladvantage.com?subject=SynScope">Talk to us</a></div>
+                <div class="pj-ctas"><a class="pj-btn pj-btn-primary" href="#design">Explore the design</a><a class="pj-btn pj-btn-ghost" href="#inside">See inside</a></div>
             </div>
+            <a class="pj-scroll-cue" href="#overview-start" aria-label="Scroll to content"><i class="fas fa-chevron-down" aria-hidden="true"></i></a>
         </section>
-        <section class="pj-section" id="overview" aria-labelledby="ov-h"><div class="container pj-prose"><h2 id="ov-h">Why SynScope</h2><p>Situational awareness usually means juggling separate devices. SynScope puts several sensors in one sealed pod on a standard rail. Two mmWave radars and a thermal camera look ahead, while GPS, a compass and a motion sensor add position and heading. The results appear on a 1.28-inch round display, angled so it can be read without breaking position.</p></div></section>
-        <section class="pj-section pj-alt" id="design" aria-labelledby="caps"><div class="container"><h2 id="caps">Capabilities</h2><ul class="pj-cards" role="list">
+        <section class="pj-keys" id="overview-start" aria-label="Key numbers"><div class="container"><ul role="list"><li><b class="pj-count" data-count="2" data-decimals="0" data-suffix="×">2×</b><span>mmWave radars</span></li><li><b class="pj-count" data-count="1.28" data-decimals="2" data-suffix=""">1.28"</b><span>Round colour display</span></li><li><b class="pj-count" data-count="45" data-decimals="0" data-suffix="°">45°</b><span>Offset rail mount</span></li><li><b class="pj-count" data-count="54" data-decimals="0" data-suffix="">54</b><span>IP design target (IP54)</span></li></ul><p class="pj-keys-note">Design estimates and targets</p></div></section>
+        <nav class="pj-secnav" aria-label="On this page"><div class="container"><ul></ul></div></nav>
+
+        <section class="pj-section" id="overview" aria-labelledby="ov-h"><div class="container pj-prose"><p class="pj-eyebrow">Overview</p><h2 id="ov-h">Why SynScope</h2><p>Situational awareness usually means juggling separate devices. SynScope puts several sensors in one sealed pod on a standard rail. Two mmWave radars and a thermal camera look ahead, while GPS, a compass and a motion sensor add position and heading. The results appear on a 1.28-inch round display, angled so it can be read without breaking position.</p></div></section>
+        <section class="pj-section pj-alt" id="design" aria-labelledby="caps"><div class="container"><p class="pj-eyebrow">What it does</p><h2 id="caps">Capabilities</h2><ul class="pj-cards" role="list">
             <li class="pj-card"><i class="fas fa-layer-group" aria-hidden="true"></i><h3>Sensor fusion</h3><p>Two mmWave radars plus a thermal camera, combined into one simple view.</p></li>
             <li class="pj-card"><i class="fas fa-compass" aria-hidden="true"></i><h3>Knows where it points</h3><p>GPS, compass and IMU give every reading a position and bearing.</p></li>
             <li class="pj-card"><i class="fas fa-circle-dot" aria-hidden="true"></i><h3>Glanceable display</h3><p>A 1.28" round screen with a large, high-contrast layout.</p></li>
@@ -60,7 +64,7 @@
             <li class="pj-card"><i class="fas fa-hand" aria-hidden="true"></i><h3>Glove-friendly control</h3><p>One rotary knob with push to select, usable with gloves.</p></li>
             <li class="pj-card"><i class="fas fa-arrows-rotate" aria-hidden="true"></i><h3>Self-levelling display</h3><p>The motion sensor tracks how far the pod is tilted, and the picture turns to stay level with the ground. If that sensor is unavailable, the display falls back to a fixed correction for the 45° mount. <span class="pj-tag">In development</span></p></li>
         </ul></div></section>
-        <section class="pj-section" aria-labelledby="specs"><div class="container"><h2 id="specs">Key specs</h2><p class="pj-label">Prototype · design targets</p><dl class="pj-specs">
+        <section class="pj-section" aria-labelledby="specs"><div class="container"><p class="pj-eyebrow">By the numbers</p><h2 id="specs">Key specs</h2><p class="pj-label">Prototype · design targets</p><dl class="pj-specs">
             <div><dt>Sensors</dt><dd>2 × mmWave radar, thermal camera, GPS, compass, IMU</dd></div>
             <div><dt>Display</dt><dd>1.28" round colour display</dd></div>
             <div><dt>Mounting</dt><dd>Picatinny rail, designed for a 45° offset mount</dd></div>
@@ -71,7 +75,7 @@
             <div><dt>Status</dt><dd>Prototype, revision HB-2T</dd></div>
         </dl></div></section>
         <section class="pj-section pj-alt" id="mount" aria-labelledby="mx-h"><div class="container">
-            <h2 id="mx-h">Canted-Mount Explainer</h2>
+            <p class="pj-eyebrow">Interactive</p><h2 id="mx-h">Canted-Mount Explainer</h2>
             <p class="pj-label">Simplified diagram. The screen shown is illustrative, not live data.</p>
             <div class="mx" data-mount hidden data-view="rear" data-mount-pos="canted" data-hud="on" data-level="on">
                 <div class="mx-stage"><svg class="mx-svg" viewBox="0 0 400 300" role="img" aria-labelledby="mx-svg-t"><title id="mx-svg-t">Diagram of SynScope mount position relative to the rifle optic</title>
@@ -112,7 +116,27 @@
 </picture><figcaption><strong>Self-levelling off:</strong> Without levelling, the picture tilts with the mount.</figcaption></figure>
             </div>
         </div></section>
-        <section class="pj-section" aria-labelledby="gallery"><div class="container"><h2 id="gallery">Gallery</h2><div class="pj-gallery">
+        <section class="pj-section" id="inside" aria-labelledby="xv-h"><div class="container">
+            <p class="pj-eyebrow">Inside the design</p><h2 id="xv-h">Exploded view</h2>
+            <p class="pj-label">Simplified 3D model for illustration. Hover (or tap) to pull it apart, drag to orbit, and point at a label to see what each part does.</p>
+            <div class="xv" data-slug="synscope" data-model="/images/projects/synscope/model/model.glb" data-parts="/images/projects/synscope/model/parts.json" data-start="0" data-label="SynScope exploded 3D model">
+                <div class="xv-stage">
+                    <picture class="xv-poster xv-poster-a"><source type="image/webp" srcset="/images/projects/synscope/model/poster-assembled.webp"><img src="/images/projects/synscope/model/poster-assembled.jpg" alt="SynScope exploded 3D model, assembled" width="1200" height="750" loading="lazy" decoding="async"></picture>
+                    <picture class="xv-poster xv-poster-x"><source type="image/webp" srcset="/images/projects/synscope/model/poster-exploded.webp"><img src="/images/projects/synscope/model/poster-exploded.jpg" alt="SynScope exploded 3D model, exploded to show its components" width="1200" height="750" loading="lazy" decoding="async"></picture>
+                    <p class="xv-loading" aria-hidden="true"><i class="fas fa-cube"></i> Loading 3D model…</p>
+                </div>
+                <div class="xv-panel">
+                    <div class="xv-controls">
+                        <button type="button" class="pj-btn xv-toggle" aria-pressed="false"><i class="fas fa-up-right-and-down-left-from-center" aria-hidden="true"></i> <span>Explode</span></button>
+                    </div>
+                    <div class="xv-info" aria-live="polite"></div>
+                    <ol class="xv-parts" aria-label="Components"></ol>
+                    <p class="xv-status sr-only" aria-live="polite"></p>
+                </div>
+            </div>
+        </div></section>
+
+        <section class="pj-section pj-alt" aria-labelledby="gallery"><div class="container"><p class="pj-eyebrow">Renders</p><h2 id="gallery">Gallery</h2><div class="pj-gallery">
             <figure><picture>
   <source type="image/avif" srcset="/images/projects/synscope/synscope-shooter-view-480.avif 480w, /images/projects/synscope/synscope-shooter-view-800.avif 800w, /images/projects/synscope/synscope-shooter-view-1200.avif 1200w" sizes="(max-width: 600px) 100vw, (max-width: 1024px) 50vw, 33vw">
   <source type="image/webp" srcset="/images/projects/synscope/synscope-shooter-view-480.webp 480w, /images/projects/synscope/synscope-shooter-view-800.webp 800w, /images/projects/synscope/synscope-shooter-view-1200.webp 1200w" sizes="(max-width: 600px) 100vw, (max-width: 1024px) 50vw, 33vw">
@@ -134,7 +158,7 @@
   <img src="/images/projects/synscope/synscope-low-light-1200.jpg" srcset="/images/projects/synscope/synscope-low-light-480.jpg 480w, /images/projects/synscope/synscope-low-light-800.jpg 800w, /images/projects/synscope/synscope-low-light-1200.jpg 1200w" sizes="(max-width: 600px) 100vw, (max-width: 1024px) 50vw, 33vw" alt="SynScope pod in low light with its round display lit" width="1200" height="750" loading="lazy" decoding="async">
 </picture><figcaption>Built to stay readable when light is poor.</figcaption></figure>
         </div><p class="pj-note">Concept renders from the prototype CAD model. Final hardware may differ.</p></div></section>
-        <section class="pj-section pj-alt" id="status" aria-labelledby="roadmap"><div class="container"><h2 id="roadmap">Status and roadmap</h2><ol class="pj-timeline">
+        <section class="pj-section" id="status" aria-labelledby="roadmap"><div class="container"><p class="pj-eyebrow">Roadmap</p><h2 id="roadmap">Status and roadmap</h2><ol class="pj-timeline">
             <li class="is-done"><span class="pj-dot" aria-hidden="true"></span><h3>CAD design and enclosure (rev HB-2T)<span class="sr-only"> (complete)</span></h3></li>
             <li class="is-done"><span class="pj-dot" aria-hidden="true"></span><h3>Thermal, sealing and shock design reviews<span class="sr-only"> (complete)</span></h3></li>
             <li class="is-current" aria-current="step"><span class="pj-dot" aria-hidden="true"></span><h3>Prototype build and bench testing<span class="sr-only"> (in progress)</span></h3></li>
@@ -146,5 +170,6 @@
     <script src="/js/script.js"></script>
     <script src="/js/include-html.js"></script>
     <script src="/js/projects/synscope.js" defer></script>
+    <script src="/js/projects/enhance.js" defer></script>
 </body>
 </html>
