@@ -204,3 +204,6 @@
 .hs-flow-btn { background: #fff; border: 2px solid var(--pj-navy); color: var(--pj-navy); cursor: pointer; margin-bottom: 1rem; }
 .hs-flow-btn[aria-pressed="true"] { background: var(--pj-navy); color: #fff; }
 @media (max-width: 860px) { .mx, .hs { grid-template-columns: 1fr; } }
+.mx-fallback { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); }
+.mx-fallback figure { margin: 0; background: #fff; border-radius: 8px; overflow: hidden; box-shadow: var(--shadow); }
+.mx-fallback figcaption { padding: .75rem 1rem; }
