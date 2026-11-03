@@ -40,7 +40,7 @@ export function dashboardColumns(variant: DashboardVariant): DashboardColumns {
       rows: [
         ["onboarding"], ["action-required"], ["kpis"],
         ["quick-actions", "duty-status"],
-        ["compliance-overtime"], ["pinned-briefing"], ["intel"],
+        ["pinned-briefing"], ["compliance-overtime"], ["intel"],
       ],
     };
   }
@@ -48,7 +48,7 @@ export function dashboardColumns(variant: DashboardVariant): DashboardColumns {
     rows: [
       ["onboarding"],
       ["duty-status", "my-week"],
-      ["my-post"], ["pinned-briefing"], ["quick-actions"], ["professional-tools"],
+      ["pinned-briefing"], ["my-post"], ["quick-actions"], ["professional-tools"],
     ],
   };
 }

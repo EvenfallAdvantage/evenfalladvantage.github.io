@@ -53,6 +53,19 @@ describe("layout", () => {
   });
 });
 
+describe("pinned briefing", () => {
+  it("is in both role layouts at every breakpoint, right after the top action row", () => {
+    for (const v of ["officer", "leadership"] as const) {
+      expect(dashboardSections(v)).toContain("pinned-briefing");
+      const rows = dashboardColumns(v).rows;
+      const i = rows.findIndex((r) => r.includes("pinned-briefing"));
+      expect(i).toBeGreaterThan(0);
+      expect(rows[i]).toHaveLength(1); // full width
+      expect(rows[i - 1]).toHaveLength(2); // follows the paired row (Quick Actions/Clock or Clock/My Week)
+    }
+  });
+});
+
 describe("my week", () => {
   it("finds the workweek start", () => {
     const wed = new Date(2026, 10, 4, 15); // Wed Nov 4 2026
