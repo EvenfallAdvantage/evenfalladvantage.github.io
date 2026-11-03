@@ -345,3 +345,4 @@ body.pj-lb-open { overflow: hidden; }
 .xv-dot.is-minor { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; opacity: .55; box-shadow: 0 0 0 1.5px #fff; pointer-events: auto; cursor: pointer; }
 .xv-dot.is-minor::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; }
 .xv-dot.is-minor:hover { opacity: 1; }
+.xv-lowq .xv-dot.is-minor { display: none; }
