@@ -78,18 +78,37 @@
             <p class="pj-eyebrow">Interactive</p><h2 id="mx-h">Canted-Mount Explainer</h2>
             <p class="pj-label">Simplified diagram. The screen shown is illustrative, not live data.</p>
             <div class="mx" data-mount hidden data-view="rear" data-mount-pos="canted" data-hud="on" data-level="on">
-                <div class="mx-stage"><svg class="mx-svg" viewBox="0 0 400 300" role="img" aria-labelledby="mx-svg-t"><title id="mx-svg-t">Diagram of SynScope mount position relative to the rifle optic</title>
+                <div class="mx-stage"><svg class="mx-svg" viewBox="0 0 400 300" role="img" aria-labelledby="mx-svg-t"><title id="mx-svg-t">Diagram of an M4-style carbine with an optic and the SynScope pod on the top rail, showing the pod position relative to the optic</title>
   <g class="mx-rear">
-    <rect x="170" y="150" width="60" height="110" rx="8" class="mx-gun"/><rect x="180" y="140" width="40" height="14" class="mx-rail"/>
-    <circle cx="200" cy="105" r="34" class="mx-optic"/><circle cx="200" cy="105" r="22" class="mx-optic-lens"/>
-    <g class="mx-pod" style="transform-origin:200px 147px"><rect x="172" y="60" width="56" height="80" rx="10" class="mx-pod-body"/>
-      <g class="mx-screen-wrap"><circle cx="200" cy="92" r="20" class="mx-screen"/><g class="mx-screen-content" style="transform-origin:200px 92px">
-        <line x1="182" y1="96" x2="218" y2="96" class="mx-horizon"/><ellipse cx="206" cy="88" rx="5" ry="4" class="mx-blob"/><circle cx="192" cy="86" r="2" class="mx-dot"/><circle cx="210" cy="100" r="2" class="mx-dot"/><text x="200" y="80" class="mx-bearing">NE 042°</text></g></g></g>
+    <path d="M186 214 h28 l3 70 h-34 Z" class="mx-gun"/><rect x="183" y="268" width="34" height="18" rx="4" class="mx-gun-dk"/>
+    <circle cx="200" cy="198" r="11" class="mx-gun-dk"/>
+    <path d="M178 150 h44 v34 l-8 18 h-28 l-8 -18 Z" class="mx-gun"/>
+    <path d="M174 158 h52 v8 h-14 v6 h-24 v-6 h-14 Z" class="mx-rail"/>
+    <rect x="176" y="140" width="48" height="10" rx="1" class="mx-rail"/><path d="M178 140 l4 -3 h36 l4 3 Z" class="mx-rail"/>
+    <path d="M186 137 v-10 h28 v10" class="mx-gun-dk"/><rect x="180" y="118" width="40" height="10" rx="3" class="mx-gun-dk"/>
+    <circle cx="200" cy="100" r="30" class="mx-optic"/><circle cx="200" cy="100" r="22" class="mx-optic-ring"/><circle cx="200" cy="100" r="17" class="mx-optic-lens"/>
+    <path d="M200 86 v10 M200 104 v10 M186 100 h10 M204 100 h10" class="mx-reticle"/><circle cx="200" cy="100" r="1.8" class="mx-reticle-dot"/><path d="M190 92 a12 12 0 0 1 8 -5" class="mx-glint"/>
+    <g class="mx-pod" style="transform-origin:224px 146px">
+      <path d="M220 146 h8 v-40 h-8 Z" class="mx-rail"/><rect x="214" y="102" width="20" height="8" rx="2" class="mx-gun-dk"/>
+      <rect x="196" y="34" width="56" height="70" rx="10" class="mx-pod-body"/>
+      <g class="mx-screen-wrap"><circle cx="224" cy="68" r="23" class="mx-screen"/><g class="mx-screen-content" style="transform-origin:224px 68px">
+        <line x1="204" y1="73" x2="244" y2="73" class="mx-horizon"/><ellipse cx="231" cy="64" rx="5" ry="4" class="mx-blob"/><circle cx="214" cy="63" r="2.2" class="mx-dot"/><circle cx="234" cy="79" r="2.2" class="mx-dot"/><text x="224" y="57" class="mx-bearing">NE 042°</text></g></g></g>
   </g>
   <g class="mx-side">
-    <rect x="40" y="170" width="320" height="26" rx="6" class="mx-gun"/><rect x="330" y="176" width="60" height="12" class="mx-gun"/><path d="M40 170 L10 230 L60 230 L90 196 Z" class="mx-gun"/>
-    <rect x="150" y="125" width="110" height="30" rx="12" class="mx-optic"/><rect x="120" y="160" width="200" height="10" class="mx-rail"/>
-    <rect class="mx-pod-side mx-pod-body" x="270" y="128" width="50" height="34" rx="6"/>
+    <path d="M14 160 L70 156 L72 194 L22 206 Q14 206 14 198 Z" class="mx-gun"/><rect x="10" y="158" width="7" height="46" rx="2" class="mx-gun-dk"/><rect x="28" y="168" width="34" height="6" rx="3" class="mx-gun-dk"/>
+    <rect x="68" y="160" width="54" height="13" rx="3" class="mx-gun-dk"/>
+    <path d="M120 150 H206 V180 H120 Z" class="mx-gun"/><rect x="112" y="150" width="10" height="6" class="mx-rail"/><circle cx="196" cy="170" r="4" class="mx-gun-dk"/><rect x="176" y="158" width="18" height="7" rx="2" class="mx-gun-dk"/>
+    <path d="M120 180 H200 L196 196 H124 Z" class="mx-gun"/>
+    <path d="M136 194 L148 194 L140 246 L124 246 Z" class="mx-gun"/>
+    <path d="M148 196 Q149 210 166 208 L166 204 Q153 206 152 196 Z" class="mx-gun-dk"/><path d="M156 196 l2 8" class="mx-reticle"/>
+    <path d="M166 194 H194 L200 216 Q206 246 220 266 L196 276 Q178 248 170 216 Z" class="mx-gun"/>
+    <path d="M206 150 H320 V178 H206 Z" class="mx-gun"/><path d="M216 168 h96" class="mx-vent"/>
+    <rect x="320" y="158" width="66" height="7" class="mx-gun-dk"/><rect x="326" y="152" width="12" height="16" rx="2" class="mx-gun"/><path d="M330 152 V136 h4 V152 Z" class="mx-gun"/>
+    <rect x="384" y="155" width="13" height="13" rx="2" class="mx-gun"/><path d="M387 158 h8 M387 165 h8" class="mx-vent"/>
+    <rect x="118" y="143" width="204" height="7" class="mx-rail"/><rect x="120" y="141" width="4" height="3" class="mx-rail"/><rect x="127" y="141" width="4" height="3" class="mx-rail"/><rect x="134" y="141" width="4" height="3" class="mx-rail"/><rect x="141" y="141" width="4" height="3" class="mx-rail"/><rect x="148" y="141" width="4" height="3" class="mx-rail"/><rect x="155" y="141" width="4" height="3" class="mx-rail"/><rect x="162" y="141" width="4" height="3" class="mx-rail"/><rect x="169" y="141" width="4" height="3" class="mx-rail"/><rect x="176" y="141" width="4" height="3" class="mx-rail"/><rect x="183" y="141" width="4" height="3" class="mx-rail"/><rect x="190" y="141" width="4" height="3" class="mx-rail"/><rect x="197" y="141" width="4" height="3" class="mx-rail"/><rect x="204" y="141" width="4" height="3" class="mx-rail"/><rect x="211" y="141" width="4" height="3" class="mx-rail"/><rect x="218" y="141" width="4" height="3" class="mx-rail"/><rect x="225" y="141" width="4" height="3" class="mx-rail"/><rect x="232" y="141" width="4" height="3" class="mx-rail"/><rect x="239" y="141" width="4" height="3" class="mx-rail"/><rect x="246" y="141" width="4" height="3" class="mx-rail"/><rect x="253" y="141" width="4" height="3" class="mx-rail"/><rect x="260" y="141" width="4" height="3" class="mx-rail"/><rect x="267" y="141" width="4" height="3" class="mx-rail"/><rect x="274" y="141" width="4" height="3" class="mx-rail"/><rect x="281" y="141" width="4" height="3" class="mx-rail"/><rect x="288" y="141" width="4" height="3" class="mx-rail"/><rect x="295" y="141" width="4" height="3" class="mx-rail"/><rect x="302" y="141" width="4" height="3" class="mx-rail"/><rect x="309" y="141" width="4" height="3" class="mx-rail"/><rect x="316" y="141" width="4" height="3" class="mx-rail"/><rect x="323" y="141" width="4" height="3" class="mx-rail"/>
+    <rect x="140" y="132" width="10" height="11" class="mx-gun-dk"/><rect x="180" y="132" width="10" height="11" class="mx-gun-dk"/>
+    <path d="M128 118 H140 L146 122 H186 L192 116 H206 V138 H192 L186 132 H146 L140 136 H128 Z" class="mx-optic"/><rect x="126" y="117" width="4" height="20" class="mx-optic-lens"/>
+    <g class="mx-pod-side"><rect x="234" y="132" width="12" height="11" class="mx-gun-dk"/><rect class="mx-pod-body" x="220" y="104" width="44" height="30" rx="6"/></g>
   </g>
 </svg><p class="mx-status" id="mx-status"></p></div>
                 <form class="ee-controls" onsubmit="return false">

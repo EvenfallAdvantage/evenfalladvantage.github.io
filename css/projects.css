@@ -161,7 +161,9 @@
 .mx[hidden] { display: none; }
 .mx-stage { background: #0f1d2e; border-radius: 8px; padding: 1rem; }
 .mx-svg { width: 100%; height: auto; display: block; }
-.mx-gun { fill: #3e4c59; } .mx-rail { fill: #7b8794; }
+.mx-gun { fill: #3e4c59; } .mx-gun-dk { fill: #2b3640; } .mx-rail { fill: #7b8794; }
+.mx-vent { stroke: #2b3640; stroke-width: 3; stroke-dasharray: 8 5; fill: none; }
+.mx-optic-ring { fill: #1f2933; } .mx-reticle { stroke: #1f2933; stroke-width: 1.5; fill: none; } .mx-reticle-dot { fill: #ef4e4e; } .mx-glint { stroke: #e4e7eb; stroke-width: 2; fill: none; stroke-linecap: round; opacity: .7; }
 .mx-optic { fill: #52606d; } .mx-optic-lens { fill: #9fb3c8; opacity: .5; }
 .mx-pod, .mx-pod-side, .mx-screen-content { transition: transform .4s ease; transform-box: view-box; }
 .mx-pod-body { fill: #243b53; stroke: #3ebd93; stroke-width: 3; }
@@ -170,7 +172,7 @@
 .mx-screen-content { opacity: 1; transition: transform .4s ease, opacity .2s; }
 [data-hud="off"] .mx-screen-content { opacity: 0; }
 .mx-horizon { stroke: #7cc4fa; stroke-width: 1.5; } .mx-blob { fill: #f9703e; } .mx-dot { fill: #f0b429; }
-.mx-bearing { fill: #e4e7eb; font: 600 6px var(--font-primary); text-anchor: middle; }
+.mx-bearing { fill: #e4e7eb; font: 700 8px var(--font-primary); text-anchor: middle; }
 [data-view="rear"] .mx-side, [data-view="side"] .mx-rear { display: none; }
 .mx-status { color: #d9e2ec; margin: .5rem 0 0; text-align: center; font-weight: 600; }
 .mx-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }

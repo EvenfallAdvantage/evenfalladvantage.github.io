@@ -21,7 +21,7 @@
     root.dataset.view = view; root.dataset.mountPos = mount; root.dataset.hud = hud; root.dataset.level = on ? 'on' : 'off';
     // Rear view: pod rotates about the rail. Side view: canted pod sits lower beside the optic.
     pod.style.transform = 'rotate(' + deg + 'deg)';
-    podSide.style.transform = mount === 'top' ? 'translate(-110px, -6px)' : 'translate(0, ' + (deg / 60 * 14) + 'px)';
+    podSide.style.transform = mount === 'top' ? 'translate(-70px, 10px)' : 'translate(0, ' + (deg / 60 * 22) + 'px)';
     content.style.transform = on ? 'rotate(' + (-deg) + 'deg)' : 'none';
     status.textContent = mount === 'top' ? 'Blocks the optic' : 'Optic clear, display in view';
     var lv = deg === 0 ? 'No tilt to correct.' : (on ? 'Picture stays level with the ground.' : 'Without levelling, the picture tilts with the mount.');
