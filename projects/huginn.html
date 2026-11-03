@@ -49,15 +49,18 @@
                 <p class="pj-sub">A raven-inspired, solar-assisted fixed-wing drone designed to glide quietly, perch on a rooftop and watch for hours without drawing a second look.</p>
                 <p><span class="pj-status"><i class="fas fa-flask" aria-hidden="true"></i> In development · prototype design</span></p>
                 <div class="pj-ctas">
-                    <a class="pj-btn pj-btn-primary" href="mailto:contact@evenfalladvantage.com?subject=Huginn%20enquiry">Talk to us about Huginn</a>
-                    <a class="pj-btn pj-btn-ghost" href="#endurance">Explore endurance</a>
+                    <a class="pj-btn pj-btn-primary" href="#endurance">Explore endurance</a><a class="pj-btn pj-btn-ghost" href="#inside">See inside</a>
                 </div>
             </div>
+            <a class="pj-scroll-cue" href="#overview-start" aria-label="Scroll to content"><i class="fas fa-chevron-down" aria-hidden="true"></i></a>
         </section>
+        <section class="pj-keys" id="overview-start" aria-label="Key numbers"><div class="container"><ul role="list"><li><b class="pj-count" data-count="1.2" data-decimals="1" data-suffix=" m">1.2 m</b><span>Wingspan (raven class)</span></li><li><b class="pj-count" data-count="13" data-decimals="0" data-suffix=" : 1">13 : 1</b><span>Glide ratio</span></li><li><b class="pj-count" data-count="7.6" data-decimals="1" data-suffix=" h">7.6 h</b><span>Flight endurance, sun + soaring</span></li><li><b class="pj-count" data-count="10.9" data-decimals="1" data-suffix=" h">10.9 h</b><span>Perched AI watch on battery</span></li></ul><p class="pj-keys-note">Design estimates and targets</p></div></section>
+        <nav class="pj-secnav" aria-label="On this page"><div class="container"><ul></ul></div></nav>
+
 
         <section class="pj-section" aria-labelledby="why">
             <div class="container pj-prose">
-                <h2 id="why">Why Huginn</h2>
+                <p class="pj-eyebrow">Overview</p><h2 id="why">Why Huginn</h2>
                 <p>Conventional drones are loud and obvious. A quadcopter overhead tells everyone they're being watched, and its batteries are flat in under half an hour. Huginn takes a different approach, borrowed from the bird it's named after. In Norse myth, Huginn is one of Odin's two ravens, sent out each day to see the world and report back.</p>
                 <p>Its raven planform and slotted wingtip "feathers" let it glide efficiently at low speed and blend into the sky. When it doesn't need to fly, it doesn't: Huginn is designed to land on an approved perch, fold its propeller and keep watch from a fixed vantage point, using a fraction of the energy of hovering. A solar-film wing tops up the battery in daylight.</p>
                 <p>The result is a quiet, persistent set of eyes for event security, perimeter overwatch and site awareness, operated inside the rules (FAA Part 107, Remote ID, visual line of sight).</p>
@@ -66,7 +69,7 @@
 
         <section class="pj-section pj-alt" aria-labelledby="caps">
             <div class="container">
-                <h2 id="caps">Capabilities</h2>
+                <p class="pj-eyebrow">What it does</p><h2 id="caps">Capabilities</h2>
                 <ul class="pj-cards" role="list">
                     <li class="pj-card"><i class="fas fa-feather" aria-hidden="true"></i><h3>Blends in</h3><p>A raven silhouette and natural flight style, so it reads as a bird, not a drone, at working altitudes.</p></li>
                     <li class="pj-card"><i class="fas fa-building" aria-hidden="true"></i><h3>Perch and stare</h3><p>It lands on an approved high point, folds its prop and watches. Designed for ≈ 10.9 h of AI watch on battery; sun on the perch may extend it (design estimate).</p></li>
@@ -80,7 +83,7 @@
 
         <section class="pj-section" aria-labelledby="specs">
             <div class="container">
-                <h2 id="specs">Key specs</h2>
+                <p class="pj-eyebrow">By the numbers</p><h2 id="specs">Key specs</h2>
                 <p class="pj-label">Design targets · simulation estimates</p>
                 <dl class="pj-specs">
                     <div><dt>Wingspan</dt><dd>≈ 1.2 m (raven class)</dd></div>
@@ -97,7 +100,7 @@
 
         <section class="pj-section pj-alt" id="endurance" aria-labelledby="endurance-h">
             <div class="container">
-                <h2 id="endurance-h">Mission Endurance Explorer</h2>
+                <p class="pj-eyebrow">Interactive</p><h2 id="endurance-h">Mission Endurance Explorer</h2>
                 <p class="pj-label">Illustrative model based on design estimates. Real endurance depends on weather, payload and operations.</p>
                 <div class="ee" data-endurance hidden>
                     <form class="ee-controls" onsubmit="return false">
@@ -151,10 +154,30 @@
                 </table>
             </div>
         </section>
+        <section class="pj-section" id="inside" aria-labelledby="xv-h"><div class="container">
+            <p class="pj-eyebrow">Inside the design</p><h2 id="xv-h">Exploded view</h2>
+            <p class="pj-label">Simplified 3D model for illustration. Hover (or tap) to pull it apart, drag to orbit, and point at a label to see what each part does.</p>
+            <div class="xv" data-slug="huginn" data-model="/images/projects/huginn/model/model.glb" data-parts="/images/projects/huginn/model/parts.json" data-start="0" data-label="Huginn exploded 3D model">
+                <div class="xv-stage">
+                    <picture class="xv-poster xv-poster-a"><source type="image/webp" srcset="/images/projects/huginn/model/poster-assembled.webp"><img src="/images/projects/huginn/model/poster-assembled.jpg" alt="Huginn exploded 3D model, assembled" width="1200" height="750" loading="lazy" decoding="async"></picture>
+                    <picture class="xv-poster xv-poster-x"><source type="image/webp" srcset="/images/projects/huginn/model/poster-exploded.webp"><img src="/images/projects/huginn/model/poster-exploded.jpg" alt="Huginn exploded 3D model, exploded to show its components" width="1200" height="750" loading="lazy" decoding="async"></picture>
+                    <p class="xv-loading" aria-hidden="true"><i class="fas fa-cube"></i> Loading 3D model…</p>
+                </div>
+                <div class="xv-panel">
+                    <div class="xv-controls">
+                        <button type="button" class="pj-btn xv-toggle" aria-pressed="false"><i class="fas fa-up-right-and-down-left-from-center" aria-hidden="true"></i> <span>Explode</span></button>
+                    </div>
+                    <div class="xv-info" aria-live="polite"></div>
+                    <ol class="xv-parts" aria-label="Components"></ol>
+                    <p class="xv-status sr-only" aria-live="polite"></p>
+                </div>
+            </div>
+        </div></section>
 
-        <section class="pj-section" aria-labelledby="gallery">
+
+        <section class="pj-section pj-alt" aria-labelledby="gallery">
             <div class="container">
-                <h2 id="gallery">Gallery</h2>
+                <p class="pj-eyebrow">Renders</p><h2 id="gallery">Gallery</h2>
                 <div class="pj-gallery">
                     <figure><picture>
   <source type="image/avif" srcset="/images/projects/huginn/huginn-gliding-480.avif 480w, /images/projects/huginn/huginn-gliding-800.avif 800w, /images/projects/huginn/huginn-gliding-1200.avif 1200w" sizes="(max-width: 600px) 100vw, (max-width: 1024px) 50vw, 33vw">
@@ -191,9 +214,9 @@
             </div>
         </section>
 
-        <section class="pj-section pj-alt" aria-labelledby="roadmap">
+        <section class="pj-section" aria-labelledby="roadmap">
             <div class="container">
-                <h2 id="roadmap">Status and roadmap</h2>
+                <p class="pj-eyebrow">Roadmap</p><h2 id="roadmap">Status and roadmap</h2>
                 <ol class="pj-timeline">
                     <li class="is-done"><span class="pj-dot" aria-hidden="true"></span><h3>Concept and bio-inspired design<span class="sr-only"> (complete)</span></h3><p>Raven planform and perch-and-stare mission defined.</p></li>
                     <li class="is-done"><span class="pj-dot" aria-hidden="true"></span><h3>Design iteration and simulation<span class="sr-only"> (complete)</span></h3><p>Ten design iterations; aerodynamic, structural and thermal analysis.</p></li>
@@ -217,5 +240,6 @@
     <script src="/js/script.js"></script>
     <script src="/js/include-html.js"></script>
     <script src="/js/projects/huginn.js" defer></script>
+    <script src="/js/projects/enhance.js" defer></script>
 </body>
 </html>

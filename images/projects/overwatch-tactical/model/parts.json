@@ -1,0 +1,159 @@
+{
+ "model": "Overwatch Tactical",
+ "units": "metres",
+ "up": "+Y",
+ "root": "OverwatchTactical",
+ "note": "Nodes rest assembled. Explode: add 'explode' (scaled 0..1) to each node's rest translation. 'label_anchor' is a tooltip point in the node's local frame.",
+ "parts": [
+  {
+   "node": "case_base",
+   "name": "Rugged case",
+   "description": "Waterproof hard case with latches, hinges and carry handles.",
+   "explode": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "label_anchor": [
+    0.045,
+    0.1127,
+    -0.2619
+   ]
+  },
+  {
+   "node": "case_lid",
+   "name": "Case lid",
+   "description": "Hinged lid with a convoluted foam liner.",
+   "explode": [
+    0.0,
+    0.092,
+    -0.16
+   ],
+   "label_anchor": [
+    0.0,
+    0.2507,
+    -0.0274
+   ]
+  },
+  {
+   "node": "foam_insert",
+   "name": "Foam insert",
+   "description": "CNC-cut foam with a shaped pocket and finger notches for every module.",
+   "explode": [
+    0.0,
+    0.08,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.094,
+    -0.0
+   ]
+  },
+  {
+   "node": "field_server",
+   "name": "Field server",
+   "description": "Fanless, ruggedised edge computer that runs the local network and apps.",
+   "explode": [
+    0.0,
+    0.298,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0047,
+    0.0358,
+    -0.0
+   ]
+  },
+  {
+   "node": "access_point",
+   "name": "Wi-Fi access point",
+   "description": "Wide-area Wi-Fi access point for nearby devices.",
+   "explode": [
+    0.0,
+    0.298,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0185,
+    -0.0
+   ]
+  },
+  {
+   "node": "lora_gateway",
+   "name": "Long-range gateway",
+   "description": "Long-range low-power radio gateway with antenna.",
+   "explode": [
+    0.0,
+    0.298,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.036,
+    0.015,
+    -0.0
+   ]
+  },
+  {
+   "node": "radio_1",
+   "name": "Handheld radio",
+   "description": "Team handheld radio with display, keypad, push-to-talk and antenna.",
+   "explode": [
+    0.0,
+    0.229,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0,
+    0.0172,
+    0.024
+   ]
+  },
+  {
+   "node": "radio_2",
+   "name": "Handheld radio",
+   "description": "Team handheld radio with display, keypad, push-to-talk and antenna.",
+   "explode": [
+    0.0,
+    0.229,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0,
+    0.0173,
+    0.024
+   ]
+  },
+  {
+   "node": "radio_3",
+   "name": "Handheld radio",
+   "description": "Team handheld radio with display, keypad, push-to-talk and antenna.",
+   "explode": [
+    0.0,
+    0.229,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0,
+    0.0173,
+    0.024
+   ]
+  },
+  {
+   "node": "power_unit",
+   "name": "Portable power unit",
+   "description": "Portable battery power station with a status display, AC outlets and USB ports.",
+   "explode": [
+    -0.137,
+    0.0,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.1413,
+    -0.0
+   ]
+  }
+ ]
+}

@@ -117,7 +117,7 @@ jobs:
           set -euo pipefail
           # Pages serves ONLY this artifact (source = GitHub Actions), so fail
           # the deploy if a public page is missing or repo-internal files leak in.
-          required="index.html about.html blog.html login.html register.html dashboard.html privacy-policy.html terms-of-service.html data-sources.html projects.html projects/huginn.html projects/synscope.html projects/overwatch-tactical.html CNAME overwatch/index.html overwatch/admin/settings/index.html"
+          required="index.html about.html blog.html login.html register.html dashboard.html privacy-policy.html terms-of-service.html data-sources.html projects.html projects/huginn.html projects/synscope.html projects/overwatch-tactical.html js/projects/enhance.js js/projects/explode-viewer.js js/vendor/draco/draco_decoder.wasm js/vendor/draco/draco_wasm_wrapper.js images/projects/huginn/model/model.glb images/projects/synscope/model/model.glb images/projects/overwatch-tactical/model/model.glb CNAME overwatch/index.html overwatch/admin/settings/index.html"
           for f in $required; do
             [ -s "_deploy/$f" ] || { echo "::error::missing _deploy/$f"; exit 1; }
           done

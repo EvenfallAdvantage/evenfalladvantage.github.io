@@ -1,0 +1,204 @@
+{
+ "model": "Huginn",
+ "units": "metres",
+ "up": "+Y",
+ "root": "Huginn",
+ "note": "Nodes rest assembled. Explode: add 'explode' (scaled 0..1) to each node's rest translation. 'label_anchor' is a tooltip point in the node's local frame.",
+ "parts": [
+  {
+   "node": "head",
+   "name": "Head and beak",
+   "description": "Raven-styled nose section that houses the forward-looking sensors.",
+   "explode": [
+    -0.215,
+    0.013,
+    -0.0
+   ],
+   "label_anchor": [
+    0.02,
+    0.0389,
+    -0.0
+   ]
+  },
+  {
+   "node": "fuselage_forward",
+   "name": "Forward fuselage",
+   "description": "Front body section carrying flight electronics.",
+   "explode": [
+    -0.107,
+    0.04,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0228,
+    0.0487,
+    -0.0
+   ]
+  },
+  {
+   "node": "fuselage_mid",
+   "name": "Centre fuselage",
+   "description": "Main body section where the wings attach; carries the battery.",
+   "explode": [
+    0.0,
+    0.0,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0065,
+    0.0153,
+    -0.0115
+   ]
+  },
+  {
+   "node": "service_hatch",
+   "name": "Service hatch",
+   "description": "Removable top hatch for quick access between flights.",
+   "explode": [
+    0.0,
+    0.148,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0336,
+    0.0126,
+    -0.0
+   ]
+  },
+  {
+   "node": "fuselage_aft",
+   "name": "Aft fuselage",
+   "description": "Rear body section blending into the tail.",
+   "explode": [
+    0.107,
+    0.04,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0288,
+    0.0353,
+    -0.0
+   ]
+  },
+  {
+   "node": "wing_left",
+   "name": "Left wing",
+   "description": "Solar-skinned wing with raven-style feathered tip.",
+   "explode": [
+    0.0,
+    0.027,
+    -0.201
+   ],
+   "label_anchor": [
+    -0.0246,
+    0.0283,
+    -0.0926
+   ]
+  },
+  {
+   "node": "wing_right",
+   "name": "Right wing",
+   "description": "Solar-skinned wing with raven-style feathered tip.",
+   "explode": [
+    0.0,
+    0.027,
+    0.201
+   ],
+   "label_anchor": [
+    -0.0246,
+    0.0283,
+    0.0926
+   ]
+  },
+  {
+   "node": "tail_boom",
+   "name": "Tail boom",
+   "description": "Lightweight carbon boom linking the body to the tail.",
+   "explode": [
+    0.201,
+    0.0,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.005,
+    -0.0
+   ]
+  },
+  {
+   "node": "tail_left",
+   "name": "Left tail surface",
+   "description": "V-tail surface with a moving control section.",
+   "explode": [
+    0.282,
+    0.04,
+    -0.094
+   ],
+   "label_anchor": [
+    0.0,
+    0.0152,
+    -0.0229
+   ]
+  },
+  {
+   "node": "tail_right",
+   "name": "Right tail surface",
+   "description": "V-tail surface with a moving control section.",
+   "explode": [
+    0.282,
+    0.04,
+    0.094
+   ],
+   "label_anchor": [
+    -0.0,
+    0.0152,
+    0.0229
+   ]
+  },
+  {
+   "node": "propulsion",
+   "name": "Motor and folding prop",
+   "description": "Rear pusher motor with a prop that folds away when perched or gliding.",
+   "explode": [
+    0.369,
+    0.0,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0235,
+    0.064,
+    0.004
+   ]
+  },
+  {
+   "node": "sensor_turret",
+   "name": "Sensor turret",
+   "description": "Compact camera turret for watching from the air or a perch; camera lens on the underside.",
+   "explode": [
+    0.0,
+    -0.107,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0081,
+    0.0102,
+    -0.0062
+   ]
+  },
+  {
+   "node": "perch_skid",
+   "name": "Perch skid and talons",
+   "description": "Landing skid with talon-style grips for perching on ledges.",
+   "explode": [
+    0.0,
+    -0.201,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0032,
+    0.0381,
+    -0.0
+   ]
+  }
+ ]
+}
