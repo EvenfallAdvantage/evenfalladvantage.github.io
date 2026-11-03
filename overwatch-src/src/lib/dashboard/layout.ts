@@ -35,8 +35,9 @@ export function dashboardColumns(variant: DashboardVariant): DashboardColumns {
   if (variant === "leadership") {
     return {
       top: ["onboarding", "action-required", "kpis"],
-      side: ["duty-status", "pinned-briefing"],
-      main: ["quick-actions", "compliance-overtime", "intel"],
+      // Rail carries real content so it never leaves a blank column beside the main stack.
+      side: ["duty-status", "pinned-briefing", "compliance-overtime"],
+      main: ["quick-actions", "intel"],
     };
   }
   return {

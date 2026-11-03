@@ -205,7 +205,7 @@ export function DutyStatus({ activeCompanyId, onReload }: DutyStatusProps) {
   return (
     <>
       {/* Duty Status Widget */}
-      <Card className={`overflow-hidden ${isClockedIn ? "border-green-500/30" : "border-border/50"}`}>
+      <Card className={`gap-0 overflow-hidden py-0 ${isClockedIn ? "border-green-500/30" : "border-border/50"}`}>
         <CardContent className="p-0">
           <div className={`flex flex-wrap items-center gap-3 sm:gap-4 p-4 sm:p-5 ${isClockedIn ? "bg-gradient-to-r from-green-500/10 via-green-500/5 to-transparent" : "bg-gradient-to-r from-primary/5 to-transparent"}`}>
             <div className={`relative flex h-12 w-12 sm:h-16 sm:w-16 shrink-0 items-center justify-center rounded-2xl ${isClockedIn ? "bg-green-500/15" : "bg-primary/10"}`}>
