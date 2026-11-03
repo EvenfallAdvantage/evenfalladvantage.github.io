@@ -221,7 +221,8 @@ export function parseGitLogToReleases(logText) {
 export function generateReleasesFile(outputPath = OUTPUT_PATH) {
   mkdirSync(dirname(outputPath), { recursive: true });
   try {
-    const logText = execSync('git log -n 80 --date=short-local --pretty=format:"%H%x09%ad%x09%s"', {
+    const logText = execSync('git log -n 80 --date=short-local --pretty=format:"%H%x09%ad%x09%s" -- overwatch-src', {
+      // Only commits touching the Overwatch app; website-only changes (projects/, root pages, docs) are excluded.
       cwd: resolve(__dirname, "../.."),
       // Group by UTC (Zulu) day, matching the live GitHub parser.
       env: { ...process.env, TZ: "UTC" },
