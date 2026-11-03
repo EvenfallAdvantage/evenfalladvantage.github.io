@@ -38,17 +38,17 @@ export function dashboardColumns(variant: DashboardVariant): DashboardColumns {
   if (variant === "leadership") {
     return {
       rows: [
-        ["onboarding"], ["action-required"], ["kpis"],
+        ["pinned-briefing"], ["onboarding"], ["action-required"], ["kpis"],
         ["quick-actions", "duty-status"],
-        ["pinned-briefing"], ["compliance-overtime"], ["intel"],
+        ["compliance-overtime"], ["intel"],
       ],
     };
   }
   return {
     rows: [
-      ["onboarding"],
+      ["pinned-briefing"], ["onboarding"],
       ["duty-status", "my-week"],
-      ["pinned-briefing"], ["my-post"], ["quick-actions"], ["professional-tools"],
+      ["my-post"], ["quick-actions"], ["professional-tools"],
     ],
   };
 }
@@ -56,9 +56,9 @@ export function dashboardColumns(variant: DashboardVariant): DashboardColumns {
 /** Single-column order (phones, tablets, laptops below xl). */
 export function dashboardSections(variant: DashboardVariant): DashboardSection[] {
   if (variant === "leadership") {
-    return ["onboarding", "action-required", "kpis", "quick-actions", "duty-status", "pinned-briefing", "compliance-overtime", "intel"];
+    return ["pinned-briefing", "onboarding", "action-required", "kpis", "quick-actions", "duty-status", "compliance-overtime", "intel"];
   }
-  return ["onboarding", "duty-status", "my-week", "pinned-briefing", "my-post", "quick-actions", "professional-tools"];
+  return ["pinned-briefing", "onboarding", "duty-status", "my-week", "my-post", "quick-actions", "professional-tools"];
 }
 
 export type QuickActionKey =

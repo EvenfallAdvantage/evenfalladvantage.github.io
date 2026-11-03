@@ -54,14 +54,10 @@ describe("layout", () => {
 });
 
 describe("pinned briefing", () => {
-  it("is in both role layouts at every breakpoint, right after the top action row", () => {
+  it("is the first, full-width section in both role layouts at every breakpoint", () => {
     for (const v of ["officer", "leadership"] as const) {
-      expect(dashboardSections(v)).toContain("pinned-briefing");
-      const rows = dashboardColumns(v).rows;
-      const i = rows.findIndex((r) => r.includes("pinned-briefing"));
-      expect(i).toBeGreaterThan(0);
-      expect(rows[i]).toHaveLength(1); // full width
-      expect(rows[i - 1]).toHaveLength(2); // follows the paired row (Quick Actions/Clock or Clock/My Week)
+      expect(dashboardSections(v)[0]).toBe("pinned-briefing");
+      expect(dashboardColumns(v).rows[0]).toEqual(["pinned-briefing"]);
     }
   });
 });
