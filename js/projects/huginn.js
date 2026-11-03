@@ -1,4 +1,4 @@
-/* HUGINN Mission Endurance Explorer — illustrative model (design estimates). */
+/* Huginn Mission Endurance Explorer — illustrative model (design estimates). */
 (function () {
   'use strict';
   // Perched full-AI watch on battery, hours (confirmed 10.9 h by Metalika, 3 Nov 2026). Single source of truth; never show 24 h.
@@ -40,8 +40,8 @@
     perchH.textContent = fmt(r.perched);
     root.classList.toggle('is-perched', pct >= 50);
     explain.textContent = pct >= 50
-      ? 'Most of the mission is spent perched, where HUGINN needs far less power than flying. Sun on the perch can extend this further.'
-      : (s + l >= 1.5 ? 'Sun and rising air let HUGINN glide far longer than battery alone.' : 'Battery-only glide: no sun, no lift.');
+      ? 'Most of the mission is spent perched, where Huginn needs far less power than flying. Sun on the perch can extend this further.'
+      : (s + l >= 1.5 ? 'Sun and rising air let Huginn glide far longer than battery alone.' : 'Battery-only glide: no sun, no lift.');
     // Debounce the live-region text so screen readers aren't flooded while dragging.
     clearTimeout(timer);
     var txt = '≈ ' + fmt(r.total);
