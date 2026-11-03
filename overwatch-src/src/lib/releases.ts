@@ -47,10 +47,12 @@ export interface RolledUpHighlight extends ReleaseHighlight {
 
 export const LAST_SEEN_RELEASE_KEY_PREFIX = "overwatch_last_seen_release_v1_";
 export const LAST_SEEN_RELEASE_LEGACY_KEY = "overwatch_last_seen_release_id";
-export const GITHUB_RELEASES_CACHE_KEY = "overwatch_github_releases_cache_v1";
+export const GITHUB_RELEASES_CACHE_KEY = "overwatch_github_releases_cache_v2";
 export const GITHUB_RELEASES_CACHE_TTL_MS = 15 * 60 * 1000;
 export const GITHUB_COMMITS_URL =
-  "https://api.github.com/repos/EvenfallAdvantage/evenfalladvantage.github.io/commits?per_page=20";
+  "https://api.github.com/repos/EvenfallAdvantage/evenfalladvantage.github.io/commits?path=overwatch-src&per_page=20";
+/** Only commits touching the Overwatch app (website-only changes like projects/ are excluded). */
+export const OVERWATCH_SOURCE_PATH = "overwatch-src";
 
 /**
  * Structured Overwatch release manifest (newest first).
