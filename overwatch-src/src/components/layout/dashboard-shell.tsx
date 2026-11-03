@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+import { useMediaQuery } from "@/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 import { AppSidebar } from "./app-sidebar";
 import { Topbar } from "./topbar";
@@ -30,6 +32,17 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     localStorage.setItem(STORAGE_KEY, String(collapsed));
   }, [collapsed]);
 
+  // Tablets (768–1023px) default to the icon rail so content isn't squeezed;
+  // this state is separate so it never overwrites the desktop preference.
+  const isTablet = useMediaQuery("(min-width: 768px) and (max-width: 1023px)");
+  const [tabletCollapsed, setTabletCollapsed] = useState(true);
+  const railCollapsed = isTablet ? tabletCollapsed : collapsed;
+  const toggleRail = () => (isTablet ? setTabletCollapsed((v) => !v) : setCollapsed(!collapsed));
+
+  // The dashboard is a two-column command view, so it gets more width on big screens.
+  const pathname = usePathname();
+  const wideRoute = pathname?.replace(/\/$/, "") === "/feed";
+
   return (
     <TooltipProvider delay={0}>
       <div className="min-h-screen bg-background">
@@ -41,24 +54,24 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         {/* Desktop sidebar */}
         <div className="hidden md:block">
           <AppSidebar
-            collapsed={collapsed}
-            onToggle={() => setCollapsed(!collapsed)}
+            collapsed={railCollapsed}
+            onToggle={toggleRail}
           />
         </div>
 
         {/* Topbar */}
-        <Topbar sidebarCollapsed={collapsed} />
+        <Topbar sidebarCollapsed={railCollapsed} />
 
         {/* Main content */}
         <main
           id="main-content"
           tabIndex={-1}
           className={cn(
-            "min-h-screen pb-20 transition-all duration-300 md:pb-0 outline-none",
-            collapsed ? "md:pl-[68px]" : "md:pl-[260px]"
+            "min-h-screen pb-32 transition-all duration-300 md:pb-0 outline-none",
+            railCollapsed ? "md:pl-[68px]" : "md:pl-[260px]"
           )}
         >
-          <div className="mx-auto max-w-7xl px-3 py-4 sm:p-6">
+          <div className={cn("mx-auto px-3 py-4 sm:p-6", wideRoute ? "max-w-[1680px]" : "max-w-7xl")}>
             {/* Mobile action button — right-aligned above page content */}
             {!inlineActions && (
               <div className="flex justify-end mb-2 sm:hidden">

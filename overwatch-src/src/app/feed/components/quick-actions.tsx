@@ -5,14 +5,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { quickActionsFor } from "./shared";
 import type { DashboardVariant } from "@/lib/dashboard/layout";
 
-export function QuickActions({ variant = "officer" }: { variant?: DashboardVariant }) {
+export function QuickActions({ variant = "officer", hiddenTabs = [] }: { variant?: DashboardVariant; hiddenTabs?: readonly string[] }) {
+  const actions = quickActionsFor(variant, hiddenTabs);
+  if (actions.length === 0) return null;
   return (
     <div>
       <h2 className="mb-4 section-title">
         Quick Actions
       </h2>
-      <div className="grid grid-cols-3 gap-3 sm:grid-cols-6">
-        {quickActionsFor(variant).map((action) => (
+      <div className="grid grid-cols-3 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        {actions.map((action) => (
           <Link key={action.href} href={action.href}>
             <Card className="group cursor-pointer border-border/40 transition-all hover:border-primary/30 hover:shadow-md hover:-translate-y-0.5">
               <CardContent className="flex flex-col items-center gap-2 p-4">
