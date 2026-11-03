@@ -342,3 +342,6 @@ body.pj-lb-open { overflow: hidden; }
 .xv-tip.is-on { opacity: 1; }
 @media (max-width: 600px) { .xv-tip { max-width: 170px; font-size: .66rem; } }
 .xv-labels.has-tip .xv-tag:not(:hover):not(:focus-visible):not(.is-sel) { opacity: .25; }
+.xv-dot.is-minor { width: 5px; height: 5px; margin: -2.5px 0 0 -2.5px; opacity: .55; box-shadow: 0 0 0 1.5px #fff; pointer-events: auto; cursor: pointer; }
+.xv-dot.is-minor::after { content: ""; position: absolute; inset: -7px; border-radius: 50%; }
+.xv-dot.is-minor:hover { opacity: 1; }

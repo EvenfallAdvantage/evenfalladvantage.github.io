@@ -7,10 +7,10 @@
  "parts": [
   {
    "node": "head",
-   "name": "Head and beak",
+   "name": "Head",
    "description": "Raven-styled nose section that houses the forward-looking sensors.",
    "explode": [
-    0.119,
+    0.126,
     0.0,
     -0.0
    ],
@@ -22,10 +22,10 @@
   },
   {
    "node": "fuselage_forward",
-   "name": "Forward fuselage",
+   "name": "Fwd fuselage",
    "description": "Front body section carrying flight electronics.",
    "explode": [
-    0.05,
+    0.043,
     0.0,
     -0.0
    ],
@@ -37,7 +37,7 @@
   },
   {
    "node": "fuselage_mid",
-   "name": "Centre fuselage",
+   "name": "Mid fuselage",
    "description": "Main body section where the wings attach; carries the battery.",
    "explode": [
     0.0,
@@ -52,11 +52,11 @@
   },
   {
    "node": "service_hatch",
-   "name": "Service hatch",
+   "name": "Hatch",
    "description": "Removable top hatch for quick access between flights.",
    "explode": [
     0.0,
-    0.069,
+    0.5,
     -0.0
    ],
    "label_anchor": [
@@ -70,7 +70,7 @@
    "name": "Aft fuselage",
    "description": "Rear body section blending into the tail.",
    "explode": [
-    -0.03,
+    -0.02,
     0.0,
     -0.0
    ],
@@ -83,31 +83,31 @@
   {
    "node": "wing_left",
    "name": "Left wing",
-   "description": "Solar-skinned airfoil wing with a light foam structure.",
+   "description": "Matte-black airfoil wing ending in five slotted primary feathers, like a raven's wingtip.",
    "explode": [
     0.0,
     0.0,
-    0.099
+    0.063
    ],
    "label_anchor": [
-    0.0243,
-    0.0294,
-    0.0916
+    0.0431,
+    0.0313,
+    0.0531
    ]
   },
   {
    "node": "wing_right",
    "name": "Right wing",
-   "description": "Solar-skinned airfoil wing with a light foam structure.",
+   "description": "Matte-black airfoil wing ending in five slotted primary feathers, like a raven's wingtip.",
    "explode": [
     0.0,
     0.0,
-    -0.099
+    -0.063
    ],
    "label_anchor": [
-    0.0243,
-    0.0294,
-    -0.0916
+    0.0431,
+    0.0313,
+    -0.0531
    ]
   },
   {
@@ -115,7 +115,7 @@
    "name": "Tail boom",
    "description": "Lightweight carbon boom linking the body to the tail.",
    "explode": [
-    -0.059,
+    -0.048,
     0.0,
     -0.0
    ],
@@ -127,10 +127,10 @@
   },
   {
    "node": "tail_left",
-   "name": "Left tail surface",
+   "name": "Left tail",
    "description": "V-tail surface with a moving control section.",
    "explode": [
-    -0.168,
+    -0.122,
     0.0,
     -0.0
    ],
@@ -142,10 +142,10 @@
   },
   {
    "node": "tail_right",
-   "name": "Right tail surface",
+   "name": "Right tail",
    "description": "V-tail surface with a moving control section.",
    "explode": [
-    -0.168,
+    -0.122,
     0.0,
     -0.0
    ],
@@ -157,26 +157,26 @@
   },
   {
    "node": "propulsion",
-   "name": "Motor and folding prop",
-   "description": "Rear pusher motor with a prop that folds away when perched or gliding.",
+   "name": "2206 motor",
+   "description": "Brushless 2206 outrunner on the rear motor mount.",
    "explode": [
-    -0.287,
+    -0.185,
     0.0,
     -0.0
    ],
    "label_anchor": [
-    0.0319,
-    -0.004,
+    0.0227,
+    0.0079,
     -0.0
    ]
   },
   {
    "node": "sensor_turret",
-   "name": "Sensor turret",
-   "description": "Compact camera turret for watching from the air or a perch; camera lens on the underside.",
+   "name": "Optical dome",
+   "description": "Underside dome for the one-way optical (infrared) data uplink; camera lens alongside.",
    "explode": [
     0.0,
-    -0.069,
+    -0.365,
     -0.0
    ],
    "label_anchor": [
@@ -187,17 +187,332 @@
   },
   {
    "node": "perch_skid",
-   "name": "Perch skid and talons",
+   "name": "Perch skid",
    "description": "Landing skid with talon-style grips for perching on ledges.",
    "explode": [
     0.0,
-    -0.178,
+    -0.456,
     -0.0
    ],
    "label_anchor": [
     -0.0021,
     0.0496,
     -0.0007
+   ]
+  },
+  {
+   "node": "prop",
+   "name": "Folding prop",
+   "description": "Folding blades fold flat when gliding or perched; 30 mm spinner.",
+   "explode": [
+    -0.254,
+    0.0,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.064,
+    -0.0
+   ]
+  },
+  {
+   "node": "solar_left",
+   "name": "Solar (left)",
+   "description": "High-efficiency SunPower cell strips laminated to the upper wing skin.",
+   "explode": [
+    0.0,
+    0.098,
+    0.139
+   ],
+   "label_anchor": [
+    0.025,
+    0.0249,
+    0.0718
+   ]
+  },
+  {
+   "node": "solar_right",
+   "name": "Solar (right)",
+   "description": "High-efficiency SunPower cell strips laminated to the upper wing skin.",
+   "explode": [
+    0.0,
+    0.098,
+    -0.139
+   ],
+   "label_anchor": [
+    0.025,
+    0.0249,
+    -0.0718
+   ]
+  },
+  {
+   "node": "oakd",
+   "name": "OAK-D Lite",
+   "description": "Luxonis stereo depth + colour AI camera behind the throat window.",
+   "explode": [
+    0.0,
+    0.077,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.014,
+    -0.0
+   ]
+  },
+  {
+   "node": "fc",
+   "name": "Matek H743 FC",
+   "description": "Matek H743-WING V3 autopilot.",
+   "explode": [
+    0.0,
+    0.361,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0082,
+    0.0073,
+    0.0032
+   ]
+  },
+  {
+   "node": "gps",
+   "name": "M10Q GPS",
+   "description": "Matek M10Q-5883 GNSS module.",
+   "explode": [
+    0.0,
+    0.41,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.005,
+    -0.0
+   ]
+  },
+  {
+   "node": "battery",
+   "name": "3S2P battery",
+   "description": "Six Molicel P45B 21700 cells with a 3S BMS.",
+   "explode": [
+    0.0,
+    0.143,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0228,
+    -0.0
+   ]
+  },
+  {
+   "node": "pi",
+   "name": "Pi Zero 2 W",
+   "description": "Raspberry Pi Zero 2 W for onboard autonomy.",
+   "explode": [
+    0.0,
+    0.258,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0017,
+    -0.0
+   ]
+  },
+  {
+   "node": "mppt",
+   "name": "MPPT charger",
+   "description": "CN3791 MPPT module for the 3S pack.",
+   "explode": [
+    0.0,
+    0.371,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0012,
+    -0.0
+   ]
+  },
+  {
+   "node": "rid",
+   "name": "Remote ID",
+   "description": "Holybro broadcast Remote ID.",
+   "explode": [
+    0.0,
+    0.27,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0045,
+    -0.0
+   ]
+  },
+  {
+   "node": "esc",
+   "name": "30 A ESC",
+   "description": "BLHeli speed controller for the pusher motor.",
+   "explode": [
+    0.0,
+    0.16,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0026,
+    0.0045,
+    -0.0074
+   ]
+  },
+  {
+   "node": "elrs",
+   "name": "ELRS RX",
+   "description": "RadioMaster RP1 2.4 GHz control link with dipole antenna.",
+   "explode": [
+    0.0,
+    0.416,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0023,
+    -0.0072
+   ]
+  },
+  {
+   "node": "tail_servos",
+   "name": "Tail servos",
+   "description": "Emax ES08MD II 12 g digital metal-gear servos.",
+   "explode": [
+    0.0,
+    0.173,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0065,
+    0.014,
+    -0.012
+   ]
+  },
+  {
+   "node": "aileron_servos",
+   "name": "Aileron servos",
+   "description": "Emax ES08MD II 12 g servos, one per wing.",
+   "explode": [
+    0.0,
+    -0.277,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0115,
+    0.0058,
+    0.238
+   ]
+  },
+  {
+   "node": "fso_rx",
+   "name": "FSO receiver",
+   "description": "940 nm photodiode with IR filter for the optical uplink.",
+   "explode": [
+    0.0,
+    -0.027,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0027,
+    -0.0
+   ]
+  },
+  {
+   "node": "tfluna",
+   "name": "TF-Luna",
+   "description": "Downward rangefinder for landing and perching.",
+   "explode": [
+    0.0,
+    -0.064,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0071,
+    -0.0
+   ]
+  },
+  {
+   "node": "vl53",
+   "name": "VL53L1X",
+   "description": "Short-range downward distance sensor.",
+   "explode": [
+    0.0,
+    -0.186,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0014,
+    -0.0
+   ]
+  },
+  {
+   "node": "airspeed",
+   "name": "Airspeed",
+   "description": "Matek ASPD-4525 with pitot line.",
+   "explode": [
+    0.0,
+    0.12,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0028,
+    0.001,
+    0.0053
+   ]
+  },
+  {
+   "node": "vtx",
+   "name": "HD VTX",
+   "description": "Walksnail Avatar HD Mini VTX; its nano camera sits in the nose.",
+   "explode": [
+    0.0,
+    0.296,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0058,
+    -0.0
+   ]
+  },
+  {
+   "node": "strobe",
+   "name": "Strobe",
+   "description": "Bright LED strobe for visibility.",
+   "explode": [
+    0.0,
+    0.028,
+    -0.0
+   ],
+   "label_anchor": [
+    0.0,
+    0.0035,
+    -0.0
+   ]
+  },
+  {
+   "node": "harness",
+   "name": "Wiring",
+   "description": "Power and signal wiring between pack, autopilot and peripherals.",
+   "explode": [
+    0.0,
+    0.156,
+    -0.0
+   ],
+   "label_anchor": [
+    -0.0772,
+    0.0106,
+    -0.1682
    ]
   }
  ]
