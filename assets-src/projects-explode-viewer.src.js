@@ -55,7 +55,9 @@ export async function mount(root) {
     const c = box.getCenter(new THREE.Vector3());
     controls.target.copy(c);
     camera.position.copy(c).add(new THREE.Vector3(0.9, 0.55, 1.2).normalize().multiplyScalar(size * 1.15));
-    camera.near = size / 100; camera.far = size * 20; camera.updateProjectionMatrix();
+    camera.near = size / 100; camera.far = size * 20;
+    camera.aspect = stage.clientWidth / Math.max(1, stage.clientHeight) || camera.aspect; camera.updateProjectionMatrix();
+    applyFactor(1); model.updateMatrixWorld(true); xvFit(camera, box, c, model); applyFactor(factor);
     controls.minDistance = size * 0.4; controls.maxDistance = size * 3;
   };
 
@@ -186,13 +188,16 @@ function xvLayout(L,W,H,sel,X){
     if(!Z._dot){Z._dot=document.createElement("span");Z._dot.className="xv-dot";X.appendChild(Z._dot);
       Z._ln=document.createElementNS("http://www.w3.org/2000/svg","line");X._svg.appendChild(Z._ln);
       Z.tag.addEventListener("mouseenter",()=>{X._hover=Z});Z.tag.addEventListener("mouseleave",()=>{if(X._hover===Z)X._hover=null});
-      Z.tag.addEventListener("focus",()=>{X._hover=Z});Z.tag.addEventListener("blur",()=>{if(X._hover===Z)X._hover=null});}
+      Z.tag.addEventListener("focus",()=>{X._hover=Z});Z._dot.addEventListener("mouseenter",()=>{X._hover=Z;Z.tag.dispatchEvent(new Event("mouseenter"))});Z._dot.addEventListener("click",e=>{e.stopPropagation();X._hover=Z;Z.tag.click()});Z._dot.addEventListener("mouseleave",()=>{if(X._hover===Z)X._hover=null});Z.tag.addEventListener("blur",()=>{if(X._hover===Z)X._hover=null});}
     if(Z.tag.offsetWidth){Z._w=Z.tag.offsetWidth;Z._h=Z.tag.offsetHeight}o.w=Z._w||60;o.h=Z._h||18;
     let dx=o.x-cx,dy=o.y-cy,d=Math.hypot(dx,dy);if(d<1){dx=0;dy=-1;d=1}
     const R=(small?22:34)+Math.min(W,H)*0.04;
     o.tx=o.x+dx/d*(R+o.w*0.35);o.ty=o.y+dy/d*(R+o.h*0.5);
     if(Z._lx===undefined||Math.hypot(Z._lx-o.tx,Z._ly-o.ty)>W*0.25){Z._lx=o.tx;Z._ly=o.ty}
     o.lx=Z._lx;o.ly=Z._ly;o.on=true}
+  // priority cap: many-part models show the first (major) parts labelled; the rest are dots until hovered/tapped
+  const keep=o=>o.Z.p.node===sel||o.Z===X._hover,cap=Math.max(6,Math.min(16,Math.floor(W*H/(small?14000:30000)))),all=L;
+  all.forEach((o,i)=>{o.rank=all.length>cap&&i>=cap;o.minor=o.rank&&!keep(o)});L=all.filter(o=>!o.minor);
   const clamp=o=>{o.lx=Math.min(Math.max(o.lx,o.w/2+pad),W-o.w/2-pad);o.ly=Math.min(Math.max(o.ly,o.h/2+pad),H-o.h/2-pad)};
   const ov=(a,b)=>{const ox=(a.w+b.w)/2+gap-Math.abs(a.lx-b.lx),oy=(a.h+b.h)/2+gap/2-Math.abs(a.ly-b.ly);return ox>0&&oy>0?[ox,oy]:null};
   for(let it=0;it<60;it++){
@@ -203,12 +208,12 @@ function xvLayout(L,W,H,sel,X){
     for(const o of L)for(const p of L){if(p===o)continue;const ox=o.w/2+5-Math.abs(o.lx-p.x),oy=o.h/2+5-Math.abs(o.ly-p.y);if(ox>0&&oy>0){if(ox<oy)o.lx+=(o.lx<p.x?-1:1)*ox;else o.ly+=(o.ly<p.y?-1:1)*oy}}
     for(const o of L)clamp(o)}
   // fallback: drop labels that still collide (keep selected/hovered, then the one nearer its target)
-  const keep=o=>o.Z.p.node===sel||o.Z===X._hover;
   for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j];if(!a.on||!b.on||!ov(a,b))continue;
     const da=Math.hypot(a.lx-a.tx,a.ly-a.ty)-(keep(a)?1e6:0),db=Math.hypot(b.lx-b.tx,b.ly-b.ty)-(keep(b)?1e6:0);(da>db?a:b).on=false}
+  for(const o of all)if(o.minor)o.on=false;L=all;
   for(const o of L){const Z=o.Z;Z._lx=o.lx;Z._ly=o.ly;
     Z.tag.style.transform=`translate(${o.lx}px, ${o.ly}px)`;Z.tag.classList.toggle("is-off",!o.on);
-    Z._dot.style.transform=`translate(${o.x}px, ${o.y}px)`;
+    Z._dot.classList.toggle("is-minor",!!o.rank);Z._dot.style.transform=`translate(${o.x}px, ${o.y}px)`;
     Z._ln.setAttribute("x1",o.x);Z._ln.setAttribute("y1",o.y);Z._ln.setAttribute("x2",o.lx);Z._ln.setAttribute("y2",o.ly);Z._ln.style.display=o.on?"":"none"}
   // tooltip: hovered label (mouse) or tapped part (touch) only
   const T=X._hover||(X._touch?L.map(o=>o.Z).find(Z=>Z.p.node===sel):null),tip=X._tip,t=T&&L.find(o=>o.Z===T);
@@ -217,3 +222,9 @@ function xvLayout(L,W,H,sel,X){
     let y=t.ly-th/2;if(x===Math.min(Math.max(t.lx-tw/2,pad),W-tw-pad))y=t.ly+t.h/2+6;if(y+th>H-pad)y=t.ly-t.h/2-6-th;y=Math.max(pad,y);
     tip.style.transform=`translate(${x}px, ${y}px)`;X.classList.add("has-tip")}else{tip.classList.remove("is-on");tip._for=null;X.classList.remove("has-tip")}
 }
+
+// fit camera distance so the exploded bbox fills ~80% of the frame (diagonal fit left big margins on tall explodes)
+function xvFit(d,box,c,obj){const k=[],v=d.position.clone().sub(c);
+  if(obj)obj.traverse(o=>{const g=o.isMesh&&o.geometry&&o.geometry.attributes.position;if(!g)return;const st=Math.max(1,Math.floor(g.count/400));for(let i=0;i<g.count;i+=st)k.push(box.min.clone().fromBufferAttribute(g,i).applyMatrix4(o.matrixWorld))});
+  if(!k.length)for(let i=0;i<8;i++)k.push(box.min.clone().set(i&1?box.max.x:box.min.x,i&2?box.max.y:box.min.y,i&4?box.max.z:box.min.z));
+  for(let n=0;n<4;n++){d.lookAt(c);d.updateMatrixWorld();let m=0;for(const p of k){const q=p.clone().project(d);m=Math.max(m,Math.abs(q.x),Math.abs(q.y))}if(!(m>0))return;v.multiplyScalar(Math.min(1.6,Math.max(.4,m/.8)));d.position.copy(c).add(v)}d.updateMatrixWorld()}
