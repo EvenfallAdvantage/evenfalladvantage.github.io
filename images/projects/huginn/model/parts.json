@@ -10,13 +10,13 @@
    "name": "Head and beak",
    "description": "Raven-styled nose section that houses the forward-looking sensors.",
    "explode": [
-    -0.125,
-    0.008,
+    0.119,
+    0.0,
     -0.0
    ],
    "label_anchor": [
-    0.02,
-    0.0389,
+    0.0401,
+    0.003,
     -0.0
    ]
   },
@@ -25,12 +25,12 @@
    "name": "Forward fuselage",
    "description": "Front body section carrying flight electronics.",
    "explode": [
-    -0.062,
-    0.023,
+    0.05,
+    0.0,
     -0.0
    ],
    "label_anchor": [
-    -0.0228,
+    0.0228,
     0.0487,
     -0.0
    ]
@@ -45,9 +45,9 @@
     -0.0
    ],
    "label_anchor": [
-    0.0065,
-    0.0153,
-    -0.0115
+    -0.0228,
+    0.005,
+    0.0599
    ]
   },
   {
@@ -56,11 +56,11 @@
    "description": "Removable top hatch for quick access between flights.",
    "explode": [
     0.0,
-    0.086,
+    0.069,
     -0.0
    ],
    "label_anchor": [
-    -0.0336,
+    0.0336,
     0.0126,
     -0.0
    ]
@@ -70,12 +70,12 @@
    "name": "Aft fuselage",
    "description": "Rear body section blending into the tail.",
    "explode": [
-    0.062,
-    0.023,
+    -0.03,
+    0.0,
     -0.0
    ],
    "label_anchor": [
-    -0.0288,
+    0.0288,
     0.0353,
     -0.0
    ]
@@ -83,31 +83,31 @@
   {
    "node": "wing_left",
    "name": "Left wing",
-   "description": "Solar-skinned wing with raven-style feathered tip.",
+   "description": "Solar-skinned airfoil wing with a light foam structure.",
    "explode": [
     0.0,
-    0.016,
-    -0.094
+    0.0,
+    0.099
    ],
    "label_anchor": [
-    -0.0431,
-    0.0316,
-    -0.0534
+    0.0243,
+    0.0294,
+    0.0916
    ]
   },
   {
    "node": "wing_right",
    "name": "Right wing",
-   "description": "Solar-skinned wing with raven-style feathered tip.",
+   "description": "Solar-skinned airfoil wing with a light foam structure.",
    "explode": [
     0.0,
-    0.016,
-    0.094
+    0.0,
+    -0.099
    ],
    "label_anchor": [
-    -0.0431,
-    0.0317,
-    0.0534
+    0.0243,
+    0.0294,
+    -0.0916
    ]
   },
   {
@@ -115,13 +115,13 @@
    "name": "Tail boom",
    "description": "Lightweight carbon boom linking the body to the tail.",
    "explode": [
-    0.101,
+    -0.059,
     0.0,
     -0.0
    ],
    "label_anchor": [
     0.0,
-    0.005,
+    -0.025,
     -0.0
    ]
   },
@@ -130,14 +130,14 @@
    "name": "Left tail surface",
    "description": "V-tail surface with a moving control section.",
    "explode": [
-    0.164,
-    0.023,
-    -0.055
+    -0.168,
+    0.0,
+    -0.0
    ],
    "label_anchor": [
-    0.0,
-    0.0213,
-    -0.0208
+    0.1107,
+    -0.0248,
+    -0.0262
    ]
   },
   {
@@ -145,14 +145,14 @@
    "name": "Right tail surface",
    "description": "V-tail surface with a moving control section.",
    "explode": [
-    0.164,
-    0.023,
-    0.055
+    -0.168,
+    0.0,
+    -0.0
    ],
    "label_anchor": [
-    -0.0,
-    0.0213,
-    0.0208
+    0.0,
+    0.0238,
+    -0.0204
    ]
   },
   {
@@ -160,14 +160,14 @@
    "name": "Motor and folding prop",
    "description": "Rear pusher motor with a prop that folds away when perched or gliding.",
    "explode": [
-    0.164,
+    -0.287,
     0.0,
     -0.0
    ],
    "label_anchor": [
-    0.0235,
-    0.064,
-    0.004
+    0.0319,
+    -0.004,
+    -0.0
    ]
   },
   {
@@ -176,13 +176,13 @@
    "description": "Compact camera turret for watching from the air or a perch; camera lens on the underside.",
    "explode": [
     0.0,
-    -0.078,
+    -0.069,
     -0.0
    ],
    "label_anchor": [
-    0.0125,
+    0.0112,
     0.0159,
-    -0.0096
+    0.0112
    ]
   },
   {
@@ -191,13 +191,13 @@
    "description": "Landing skid with talon-style grips for perching on ledges.",
    "explode": [
     0.0,
-    -0.133,
+    -0.178,
     -0.0
    ],
    "label_anchor": [
-    0.0042,
+    -0.0021,
     0.0496,
-    -0.0
+    -0.0007
    ]
   }
  ]

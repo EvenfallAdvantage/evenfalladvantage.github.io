@@ -84,27 +84,27 @@
   <source type="image/webp" srcset="/images/projects/overwatch-tactical/overwatch-kit-interior-480.webp 480w, /images/projects/overwatch-tactical/overwatch-kit-interior-800.webp 800w, /images/projects/overwatch-tactical/overwatch-kit-interior-1200.webp 1200w" sizes="(max-width: 1024px) 100vw, 800px">
   <img src="/images/projects/overwatch-tactical/overwatch-kit-interior-1200.jpg" srcset="/images/projects/overwatch-tactical/overwatch-kit-interior-480.jpg 480w, /images/projects/overwatch-tactical/overwatch-kit-interior-800.jpg 800w, /images/projects/overwatch-tactical/overwatch-kit-interior-1200.jpg 1200w" sizes="(max-width: 1024px) 100vw, 800px" alt="Top view inside the case: mini server, WiFi router, LoRa gateway, GPS time puck, two team-lead radios and a stack of card trackers in deep cut-foam pockets, with the battery alongside" width="1200" height="733" loading="lazy" decoding="async">
 </picture>
-                    <svg class="hs-flow" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="57,50 66,35"/><polyline points="66,35 61,26 47,26 42,35"/><polyline points="56,35 42,35"/><polyline points="95,20 56,35"/></svg>
-                    <button type="button" class="hs-dot" hidden style="left:42%;top:35%" data-id="server" aria-expanded="false" aria-controls="hs-card" aria-label="Mini server">1</button>
-                    <button type="button" class="hs-dot" hidden style="left:56%;top:35%" data-id="wifi" aria-expanded="false" aria-controls="hs-card" aria-label="WiFi router">2</button>
-                    <button type="button" class="hs-dot" hidden style="left:66%;top:35%" data-id="lora" aria-expanded="false" aria-controls="hs-card" aria-label="LoRa gateway">3</button>
-                    <button type="button" class="hs-dot" hidden style="left:57%;top:50%" data-id="radios" aria-expanded="false" aria-controls="hs-card" aria-label="Field radios">4</button>
-                    <button type="button" class="hs-dot" hidden style="left:14%;top:35%" data-id="battery" aria-expanded="false" aria-controls="hs-card" aria-label="Battery">5</button>
+                    <svg class="hs-flow" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="55,62 63,49"/><polyline points="63,49 58,42 49,42 44,50"/><polyline points="56,50 44,50"/><polyline points="95,35 56,50"/></svg>
+                    <button type="button" class="hs-dot" hidden style="left:44%;top:50%" data-id="compute" aria-expanded="false" aria-controls="hs-card" aria-label="Mini server">1</button>
+                    <button type="button" class="hs-dot" hidden style="left:56%;top:50%" data-id="wifi" aria-expanded="false" aria-controls="hs-card" aria-label="WiFi router">2</button>
+                    <button type="button" class="hs-dot" hidden style="left:63%;top:49%" data-id="lora" aria-expanded="false" aria-controls="hs-card" aria-label="LoRa gateway">3</button>
+                    <button type="button" class="hs-dot" hidden style="left:55%;top:62%" data-id="trackers" aria-expanded="false" aria-controls="hs-card" aria-label="Field radios">4</button>
+                    <button type="button" class="hs-dot" hidden style="left:23%;top:51%" data-id="power" aria-expanded="false" aria-controls="hs-card" aria-label="Battery">5</button>
                 </div>
                 <div class="hs-side">
                     <div class="hs-card" id="hs-card" role="region" aria-live="polite" aria-label="Component details" hidden><button type="button" class="hs-close" aria-label="Close details"><i class="fas fa-xmark" aria-hidden="true"></i></button><h3 id="hs-title"></h3><p id="hs-body"></p></div>
                     <button type="button" class="pj-btn hs-flow-btn" aria-pressed="false" hidden>Show data flow</button>
                     <p class="hs-flow-note" hidden>Simplified: radios → LoRa gateway → server ← WiFi ← phones.</p>
                     <ol class="hs-list">
-                        <li data-id="server"><strong>Mini server.</strong> Runs the full Overwatch platform locally: app, database, maps and messaging.</li>
+                        <li data-id="compute"><strong>Mini server.</strong> Runs the full Overwatch platform locally: app, database, maps and messaging.</li>
                         <li data-id="wifi"><strong>WiFi router.</strong> Broadcasts a private, encrypted network for phones and laptops nearby.</li>
                         <li data-id="lora"><strong>LoRa gateway.</strong> Bridges the long-range mesh into the platform, so radio users appear on the map.</li>
-                        <li data-id="radios"><strong>Field radios.</strong> Card-size GPS trackers and team-lead radios that send text and positions over the mesh.</li>
-                        <li data-id="battery"><strong>Battery.</strong> A 12-volt lithium battery alongside the case. It runs the kit for about 3 days (estimate), and solar can extend it.</li>
+                        <li data-id="trackers"><strong>Field radios.</strong> Card-size GPS trackers and team-lead radios that send text and positions over the mesh.</li>
+                        <li data-id="power"><strong>Battery.</strong> A 12-volt lithium battery alongside the case. It runs the kit for about 3 days (estimate), and solar can extend it.</li>
                     </ol>
                 </div>
             </div>
-            <script type="application/json" id="hs-data">[{"id": "server", "x": 42, "y": 35, "title": "Mini server", "body": "Runs the full Overwatch platform locally: app, database, maps and messaging."}, {"id": "wifi", "x": 56, "y": 35, "title": "WiFi router", "body": "Broadcasts a private, encrypted network for phones and laptops nearby."}, {"id": "lora", "x": 66, "y": 35, "title": "LoRa gateway", "body": "Bridges the long-range mesh into the platform, so radio users appear on the map."}, {"id": "radios", "x": 57, "y": 50, "title": "Field radios", "body": "Card-size GPS trackers and team-lead radios that send text and positions over the mesh."}, {"id": "battery", "x": 14, "y": 35, "title": "Battery", "body": "A 12-volt lithium battery alongside the case. It runs the kit for about 3 days (estimate), and solar can extend it."}]</script>
+            <script type="application/json" id="hs-data">[{"id": "compute", "x": 44, "y": 50, "title": "Mini server", "body": "Runs the full Overwatch platform locally: app, database, maps and messaging."}, {"id": "wifi", "x": 56, "y": 50, "title": "WiFi router", "body": "Broadcasts a private, encrypted network for phones and laptops nearby."}, {"id": "lora", "x": 63, "y": 49, "title": "LoRa gateway", "body": "Bridges the long-range mesh into the platform, so radio users appear on the map."}, {"id": "trackers", "x": 55, "y": 62, "title": "Field radios", "body": "Card-size GPS trackers and team-lead radios that send text and positions over the mesh."}, {"id": "power", "x": 23, "y": 51, "title": "Battery", "body": "A 12-volt lithium battery alongside the case. It runs the kit for about 3 days (estimate), and solar can extend it."}]</script>
         </div></section>
         <section class="pj-section" id="inside" aria-labelledby="xv-h"><div class="container">
             <p class="pj-eyebrow">Inside the design</p><h2 id="xv-h">Exploded view</h2>

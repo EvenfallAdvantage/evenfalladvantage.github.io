@@ -312,10 +312,8 @@ body.pj-lb-open { overflow: hidden; }
 .xv-labels.is-on { opacity: 1; }
 .xv-labels.is-on .xv-tag { pointer-events: auto; }
 .xv-tag { position: absolute; left: 0; top: 0; margin: 0; border: 0; padding: .25rem .55rem; background: rgba(29,52,81,.88); color: #fff; border-radius: 999px; font: 600 .72rem/1.2 var(--font-primary); white-space: nowrap; cursor: pointer; translate: -50% -50%; box-shadow: 0 2px 8px rgba(0,0,0,.2); min-height: 0 !important; max-width: 220px; text-align: left; }
-.xv-tag::before { content: ""; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--pj-orange); translate: -50% -50%; z-index: -1; }
-.xv-tag span { display: none; font-weight: 400; white-space: normal; margin-top: .25rem; font-family: var(--font-secondary); width: 200px; }
-.xv-tag:hover, .xv-tag:focus-visible, .xv-tag.is-sel { background: var(--pj-orange); color: #1b1b1b; z-index: 2; border-radius: 8px; }
-.xv-tag:hover span, .xv-tag:focus-visible span, .xv-tag.is-sel span { display: block; }
+.xv-tag span { display: none !important; }
+.xv-tag:hover, .xv-tag:focus-visible, .xv-tag.is-sel { background: var(--pj-orange); color: #1b1b1b; z-index: 2;  }
 .xv-panel { display: flex; flex-direction: column; gap: 1rem; background: #fff; border-radius: 12px; padding: 1.25rem; box-shadow: var(--shadow); }
 .xv-controls { display: flex; align-items: center; gap: .75rem; }
 .xv-toggle { background: var(--pj-navy); color: #fff; border: 0; cursor: pointer; display: inline-flex; align-items: center; gap: .5rem; }
@@ -334,3 +332,13 @@ body.pj-lb-open { overflow: hidden; }
   .pj-js-reveal .pj-section .container > *, .pj-js-reveal .pj-project { opacity: 1; transform: none; }
   .pj-project:hover .pj-project-media img, .pj-gallery figure:hover img, .pj-card:hover, .pj-gallery figure:hover { transform: none; }
 }
+
+/* Explode-viewer labels v3: anchor dot + leader line + offset pill, single small tooltip */
+.xv-lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.xv-lines line { stroke: rgba(29,52,81,.55); stroke-width: 1; }
+.xv-dot { position: absolute; left: 0; top: 0; width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; border-radius: 50%; background: var(--pj-orange); box-shadow: 0 0 0 2px #fff; pointer-events: none; }
+.xv-tag.is-off { display: none; }
+.xv-tip { position: absolute; left: 0; top: 0; max-width: 220px; padding: .35rem .55rem; background: #fff; color: #1d3451; border: 1px solid rgba(29,52,81,.18); border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.14); font: 400 .72rem/1.35 var(--font-secondary); pointer-events: none; opacity: 0; transition: opacity .15s ease; z-index: 3; }
+.xv-tip.is-on { opacity: 1; }
+@media (max-width: 600px) { .xv-tip { max-width: 170px; font-size: .66rem; } }
+.xv-labels.has-tip .xv-tag:not(:hover):not(:focus-visible):not(.is-sel) { opacity: .25; }

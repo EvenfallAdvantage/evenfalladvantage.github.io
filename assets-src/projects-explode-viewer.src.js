@@ -123,16 +123,14 @@ export async function mount(root) {
     const w = stage.clientWidth, h = stage.clientHeight, show = factor > 0.6;
     labelLayer.classList.toggle('is-on', show);
     if (!show) return;
-    // Project anchors, then nudge labels vertically so collapsed tags never overlap.
+    // Project anchors; xvLayout places dots, leader lines, pills and the tooltip.
     const pts = [];
     for (const e of entries) {
       v.copy(e.local); e.node.localToWorld(v); v.project(camera);
       e.tag.classList.toggle('is-sel', e.p.node === selected);
-      if (!e._w || (e.p.node !== selected && !e.tag.matches(':hover'))) { e._w = e.tag.offsetWidth; e._h = e.tag.offsetHeight; }
       pts.push({ Z: e, x: (v.x * .5 + .5) * w, y: (-v.y * .5 + .5) * h });
     }
-    xvDeclutter(pts, w, h);
-    for (const o of pts) o.Z.tag.style.transform = `translate(${o.x}px, ${o.y}px)`;
+    xvLayout(pts, w, h, selected, labelLayer);
   }
 
   // Click/tap on the model to pick a part (ignore drags).
@@ -175,5 +173,47 @@ export async function mount(root) {
   window.__xv = window.__xv || {}; window.__xv[root.dataset.slug] = { setTarget, select, get factor() { return factor; }, parts: entries.length };
 }
 
-// Greedy vertical declutter for label tags (sorted top to bottom).
-function xvDeclutter(L,W,H){L.sort((a,b)=>a.y-b.y);let D=[];for(let o of L){let w=o.Z._w||60,h=o.Z._h||18,x=Math.min(Math.max(o.x,w/2+2),W-w/2-2),y0=o.y,best=y0;for(let k=0;k<13;k++){let y=y0+(k%2?1:-1)*Math.ceil(k/2)*(h+3);if(k===0)y=y0;y=Math.min(Math.max(y,h/2+2),H-h/2-2);if(!D.some(r=>Math.abs(r.x-x)<(r.w+w)/2+3&&Math.abs(r.y-y)<(r.h+h)/2+2)){best=y;break}}o.x=x,o.y=best,D.push({x,y:best,w,h})}}
+// Label layout for the explode viewer: anchor dot at the part, leader line, pill pushed away
+// from the model centre, 2D collision relaxation (x and y), canvas clamping, drop-on-crowding,
+// and one small tooltip for the hovered (or tapped) part only.
+function xvLayout(L,W,H,sel,X){
+  if(!X._svg){X._svg=document.createElementNS("http://www.w3.org/2000/svg","svg");X._svg.setAttribute("class","xv-lines");X.prepend(X._svg);
+    X._tip=document.createElement("div");X._tip.className="xv-tip";X._tip.setAttribute("role","tooltip");X.appendChild(X._tip);X._hover=null;X._touch=false;
+    X.ownerDocument.addEventListener("pointerdown",e=>{X._touch=e.pointerType!=="mouse"},true);}
+  const pad=4,gap=6,small=W<560;
+  let cx=0,cy=0;for(const o of L){cx+=o.x;cy+=o.y}cx/=L.length||1;cy/=L.length||1;
+  for(const o of L){const Z=o.Z;
+    if(!Z._dot){Z._dot=document.createElement("span");Z._dot.className="xv-dot";X.appendChild(Z._dot);
+      Z._ln=document.createElementNS("http://www.w3.org/2000/svg","line");X._svg.appendChild(Z._ln);
+      Z.tag.addEventListener("mouseenter",()=>{X._hover=Z});Z.tag.addEventListener("mouseleave",()=>{if(X._hover===Z)X._hover=null});
+      Z.tag.addEventListener("focus",()=>{X._hover=Z});Z.tag.addEventListener("blur",()=>{if(X._hover===Z)X._hover=null});}
+    if(Z.tag.offsetWidth){Z._w=Z.tag.offsetWidth;Z._h=Z.tag.offsetHeight}o.w=Z._w||60;o.h=Z._h||18;
+    let dx=o.x-cx,dy=o.y-cy,d=Math.hypot(dx,dy);if(d<1){dx=0;dy=-1;d=1}
+    const R=(small?22:34)+Math.min(W,H)*0.04;
+    o.tx=o.x+dx/d*(R+o.w*0.35);o.ty=o.y+dy/d*(R+o.h*0.5);
+    if(Z._lx===undefined||Math.hypot(Z._lx-o.tx,Z._ly-o.ty)>W*0.25){Z._lx=o.tx;Z._ly=o.ty}
+    o.lx=Z._lx;o.ly=Z._ly;o.on=true}
+  const clamp=o=>{o.lx=Math.min(Math.max(o.lx,o.w/2+pad),W-o.w/2-pad);o.ly=Math.min(Math.max(o.ly,o.h/2+pad),H-o.h/2-pad)};
+  const ov=(a,b)=>{const ox=(a.w+b.w)/2+gap-Math.abs(a.lx-b.lx),oy=(a.h+b.h)/2+gap/2-Math.abs(a.ly-b.ly);return ox>0&&oy>0?[ox,oy]:null};
+  for(let it=0;it<60;it++){
+    for(const o of L){o.lx+=(o.tx-o.lx)*0.08;o.ly+=(o.ty-o.ly)*0.08}
+    for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j],r=ov(a,b);if(!r)continue;
+      if(r[0]<r[1]*2.2){const s=(a.lx<b.lx?-1:1)*r[0]/2;a.lx+=s;b.lx-=s}else{const s=(a.ly<b.ly?-1:1)*r[1]/2;a.ly+=s;b.ly-=s}}
+    // keep pills off other parts' anchor dots
+    for(const o of L)for(const p of L){if(p===o)continue;const ox=o.w/2+5-Math.abs(o.lx-p.x),oy=o.h/2+5-Math.abs(o.ly-p.y);if(ox>0&&oy>0){if(ox<oy)o.lx+=(o.lx<p.x?-1:1)*ox;else o.ly+=(o.ly<p.y?-1:1)*oy}}
+    for(const o of L)clamp(o)}
+  // fallback: drop labels that still collide (keep selected/hovered, then the one nearer its target)
+  const keep=o=>o.Z.p.node===sel||o.Z===X._hover;
+  for(let i=0;i<L.length;i++)for(let j=i+1;j<L.length;j++){const a=L[i],b=L[j];if(!a.on||!b.on||!ov(a,b))continue;
+    const da=Math.hypot(a.lx-a.tx,a.ly-a.ty)-(keep(a)?1e6:0),db=Math.hypot(b.lx-b.tx,b.ly-b.ty)-(keep(b)?1e6:0);(da>db?a:b).on=false}
+  for(const o of L){const Z=o.Z;Z._lx=o.lx;Z._ly=o.ly;
+    Z.tag.style.transform=`translate(${o.lx}px, ${o.ly}px)`;Z.tag.classList.toggle("is-off",!o.on);
+    Z._dot.style.transform=`translate(${o.x}px, ${o.y}px)`;
+    Z._ln.setAttribute("x1",o.x);Z._ln.setAttribute("y1",o.y);Z._ln.setAttribute("x2",o.lx);Z._ln.setAttribute("y2",o.ly);Z._ln.style.display=o.on?"":"none"}
+  // tooltip: hovered label (mouse) or tapped part (touch) only
+  const T=X._hover||(X._touch?L.map(o=>o.Z).find(Z=>Z.p.node===sel):null),tip=X._tip,t=T&&L.find(o=>o.Z===T);
+  if(t&&t.on){if(tip._for!==T){tip.textContent=T.p.description;tip._for=T}tip.classList.add("is-on");
+    const tw=tip.offsetWidth,th=tip.offsetHeight;let x=t.lx+t.w/2+8;if(x+tw>W-pad)x=t.lx-t.w/2-8-tw;if(x<pad)x=Math.min(Math.max(t.lx-tw/2,pad),W-tw-pad);
+    let y=t.ly-th/2;if(x===Math.min(Math.max(t.lx-tw/2,pad),W-tw-pad))y=t.ly+t.h/2+6;if(y+th>H-pad)y=t.ly-t.h/2-6-th;y=Math.max(pad,y);
+    tip.style.transform=`translate(${x}px, ${y}px)`;X.classList.add("has-tip")}else{tip.classList.remove("is-on");tip._for=null;X.classList.remove("has-tip")}
+}
