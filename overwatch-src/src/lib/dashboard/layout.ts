@@ -25,25 +25,31 @@ export function dashboardVariant(role: string | null | undefined): DashboardVari
 }
 
 /**
- * Two-column dashboard: `main` is the wide left column, `side` the narrow right
- * rail on xl+ screens. Below xl the page uses the single-column
- * order from dashboardSections().
+ * Wide (xl+) dashboard as a stack of rows. A row with two sections renders
+ * side by side (wide | 360px) with top edges aligned and equal height; a
+ * one-section row spans the full width. Rows instead of a tall main column
+ * beside a short rail, so neither side is left with dead space.
+ * Below xl the page uses the single-column order from dashboardSections().
  */
-export type DashboardColumns = { top: DashboardSection[]; main: DashboardSection[]; side: DashboardSection[] };
+export type DashboardRow = readonly [DashboardSection] | readonly [DashboardSection, DashboardSection];
+export type DashboardColumns = { rows: DashboardRow[] };
 
 export function dashboardColumns(variant: DashboardVariant): DashboardColumns {
   if (variant === "leadership") {
     return {
-      top: ["onboarding", "action-required", "kpis"],
-      // Rail carries real content so it never leaves a blank column beside the main stack.
-      side: ["duty-status", "pinned-briefing", "compliance-overtime"],
-      main: ["quick-actions", "intel"],
+      rows: [
+        ["onboarding"], ["action-required"], ["kpis"],
+        ["quick-actions", "duty-status"],
+        ["compliance-overtime"], ["pinned-briefing"], ["intel"],
+      ],
     };
   }
   return {
-    top: ["onboarding"],
-    side: ["my-week", "pinned-briefing"],
-    main: ["duty-status", "my-post", "quick-actions", "professional-tools"],
+    rows: [
+      ["onboarding"],
+      ["duty-status", "my-week"],
+      ["my-post"], ["pinned-briefing"], ["quick-actions"], ["professional-tools"],
+    ],
   };
 }
 

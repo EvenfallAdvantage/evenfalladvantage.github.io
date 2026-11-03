@@ -48,7 +48,7 @@ describe("layout", () => {
   it("columns contain exactly the single-column sections", () => {
     for (const v of ["officer", "leadership"] as const) {
       const c = dashboardColumns(v);
-      expect([...c.top, ...c.main, ...c.side].sort()).toEqual([...dashboardSections(v)].sort());
+      expect(c.rows.flat().sort()).toEqual([...dashboardSections(v)].sort());
     }
   });
 });

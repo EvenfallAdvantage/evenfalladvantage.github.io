@@ -65,7 +65,7 @@ export default function FeedPage() {
       case "kpis": return cid ? <KpiCards activeCompanyId={cid} /> : null;
       case "quick-actions": return <QuickActions variant={variant} hiddenTabs={hiddenList} />;
       case "compliance-overtime": return cid ? (
-        <div className={wide ? "flex flex-col gap-4" : "grid gap-4 lg:grid-cols-2 lg:[&>:only-child]:col-span-2"}>
+        <div className="grid gap-4 lg:grid-cols-2 lg:[&>:only-child]:col-span-2">
           {!hiddenTabs.has("/certifications") && <ComplianceWidget activeCompanyId={cid} />}
           <OvertimeWidget activeCompanyId={cid} />
         </div>
@@ -82,14 +82,22 @@ export default function FeedPage() {
     });
 
   if (wide) {
-    const cols = dashboardColumns(variant);
+    const { rows } = dashboardColumns(variant);
+    // Paired card fills the row: same top edge and height as its neighbour.
+    const fill = "flex flex-col [&>[data-slot=card]]:flex-1 [&_[data-slot=card-content]]:h-full [&_[data-slot=card-content]>div]:h-full";
     return (
       <div className="flex flex-col gap-6" data-dashboard={variant} data-layout="columns">
-        {list(cols.top)}
-        <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-6">
-          <div className="flex min-w-0 flex-col gap-6">{list(cols.main)}</div>
-          <aside className="sticky top-4 flex flex-col gap-6 self-start">{list(cols.side)}</aside>
-        </div>
+        {rows.map((row) => {
+          if (row.length === 1) return list(row);
+          const [left, right] = row.map((sec) => [sec, render(sec)] as const);
+          if (!left[1] || !right[1]) return list(row);
+          return (
+            <div key={row.join("|")} className="grid grid-cols-[minmax(0,1fr)_360px] items-stretch gap-6">
+              <div className={`min-w-0 ${left[0] === "quick-actions" ? "" : fill}`}>{left[1]}</div>
+              <div className={`min-w-0 ${fill} ${left[0] === "quick-actions" ? "pt-8" : ""}`}>{right[1]}</div>
+            </div>
+          );
+        })}
       </div>
     );
   }
