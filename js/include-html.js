@@ -43,6 +43,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (path === '/' || page === 'index.html' || path.endsWith('/')) {
             navHomeElements.forEach(el => el.classList.add('active'));
             footerNavHomeElements.forEach(el => el.classList.add('active'));
+        } else if (page === 'projects.html' || path.includes('/projects/')) {
+            document.querySelectorAll('#nav-projects, #footer-nav-projects').forEach(el => el.classList.add('active'));
         } else if (page === 'blog.html' || path.includes('case-studies')) {
             navBlogElements.forEach(el => el.classList.add('active'));
             footerNavBlogElements.forEach(el => el.classList.add('active'));
