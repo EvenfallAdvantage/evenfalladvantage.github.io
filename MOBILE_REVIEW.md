@@ -69,7 +69,7 @@ Almost every public HTML page has `width=device-width, initial-scale=1.0`. Good.
 | Issue | Where | Notes |
 |---|---|---|
 | Root `html { font-size: 58%/55% }` on mobile | `styles.css` | Intentional rem scaling; don’t change without a full type pass. |
-| “COMING SOON!” badge in the header | `includes/header.html` | Still shown next to the new menu button; consider removing when portals go live. |
+| “COMING SOON!” badge in the header | `includes/header.html` | Removed (header pill and its CSS). |
 | Login / register / dashboard (legacy static) | `login.html`, `register.html`, `dashboard.html` | Already have some 768 rules; lower traffic than marketing pages. |
 | Overwatch admin wide forms (Instructor HQ, staff roster filters) | `admin/**` | Many `sm:grid-cols-*` already; remaining pain is content density, not missing breakpoints. |
 | Overwatch marketing feature carousel | `app/page.tsx` | Already has `sm:hidden` snap carousel vs desktop grid — looks intentional. |
