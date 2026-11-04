@@ -116,6 +116,13 @@ nav, .navbar {
     gap: 2rem;
 }
 
+/* Site header: links sit at the right edge, under the tagline. */
+@media (min-width: 769px) {
+    .site-header .nav-container {
+        justify-content: flex-end !important;
+    }
+}
+
 .nav-brand {
     flex-shrink: 0;
     display: flex;
@@ -294,10 +301,6 @@ nav, .navbar {
         width: 100% !important;
         text-align: center !important;
     }
-    
-    .header-badge {
-        margin: 0 auto;
-    }
 
     .site-logo {
         min-width: 140px;
@@ -347,7 +350,7 @@ nav, .navbar {
     margin-bottom: 1rem;
 }
 
-.nav-links a:not(.header-badge) {
+.nav-links a {
     color: white;
     text-decoration: none;
     font-weight: 600;
@@ -356,7 +359,7 @@ nav, .navbar {
     position: relative;
 }
 
-.nav-links a:not(.header-badge):hover {
+.nav-links a:hover {
     color: var(--secondary);
 }
 
@@ -374,30 +377,6 @@ nav, .navbar {
     bottom: -5px;
 }
 
-.header-badge {
-    background-color: var(--secondary);
-    color: white;
-    font-family: var(--font-primary);
-    font-weight: 600;
-    padding: 0.5rem 1.5rem;
-    border-radius: 2rem;
-    font-size: 1.4rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    box-shadow: var(--shadow);
-    animation: pulse 2s infinite;
-    margin-bottom: 1.2rem;
-    text-decoration: none;
-    display: inline-block;
-    cursor: pointer;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.header-badge:hover, .header-badge:focus, .header-badge.active {
-    transform: translateY(-2px);
-    box-shadow: 0 0 15px rgba(213, 155, 60, 0.8);
-    color: white !important;
-}
 
 @keyframes pulse {
     0% { transform: scale(1); }
@@ -1780,11 +1759,6 @@ footer {
     
     .site-title {
         font-size: 2.4rem;
-    }
-    
-    .header-badge {
-        font-size: 1.2rem;
-        padding: 0.4rem 1.2rem;
     }
 }
 /* Registration Page Styles */
@@ -3426,10 +3400,6 @@ footer {
         gap: 0.75rem 1rem;
         position: relative;
     }
-    .header-badge {
-        order: 1;
-        margin: 0;
-    }
     .nav-toggle {
         display: inline-flex;
         order: 2;
@@ -3489,10 +3459,6 @@ footer {
         max-height: 72px !important;
     }
     .header-tagline { font-size: 1.4rem; }
-    .header-badge {
-        font-size: 1.1rem;
-        padding: 0.35rem 1rem;
-    }
     .container { padding-left: 1.2rem; padding-right: 1.2rem; }
 }
 
