@@ -1,41 +1,35 @@
-/* SynScope Canted-Mount Explainer — illustrative only. */
+/* SynScope mount simulator: captions + poster fallback; loads the 3D module when WebGL is available. */
 (function () {
   'use strict';
   var root = document.querySelector('[data-mount]');
   if (!root) return;
   root.hidden = false;
   root.closest('section').classList.add('mx-enhanced');
-  var pod = root.querySelector('.mx-pod'), podSide = root.querySelector('.mx-pod-side'), content = root.querySelector('.mx-screen-content');
-  var tilt = document.getElementById('mx-tilt'), tiltOut = document.getElementById('mx-tilt-out');
-  var level = document.getElementById('mx-level'), levelState = document.getElementById('mx-level-state');
+  var shots = root.querySelectorAll('.mx-shot');
   var caption = document.getElementById('mx-caption'), status = document.getElementById('mx-status');
   var timer;
-  function v(n) { return root.querySelector('input[name="' + n + '"]:checked').value; }
-
+  function pos() { return root.querySelector('input[name="mountpos"]:checked').value === 'top' ? 'toprail' : 'offset45'; }
   function render() {
-    var view = v('view'), mount = v('mountpos'), hud = v('hud'), on = level.getAttribute('aria-pressed') === 'true';
-    var deg = mount === 'top' ? 0 : parseInt(tilt.value, 10);
-    tilt.disabled = mount === 'top';
-    tiltOut.textContent = deg + '°';
-    tilt.setAttribute('aria-valuetext', tilt.value + ' degrees');
-    root.dataset.view = view; root.dataset.mountPos = mount; root.dataset.hud = hud; root.dataset.level = on ? 'on' : 'off';
-    // Rear view: pod rotates about the rail. Side view: canted pod sits lower beside the optic.
-    pod.style.transform = 'rotate(' + deg + 'deg)';
-    podSide.style.transform = mount === 'top' ? 'translate(-110px, -6px)' : 'translate(0, ' + (deg / 60 * 14) + 'px)';
-    content.style.transform = on ? 'rotate(' + (-deg) + 'deg)' : 'none';
-    status.textContent = mount === 'top' ? 'Blocks the optic' : 'Optic clear, display in view';
-    var lv = deg === 0 ? 'No tilt to correct.' : (on ? 'Picture stays level with the ground.' : 'Without levelling, the picture tilts with the mount.');
-    var txt = status.textContent + '. ' + (hud === 'on' ? lv + ' Illustrative screen, not live data.' : 'Screen off.');
+    var m = pos();
+    root.dataset.mountPos = m === 'toprail' ? 'top' : 'canted';
+    shots.forEach(function (p) { var on = p.dataset.m === m; p.classList.toggle('is-on', on); p.querySelector('img').setAttribute('aria-hidden', on ? 'false' : 'true'); });
+    status.textContent = m === 'toprail' ? 'Blocks the sights' : 'Sightline clear, display in view';
     clearTimeout(timer);
-    timer = setTimeout(function () { caption.textContent = txt; }, 120);
+    timer = setTimeout(function () { caption.textContent = status.textContent + '. Illustrative screen, not live data.'; }, 120);
   }
-  level.addEventListener('click', function () {
-    var on = level.getAttribute('aria-pressed') !== 'true';
-    level.setAttribute('aria-pressed', String(on));
-    levelState.textContent = on ? 'On' : 'Off';
-    render();
-  });
-  root.addEventListener('input', render);
   root.addEventListener('change', render);
   render();
+
+  var c = document.createElement('canvas');
+  var gl = c.getContext && (c.getContext('webgl2') || c.getContext('webgl'));
+  if (!gl) { shots.forEach(function (p) { var i = p.querySelector('img'); i.loading = 'eager'; }); return; }
+  var go = function () {
+    root.classList.add('is-loading');
+    import('/js/projects/mount-sim.js').then(function (mod) { return mod.mount(root); })
+      .catch(function (err) { console.warn('3D mount unavailable', err); })
+      .then(function () { root.classList.remove('is-loading'); });
+  };
+  if (!('IntersectionObserver' in window)) return go();
+  var io = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { io.disconnect(); go(); } }, { rootMargin: '200px' });
+  io.observe(root);
 })();

@@ -76,30 +76,12 @@
         </dl></div></section>
         <section class="pj-section pj-alt" id="mount" aria-labelledby="mx-h"><div class="container">
             <p class="pj-eyebrow">Interactive</p><h2 id="mx-h">Canted-Mount Explainer</h2>
-            <p class="pj-label">Simplified diagram. The screen shown is illustrative, not live data.</p>
-            <div class="mx" data-mount hidden data-view="rear" data-mount-pos="canted" data-hud="on" data-level="on">
-                <div class="mx-stage"><svg class="mx-svg" viewBox="0 0 400 300" role="img" aria-labelledby="mx-svg-t"><title id="mx-svg-t">Diagram of SynScope mount position relative to the rifle optic</title>
-  <g class="mx-rear">
-    <rect x="170" y="150" width="60" height="110" rx="8" class="mx-gun"/><rect x="180" y="140" width="40" height="14" class="mx-rail"/>
-    <circle cx="200" cy="105" r="34" class="mx-optic"/><circle cx="200" cy="105" r="22" class="mx-optic-lens"/>
-    <g class="mx-pod" style="transform-origin:200px 147px"><rect x="172" y="60" width="56" height="80" rx="10" class="mx-pod-body"/>
-      <g class="mx-screen-wrap"><circle cx="200" cy="92" r="20" class="mx-screen"/><g class="mx-screen-content" style="transform-origin:200px 92px">
-        <line x1="182" y1="96" x2="218" y2="96" class="mx-horizon"/><ellipse cx="206" cy="88" rx="5" ry="4" class="mx-blob"/><circle cx="192" cy="86" r="2" class="mx-dot"/><circle cx="210" cy="100" r="2" class="mx-dot"/><text x="200" y="80" class="mx-bearing">NE 042°</text></g></g></g>
-  </g>
-  <g class="mx-side">
-    <rect x="40" y="170" width="320" height="26" rx="6" class="mx-gun"/><rect x="330" y="176" width="60" height="12" class="mx-gun"/><path d="M40 170 L10 230 L60 230 L90 196 Z" class="mx-gun"/>
-    <rect x="150" y="125" width="110" height="30" rx="12" class="mx-optic"/><rect x="120" y="160" width="200" height="10" class="mx-rail"/>
-    <rect class="mx-pod-side mx-pod-body" x="270" y="128" width="50" height="34" rx="6"/>
-  </g>
-</svg><p class="mx-status" id="mx-status"></p></div>
+            <p class="pj-label">Simplified 3D model. Drag to orbit, scroll or pinch to zoom. Click the pod's knob to change screen mode; hold it (or scroll over it) to change brightness. The screen shown is illustrative, not live data.</p>
+            <div class="mx" data-mount hidden data-mount-pos="canted">
+                <div class="mx-stage"><div class="mx-frame" data-model="/images/projects/synscope/mount-sim/model.glb" data-parts="/images/projects/synscope/mount-sim/parts.json" data-screens="/images/projects/synscope/mount-sim/"><picture class="mx-shot is-on" data-m="offset45"><source type="image/webp" srcset="/images/projects/synscope/mount-sim/poster-offset45.webp"><img src="/images/projects/synscope/mount-sim/poster-offset45.jpg" alt="SynScope pod on a 45° offset mount beside the iron sights of an M4 carbine, sightline clear" width="1600" height="900" sizes="(max-width: 1024px) 100vw, 60vw" decoding="async"></picture><picture class="mx-shot" data-m="toprail"><source type="image/webp" srcset="/images/projects/synscope/mount-sim/poster-toprail.webp"><img src="/images/projects/synscope/mount-sim/poster-toprail.jpg" alt="SynScope pod on the top rail of an M4 carbine, in the line of the iron sights" width="1600" height="900" sizes="(max-width: 1024px) 100vw, 60vw" decoding="async" loading="lazy"></picture><p class="mx-loading" aria-hidden="true"><i class="fas fa-cube"></i> Loading 3D mount…</p><p class="mx-mode" aria-live="polite" hidden></p><button type="button" class="mx-eye" hidden><i class="fas fa-eye" aria-hidden="true"></i> Shooter's eye</button></div><p class="mx-status" id="mx-status"></p></div>
                 <form class="ee-controls" onsubmit="return false">
-                    <fieldset class="ee-seg" role="radiogroup"><legend>View</legend><input type="radio" id="view-rear" name="view" value="rear" checked><label for="view-rear">Shooter's eye</label><input type="radio" id="view-side" name="view" value="side"><label for="view-side">Side</label></fieldset>
                     <fieldset class="ee-seg" role="radiogroup"><legend>Mount</legend><input type="radio" id="mountpos-top" name="mountpos" value="top"><label for="mountpos-top">Top rail</label><input type="radio" id="mountpos-canted" name="mountpos" value="canted" checked><label for="mountpos-canted">45° offset</label></fieldset>
-                    <fieldset class="ee-seg" role="radiogroup"><legend>Screen</legend><input type="radio" id="hud-off" name="hud" value="off"><label for="hud-off">Off</label><input type="radio" id="hud-on" name="hud" value="on" checked><label for="hud-on">On</label></fieldset>
-                    <div class="mx-toggle-row"><span id="mx-level-l" class="mx-toggle-label">Self-levelling</span>
-                        <button type="button" class="mx-switch" id="mx-level" aria-pressed="true" aria-labelledby="mx-level-l mx-level-state"><span class="mx-knob" aria-hidden="true"></span><span id="mx-level-state">On</span></button></div>
-                    <div class="ee-range"><label for="mx-tilt">Mount tilt: <output id="mx-tilt-out" for="mx-tilt">45°</output></label>
-                        <input type="range" id="mx-tilt" min="0" max="60" step="1" value="45" aria-valuetext="45 degrees"></div>
+                    <p class="mx-hint" id="mx-hint"></p>
                     <p class="mx-caption" id="mx-caption" aria-live="polite"></p>
                 </form>
             </div>
@@ -164,7 +146,7 @@
             <li class="is-current" aria-current="step"><span class="pj-dot" aria-hidden="true"></span><h3>Prototype build and bench testing<span class="sr-only"> (in progress)</span></h3></li>
             <li class="is-future"><span class="pj-dot" aria-hidden="true"></span><h3>Field trials and ingress testing<span class="sr-only"> (planned)</span></h3></li>
         </ol></div></section>
-        <section class="pj-cta-band" aria-labelledby="cta"><div class="container"><h2 id="cta">Interested in SynScope?</h2><p>We're looking for evaluation partners. Tell us about your use case.</p><a class="pj-btn pj-btn-primary" href="mailto:contact@evenfalladvantage.com?subject=SynScope">Contact us</a></div></section>
+        <section class="pj-cta-band" aria-labelledby="cta"><div class="container"><h2 id="cta">Interested in SynScope?</h2><p>We're looking for evaluation partners. Tell us about your use case.</p></div></section>
     </main>
     <div id="footer-placeholder"></div>
     <script src="/js/script.js"></script>
