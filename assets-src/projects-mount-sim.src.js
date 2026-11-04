@@ -6,6 +6,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
+import { RoomEnvironment } from 'three/examples/jsm/environments/RoomEnvironment.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -22,8 +23,10 @@ export async function mount(root) {
   const DPR = Math.min(window.devicePixelRatio || 1, 1.5);
   const renderer = new THREE.WebGLRenderer({ antialias: (window.devicePixelRatio || 1) < 1.5, alpha: true, powerPreference: 'high-performance' });
   renderer.setPixelRatio(DPR);
-  renderer.outputColorSpace = THREE.SRGBColorSpace;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  const VL = parts.viewer_lighting || {}, VR = VL.renderer || {};
+  renderer.outputColorSpace = THREE[VR.outputColorSpace] || THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE[VR.toneMapping] ?? THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = VR.toneMappingExposure ?? 1.15;
   const canvas = renderer.domElement;
   canvas.className = 'mx-canvas';
   canvas.setAttribute('role', 'img');
@@ -32,9 +35,17 @@ export async function mount(root) {
   const PERF = /[?&]perf=1/.test(location.search) ? perfOverlay(frame) : null;
 
   const scene = new THREE.Scene();
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x445566, 2.0));
-  const key = new THREE.DirectionalLight(0xffffff, 2.6); key.position.set(2, 4, 3); scene.add(key);
-  const rim = new THREE.DirectionalLight(0xffd9b0, 1.2); rim.position.set(-3, 2, -3); scene.add(rim);
+  // Lighting from parts.json viewer_lighting (Metalika), with matching defaults.
+  const hs = VL.hemisphere || {};
+  scene.add(new THREE.HemisphereLight(hs.skyColor || '#dfe8ff', hs.groundColor || '#3a3226', hs.intensity ?? 1.4));
+  const dl = (o, d) => { o = { ...d, ...o }; const l = new THREE.DirectionalLight(o.color, o.intensity); l.position.fromArray(o.position); l.castShadow = false; scene.add(l); scene.add(l.target); return l; };
+  const key = dl(VL.key, { color: '#fff4e6', intensity: 3.0, position: [0.8, 1.2, 0.6] });
+  if (VL.fill !== null) dl(VL.fill, { color: '#cfdcff', intensity: 1.0, position: [-0.8, 0.4, -0.6] });
+  const env = VL.environment || {};
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture; pmrem.dispose();
+  scene.environmentIntensity = env['scene.environmentIntensity'] ?? env.intensity ?? 0.6;
+  scene.background = new THREE.Color(((env.background || '').match(/#[0-9a-f]{6}/i) || ['#1d3451'])[0]);
   const dc = parts.default_camera;
   const camera = new THREE.PerspectiveCamera(dc.fov_deg_vertical || 32, 16 / 9, dc.near || 0.01, dc.far || 10);
 
@@ -57,6 +68,7 @@ export async function mount(root) {
   const model = gltf.scene; scene.add(model);
   const N = n => model.getObjectByName(n);
   const pod = N(parts.mount_node || 'pod_mount'), arm = N('offset_arm'), knob = N('knob'), body = N('pod_body'), screen = N('screen'), sight = N('sightline'), orbitT = N('orbit_target');
+  if (orbitT) key.target = orbitT; // key light aims at the pod in both poses
 
   // Poses: use parts.json mount_poses (root-local == world).
   const poses = {};

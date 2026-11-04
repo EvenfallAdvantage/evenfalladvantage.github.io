@@ -146,6 +146,47 @@
    }
   }
  },
+ "viewer_lighting": {
+  "renderer": {
+   "toneMapping": "ACESFilmicToneMapping",
+   "toneMappingExposure": 1.15,
+   "outputColorSpace": "SRGBColorSpace"
+  },
+  "hemisphere": {
+   "skyColor": "#dfe8ff",
+   "groundColor": "#3a3226",
+   "intensity": 1.4
+  },
+  "key": {
+   "type": "DirectionalLight",
+   "color": "#fff4e6",
+   "intensity": 3.0,
+   "position": [
+    0.8,
+    1.2,
+    0.6
+   ],
+   "target": "orbit target",
+   "castShadow": false
+  },
+  "fill": {
+   "type": "DirectionalLight",
+   "color": "#cfdcff",
+   "intensity": 1.0,
+   "position": [
+    -0.8,
+    0.4,
+    -0.6
+   ],
+   "optional": true
+  },
+  "environment": {
+   "suggestion": "RoomEnvironment via PMREMGenerator (three/examples/jsm/environments/RoomEnvironment.js), or a neutral studio HDRI",
+   "scene.environmentIntensity": 0.6,
+   "background": "#1d3451 (navy) - do not show env as background"
+  },
+  "note": "Positions are metres in GLB world space, relative to the scene origin; lights work for both poses. Values are three.js r155+ physically-correct units."
+ },
  "parts": [
   {
    "node": "receiver",
