@@ -1,4 +1,4 @@
-/* SynScope Canted-Mount Explainer — swaps illustrative renders. */
+/* SynScope mount simulator: captions + poster fallback; loads the 3D module when WebGL is available. */
 (function () {
   'use strict';
   var root = document.querySelector('[data-mount]');
@@ -8,30 +8,28 @@
   var shots = root.querySelectorAll('.mx-shot');
   var caption = document.getElementById('mx-caption'), status = document.getElementById('mx-status');
   var timer;
-  function v(n) { return root.querySelector('input[name="' + n + '"]:checked').value; }
-  // Warm the other states once the explainer is near view so toggles crossfade instantly.
-  function preload() {
-    shots.forEach(function (p) { var i = p.querySelector('img'); i.loading = 'eager'; if (i.decode) i.decode().catch(function () {}); });
-  }
-  if ('IntersectionObserver' in window) {
-    var io = new IntersectionObserver(function (e) { if (e.some(function (x) { return x.isIntersecting; })) { preload(); io.disconnect(); } }, { rootMargin: '400px' });
-    io.observe(root);
-  } else preload();
-
+  function pos() { return root.querySelector('input[name="mountpos"]:checked').value === 'top' ? 'toprail' : 'offset45'; }
   function render() {
-    var view = v('view') === 'side' ? 'side' : 'eye', mount = v('mountpos');
-    var m = mount === 'top' ? 'toprail' : 'offset45';
-    root.dataset.view = view; root.dataset.mountPos = mount;
-    shots.forEach(function (p) {
-      var on = p.dataset.v === view && p.dataset.m === m;
-      p.classList.toggle('is-on', on);
-      p.querySelector('img').setAttribute('aria-hidden', on ? 'false' : 'true');
-    });
-    status.textContent = mount === 'top' ? 'Blocks the optic' : 'Optic clear, display in view';
-    var txt = status.textContent + '. Illustrative screen, not live data.';
+    var m = pos();
+    root.dataset.mountPos = m === 'toprail' ? 'top' : 'canted';
+    shots.forEach(function (p) { var on = p.dataset.m === m; p.classList.toggle('is-on', on); p.querySelector('img').setAttribute('aria-hidden', on ? 'false' : 'true'); });
+    status.textContent = m === 'toprail' ? 'Blocks the sights' : 'Sightline clear, display in view';
     clearTimeout(timer);
-    timer = setTimeout(function () { caption.textContent = txt; }, 120);
+    timer = setTimeout(function () { caption.textContent = status.textContent + '. Illustrative screen, not live data.'; }, 120);
   }
   root.addEventListener('change', render);
   render();
+
+  var c = document.createElement('canvas');
+  var gl = c.getContext && (c.getContext('webgl2') || c.getContext('webgl'));
+  if (!gl) { shots.forEach(function (p) { var i = p.querySelector('img'); i.loading = 'eager'; }); return; }
+  var go = function () {
+    root.classList.add('is-loading');
+    import('/js/projects/mount-sim.js').then(function (mod) { return mod.mount(root); })
+      .catch(function (err) { console.warn('3D mount unavailable', err); })
+      .then(function () { root.classList.remove('is-loading'); });
+  };
+  if (!('IntersectionObserver' in window)) return go();
+  var io = new IntersectionObserver(function (es) { if (es[0].isIntersecting) { io.disconnect(); go(); } }, { rootMargin: '200px' });
+  io.observe(root);
 })();

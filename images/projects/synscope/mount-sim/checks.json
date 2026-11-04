@@ -1,0 +1,82 @@
+{
+ "toprail": {
+  "sightline_blocked": true,
+  "bundle_rays_blocked_of_9": 9,
+  "hit_points": [
+   [
+    0.0,
+    0.006299994885921478,
+    0.0771000012755394
+   ],
+   [
+    0.0,
+    0.005049996078014374,
+    0.0771000012755394
+   ]
+  ],
+  "penetration": {
+   "receiver": {
+    "pod_in_part": 67,
+    "part_in_pod": 0,
+    "tri_overlap_pairs": 0
+   },
+   "handguard_barrel": {
+    "pod_in_part": 0,
+    "part_in_pod": 0,
+    "tri_overlap_pairs": 0
+   },
+   "magazine": {
+    "pod_in_part": 0,
+    "part_in_pod": 0,
+    "tri_overlap_pairs": 0
+   },
+   "stock": {
+    "pod_in_part": 0,
+    "part_in_pod": 0,
+    "tri_overlap_pairs": 0
+   },
+   "rear_sight": {
+    "pod_in_part": 0,
+    "part_in_pod": 0,
+    "tri_overlap_pairs": 0
+   }
+  }
+ },
+ "offset45": {
+  "sightline_blocked": false,
+  "bundle_rays_blocked_of_9": 0,
+  "hit_points": [],
+  "penetration": {
+   "receiver": {
+    "pod_in_part": 0,
+    "part_in_pod": 0,
+    "tri_overlap_pairs": 0
+   },
+   "handguard_barrel": {
+    "pod_in_part": 0,
+    "part_in_pod": 0,
+    "tri_overlap_pairs": 0
+   },
+   "magazine": {
+    "pod_in_part": 0,
+    "part_in_pod": 0,
+    "tri_overlap_pairs": 0
+   },
+   "stock": {
+    "pod_in_part": 0,
+    "part_in_pod": 0,
+    "tri_overlap_pairs": 0
+   },
+   "rear_sight": {
+    "pod_in_part": 0,
+    "part_in_pod": 0,
+    "tri_overlap_pairs": 0
+   },
+   "offset_arm": {
+    "pod_in_part": 0,
+    "part_in_pod": 1,
+    "tri_overlap_pairs": 530
+   }
+  }
+ }
+}
