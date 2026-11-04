@@ -7,11 +7,15 @@
     <title>Blog - Evenfall Advantage</title>
     <link rel="icon" type="image/png" href="/images/logo.png">
     <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="/css/projects.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&family=Raleway:wght@300;400;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        /* Header reuses the Projects intro (css/projects.css) */
+        .blog-pj-intro { --pj-navy: var(--primary, #1d3451); --pj-orange: var(--secondary, #dd8c33); --pj-muted: #52606d; font-family: var(--font-secondary); }
+        .blog-pj-intro h1 { font-family: var(--font-primary); color: var(--pj-navy); line-height: 1.2; }
         /* Blog-specific styles */
         .blog-container {
             max-width: 1000px;
@@ -150,14 +154,11 @@
     <div id="header-placeholder"></div>
 
     <main id="main-content" role="main">
-        <div class="blog-container">
-            <h1 class="blog-title">Case Studies & Insights</h1>
-            
-            <p class="intro-text">
-                At Evenfall Advantage, we study past incidents to derive actionable insights for future safety. 
-                These case studies represent our analysis of significant events and the lessons they offer for safety professionals.
-            </p>
-            
+        <section class="pj-section pj-overview-intro blog-pj-intro" aria-labelledby="pj-title"><div class="container pj-prose">
+            <p class="pj-eyebrow">Evenfall Advantage · Intel</p><h1 id="pj-title">Case Studies &amp; Insights</h1>
+            <p class="pj-sub">Lessons from past incidents, analyzed for the people who keep events safe.</p>
+        </div></section>
+        <div class="blog-container" style="padding-top:0">
             <div class="case-studies-grid">
                 <!-- Woodstock '99 Tragedy Case Study -->
                 <a href="case-studies/woodstock-99-tragedy.html" class="card-link">
