@@ -171,7 +171,7 @@
 .mx.is-loading .mx-loading { opacity: 1; } .mx.is-ready .mx-loading { opacity: 0; }
 .mx-mode { position: absolute; top: .6rem; left: .6rem; margin: 0; padding: .2rem .6rem; border-radius: 999px; background: rgba(15,29,46,.8); color: #e4e7eb; font: 600 .8rem var(--font-primary); border: 1px solid #3ebd93; pointer-events: none; }
 .mx-eye { position: absolute; right: .6rem; bottom: .6rem; z-index: 2; min-height: 44px; padding: .4rem .9rem; border-radius: 999px; border: 1px solid #9fb3c8; background: rgba(15,29,46,.85); color: #e4e7eb; font: 600 .85rem var(--font-primary); cursor: pointer; }
-.mx-modebtn { display: inline-flex; align-items: center; gap: .4rem; min-height: 44px; margin-top: .75rem; padding: .4rem 1rem; border-radius: 999px; border: 1px solid var(--pj-navy, #1d3451); background: #fff; color: var(--pj-navy, #1d3451); font: 600 .9rem var(--font-primary); cursor: pointer; }
+.mx-modebtn { display: inline-flex; align-self: flex-start; width: auto; max-width: max-content; align-items: center; gap: .4rem; min-height: 44px; margin-top: .75rem; padding: .4rem 1rem; border-radius: 999px; border: 1px solid var(--pj-navy, #1d3451); background: #fff; color: var(--pj-navy, #1d3451); font: 600 .9rem var(--font-primary); cursor: pointer; }
 .mx-modebtn[hidden] { display: none; }
 .mx-modebtn:hover, .mx-modebtn:focus-visible { border-color: #dd8c33; color: #dd8c33; }
 .mx-eye:hover, .mx-eye:focus-visible { border-color: #dd8c33; color: #fff; }

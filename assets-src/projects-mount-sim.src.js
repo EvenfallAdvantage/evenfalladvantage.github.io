@@ -285,6 +285,14 @@ export async function mount(root) {
     : 'Drag to orbit, pinch to zoom. Tap the pod or Mode to change the screen.';
   window.__mx = { setPose, get pose() { return poseName; }, get mode() { return order[modeIdx]; }, get bright() { return bright; }, camera, controls, podTarget: () => podTarget(new THREE.Vector3()).toArray(), sightColor: () => '#' + smatSL.color.getHexString(), knob, info: renderer.info,
     get uvDeg() { return uvDeg; },
+    sample(name = 'screen', r = 6) { // render now and read back the real pixels around a part's on-screen centre
+      renderer.render(scene, camera); const gl = renderer.getContext(), c = canvas;
+      const o = N(name); const v = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()).project(camera);
+      const x = Math.round((v.x * .5 + .5) * c.width), y = Math.round((v.y * .5 + .5) * c.height), w = 2 * r + 1, px = new Uint8Array(w * w * 4);
+      gl.readPixels(x - r, y - r, w, w, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      let R = 0, G = 0, B = 0; for (let i = 0; i < px.length; i += 4) { R += px[i]; G += px[i + 1]; B += px[i + 2]; }
+      const k = w * w; return [R / k, G / k, B / k].map(Math.round);
+    },
     horizon(deg) { const tl = tiltFor(deg === undefined ? uvDeg : deg); return { tilt: +tl.toFixed(2), upright: tiltFor.upY > 0, parts: uvRot[poseName], uvDeg: +uvDeg.toFixed(2), map: smat.emissiveMap.uuid.slice(0, 6), same: smat.emissiveMap === tex[order[modeIdx]] }; },
     project(name) { const o = N(name); const v = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()).project(camera); const r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; } };
 }
