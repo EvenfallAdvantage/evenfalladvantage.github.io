@@ -81,6 +81,7 @@
                 <div class="mx-stage"><div class="mx-frame" data-model="/images/projects/synscope/mount-sim/model.glb" data-parts="/images/projects/synscope/mount-sim/parts.json" data-screens="/images/projects/synscope/mount-sim/"><picture class="mx-shot is-on" data-m="offset45"><source type="image/webp" srcset="/images/projects/synscope/mount-sim/poster-offset45.webp"><img src="/images/projects/synscope/mount-sim/poster-offset45.jpg" alt="SynScope pod on a 45° offset mount beside the iron sights of an M4 carbine, sightline clear" width="1600" height="900" sizes="(max-width: 1024px) 100vw, 60vw" decoding="async"></picture><picture class="mx-shot" data-m="toprail"><source type="image/webp" srcset="/images/projects/synscope/mount-sim/poster-toprail.webp"><img src="/images/projects/synscope/mount-sim/poster-toprail.jpg" alt="SynScope pod on the top rail of an M4 carbine, in the line of the iron sights" width="1600" height="900" sizes="(max-width: 1024px) 100vw, 60vw" decoding="async" loading="lazy"></picture><p class="mx-loading" aria-hidden="true"><i class="fas fa-cube"></i> Loading 3D mount…</p><p class="mx-mode" aria-live="polite" hidden></p><button type="button" class="mx-eye" hidden><i class="fas fa-eye" aria-hidden="true"></i> Shooter's eye</button></div><p class="mx-status" id="mx-status"></p></div>
                 <form class="ee-controls" onsubmit="return false">
                     <fieldset class="ee-seg" role="radiogroup"><legend>Mount</legend><input type="radio" id="mountpos-top" name="mountpos" value="top"><label for="mountpos-top">Top rail</label><input type="radio" id="mountpos-canted" name="mountpos" value="canted" checked><label for="mountpos-canted">45° offset</label></fieldset>
+                    <button type="button" class="mx-modebtn" hidden aria-label="Cycle screen mode"><i class="fas fa-sync-alt" aria-hidden="true"></i> Mode: <span>Radar</span></button>
                     <p class="mx-hint" id="mx-hint"></p>
                     <p class="mx-caption" id="mx-caption" aria-live="polite"></p>
                 </form>
@@ -151,7 +152,7 @@
     <div id="footer-placeholder"></div>
     <script src="/js/script.js"></script>
     <script src="/js/include-html.js"></script>
-    <script src="/js/projects/synscope.js" defer></script>
+    <script src="/js/projects/synscope.js?v=20261103b" defer></script>
     <script src="/js/projects/enhance.js" defer></script>
 </body>
 </html>
