@@ -2,7 +2,7 @@
 //   esbuild assets-src/projects-mount-sim.src.js --bundle --format=esm --minify --outfile=js/projects/mount-sim.js
 // Same infrastructure as explode-viewer: Draco, render on demand, DPR cap 1.5, paused off-screen,
 // poster crossfade, ?perf=1. Interaction: orbit around the pod, Mount toggle eases the pod pose,
-// knob click cycles screen modes, hold or wheel-over-knob sets brightness.
+// knob or pod click/tap (or the Mode button) cycles screen modes; wheel over the knob/pod sets brightness.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js';
@@ -11,7 +11,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const BLOCKED = new THREE.Color('#e5484d'), CLEAR = new THREE.Color('#dd8c33');
-const DETENT = THREE.MathUtils.degToRad(30), HOLD_MS = 350, POSE_MS = 500;
+const DETENT = THREE.MathUtils.degToRad(30), POSE_MS = 500, TAP_PX = 6;
 const ease = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 export async function mount(root) {
@@ -80,15 +80,23 @@ export async function mount(root) {
   const order = parts.screen_modes.order, modes = parts.screen_modes.modes, uvRot = parts.screen.uv_rotation_deg;
   const tl = new THREE.TextureLoader(), tex = {};
   await Promise.all(order.map(m => tl.loadAsync(base + modes[m].texture).then(t => { t.flipY = false; t.colorSpace = THREE.SRGBColorSpace; t.center.set(.5, .5); t.anisotropy = 4; tex[m] = t; })));
+  const modeBtn = root.querySelector('.mx-modebtn');
   let modeIdx = Math.max(0, order.indexOf(parts.screen_modes.default));
   function applyMode() {
     const t = tex[order[modeIdx]];
-    smat.emissiveTexture = t; if (smat.map) smat.map = t;
+    // The screen is emissive: emissiveMap carries the picture (map too, if the GLB authored one).
+    smat.emissiveMap = t; if (smat.map) smat.map = t;
     smat.needsUpdate = true;
-    modeEl.hidden = false; modeEl.textContent = 'Screen: ' + modes[order[modeIdx]].label;
+    const label = 'Screen: ' + modes[order[modeIdx]].label;
+    modeEl.hidden = false; modeEl.textContent = label;
+    if (modeBtn) modeBtn.querySelector('span').textContent = modes[order[modeIdx]].label;
+    root.dataset.mode = order[modeIdx];
     kick();
   }
-  function setUV(deg) { for (const m of order) tex[m].rotation = THREE.MathUtils.degToRad(deg); }
+  // Self-levelling horizon: every mode texture carries the rotation, so swaps keep it (map and emissiveMap
+  // share the same texture objects). Rotation is about the UV centre, applied live from the pod's roll.
+  let uvDeg = 0;
+  function setUV(deg) { uvDeg = deg; for (const m of order) { tex[m].center.set(.5, .5); tex[m].rotation = THREE.MathUtils.degToRad(deg); tex[m].updateMatrix(); } }
 
   let smatSL = null; sight.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); smatSL = o.material; } });
   let kmats = []; knob.traverse(o => { if (o.isMesh) { o.material = o.material.clone(); kmats.push(o.material); } });
@@ -118,16 +126,62 @@ export async function mount(root) {
     const k = anim.dur ? Math.min(1, (now - anim.t0) / anim.dur) : 1, e = ease(k);
     pod.position.lerpVectors(anim.from.t, anim.to.t, e);
     pod.quaternion.slerpQuaternions(anim.from.q, anim.to.q, e);
-    setUV(anim.from.uv + (anim.uv - anim.from.uv) * e);
     smatSL.color.copy(anim.c0).lerp(anim.c1, e);
     if (k >= 1) anim = null;
     return true;
   }
 
+  // Live levelling. The screen's UV frame is measured once (largest triangle, in screen-local space); each
+  // frame we solve for the texture rotation that makes the displayed image's left-to-right axis horizontal
+  // in world space, so the horizon stays level in both poses, during the ease and after any orbit.
+  let sMesh = null; screen.traverse(o => { if (o.isMesh && !sMesh) sMesh = o; });
+  const sFrame = (() => {
+    const g = sMesh.geometry, P = g.attributes.position, U = g.attributes.uv, I = g.index, n = I ? I.count : P.count;
+    const ix = j => I ? I.getX(j) : j, p = [0, 1, 2].map(() => new THREE.Vector3());
+    let best = null, bestA = 0;
+    for (let j = 0; j + 2 < n; j += 3) {
+      const a = ix(j), b = ix(j + 1), c = ix(j + 2);
+      p[0].fromBufferAttribute(P, a); p[1].fromBufferAttribute(P, b); p[2].fromBufferAttribute(P, c);
+      const e1 = p[1].clone().sub(p[0]), e2 = p[2].clone().sub(p[0]), area = e1.clone().cross(e2).length();
+      const du1 = U.getX(b) - U.getX(a), dv1 = U.getY(b) - U.getY(a), du2 = U.getX(c) - U.getX(a), dv2 = U.getY(c) - U.getY(a), det = du1 * dv2 - du2 * dv1;
+      if (area <= bestA || Math.abs(det) < 1e-9) continue;
+      bestA = area;
+      best = { du: e1.clone().multiplyScalar(dv2).addScaledVector(e2, -dv1).divideScalar(det), dv: e2.clone().multiplyScalar(du1).addScaledVector(e1, -du2).divideScalar(det) };
+    }
+    return best;
+  })();
+  const _du = new THREE.Vector3(), _dv = new THREE.Vector3(), _n = new THREE.Vector3(), _h = new THREE.Vector3(), _vu = new THREE.Vector3(), _r = new THREE.Vector3(), _M = new THREE.Matrix3(), _UP = new THREE.Vector3(0, 1, 0);
+  function tiltFor(deg) {
+    sMesh.updateWorldMatrix(true, false);
+    _du.copy(sFrame.du).applyMatrix3(new THREE.Matrix3().setFromMatrix4(sMesh.matrixWorld)); _dv.copy(sFrame.dv).applyMatrix3(new THREE.Matrix3().setFromMatrix4(sMesh.matrixWorld));
+    const t = tex[order[0]];
+    const m = _M.setUvTransform(t.offset.x, t.offset.y, t.repeat.x, t.repeat.y, THREE.MathUtils.degToRad(deg), .5, .5).invert().elements;
+    _r.copy(_du).multiplyScalar(m[0]).addScaledVector(_dv, m[1]).normalize();
+    _n.copy(_du).cross(_dv).normalize(); _h.copy(_UP).cross(_n).normalize(); _vu.copy(_n).cross(_h);
+    let a = THREE.MathUtils.radToDeg(Math.atan2(_r.dot(_vu), _r.dot(_h)));
+    if (a > 90) a -= 180; if (a < -90) a += 180;
+    // image "up" (towards texel row 0, flipY=false) must point up, else the content is upside down
+    tiltFor.upY = -(_du.y * m[3] + _dv.y * m[4]);
+    return a;
+  }
+  let levelQ = null;
+  function levelScreen() {
+    pod.updateWorldMatrix(true, false); pod.getWorldQuaternion(_q);
+    if (levelQ && levelQ.equals(_q)) return false;
+    levelQ = _q.clone();
+    let d = uvDeg; // Newton/secant from the current angle (2-4 steps)
+    for (let k = 0; k < 6; k++) { const f = tiltFor(d); if (Math.abs(f) < 0.05) break; const g = (tiltFor(d + 1) - f) || -1; d -= f / g; }
+    tiltFor(d); if (tiltFor.upY < 0) d += 180;
+    d = ((d + 180) % 360 + 360) % 360 - 180;
+    if (Math.abs(d - uvDeg) > 1e-4) { setUV(d); return true; }
+    return false;
+  }
+  const _q = new THREE.Quaternion();
+
   // Camera: initial offset from the pod target; the orbit target follows the pod (camera keeps its offset).
   const initPose = root.querySelector('input[name="mountpos"]:checked').value === 'top' ? 'toprail' : 'offset45';
   pod.position.copy(poses[initPose].t); pod.quaternion.copy(poses[initPose].q);
-  setPose(initPose, true); stepPose(performance.now());
+  setPose(initPose, true); stepPose(performance.now()); levelScreen();
   podTarget(tgt); controls.target.copy(tgt); prevTgt.copy(tgt);
   camera.position.copy(tgt).add(off); controls.update();
 
@@ -144,16 +198,18 @@ export async function mount(root) {
   }
   let camAnim = null;
 
-  // Knob interaction: hover highlight, click cycles mode, hold ramps brightness.
-  const interactive = [knob, body];
+  // Knob interaction: hover highlight, click/tap cycles mode, wheel over it sets brightness.
+  const interactive = [knob, body, screen].filter(Boolean);
   function pick(ev) {
     const r = canvas.getBoundingClientRect();
     ndc.set(((ev.clientX - r.left) / r.width) * 2 - 1, -((ev.clientY - r.top) / r.height) * 2 + 1);
     ray.setFromCamera(ndc, camera);
-    const h = ray.intersectObject(model, true)[0];
-    let o = h && h.object; while (o && !interactive.includes(o)) o = o.parent;
-    return o || null;
+    // Whole pod counts (knob, body, screen), plus a padded box so a small on-screen knob is easy to hit.
+    for (const h of ray.intersectObjects(interactive, true)) if (h.object.visible) return h.object;
+    podBox.setFromObject(pod).expandByScalar(0.006);
+    return ray.ray.intersectsBox(podBox) ? pod : null;
   }
+  const podBox = new THREE.Box3();
   knobHit = ev => !!pick(ev);
   let hover = false;
   function setHover(on) {
@@ -170,22 +226,24 @@ export async function mount(root) {
   });
   canvas.addEventListener('pointerleave', () => setHover(false));
 
-  let press = null, ramp = null;
-  canvas.addEventListener('pointerdown', ev => {
-    if (!pick(ev)) return;
-    controls.enabled = false; // don't orbit while operating the knob
-    try { canvas.setPointerCapture(ev.pointerId); } catch (e) {}
-    press = { id: ev.pointerId, timer: setTimeout(() => { ramp = { dir: bright >= 2.2 ? -1 : 1, last: performance.now() }; root.dataset.holding = '1'; kick(); }, HOLD_MS) };
+  // Tap/click on the pod cycles the mode. Orbit still works from the pod: a press only counts as a
+  // tap if the pointer moves less than TAP_PX, so jitter during a real click never becomes a drag.
+  function cycleMode() { modeIdx = (modeIdx + 1) % order.length; turnKnob(DETENT); applyMode(); }
+  let press = null;
+  window.addEventListener('pointerdown', ev => {
+    if (ev.target !== canvas || !ev.isPrimary || ev.button > 0) { press = null; return; }
+    press = pick(ev) ? { id: ev.pointerId, x: ev.clientX, y: ev.clientY } : null;
   }, true);
-  const release = ev => {
+  window.addEventListener('pointermove', ev => {
+    if (press && ev.pointerId === press.id && Math.hypot(ev.clientX - press.x, ev.clientY - press.y) > TAP_PX) press = null;
+  }, true);
+  window.addEventListener('pointerup', ev => {
     if (!press || ev.pointerId !== press.id) return;
-    clearTimeout(press.timer); press = null;
-    if (ramp) { ramp = null; delete root.dataset.holding; }
-    else if (ev.type === 'pointerup') { modeIdx = (modeIdx + 1) % order.length; root.dataset.mode = order[modeIdx]; turnKnob(DETENT); applyMode(); }
-    controls.enabled = true;
-  };
-  canvas.addEventListener('pointerup', release); canvas.addEventListener('pointercancel', release);
-  canvas.addEventListener('contextmenu', ev => { if (press) ev.preventDefault(); });
+    const moved = Math.hypot(ev.clientX - press.x, ev.clientY - press.y); press = null;
+    if (moved <= TAP_PX) cycleMode();
+  }, true);
+  window.addEventListener('pointercancel', () => { press = null; }, true);
+  if (modeBtn) { modeBtn.hidden = false; modeBtn.addEventListener('click', cycleMode); }
 
   // Render on demand.
   function live() { return visible && !document.hidden; }
@@ -200,12 +258,12 @@ export async function mount(root) {
     raf = 0;
     const dt = Math.min(0.1, lastT ? (t - lastT) / 1000 : 0.016); lastT = t;
     let moving = stepPose(t);
+    if (levelScreen()) moving = true;
     // Orbit target follows the pod; shift the camera by the same delta to keep the view offset.
     podTarget(tgt);
     if (!tgt.equals(prevTgt)) { const d = tgt.clone().sub(prevTgt); camera.position.add(d); controls.target.copy(tgt); prevTgt.copy(tgt); moving = true; }
     if (camAnim) { const k = camAnim.dur ? Math.min(1, (t - camAnim.t0) / camAnim.dur) : 1; camera.position.lerpVectors(camAnim.p0, camAnim.p1, ease(k)); if (k >= 1) camAnim = null; moving = true; }
     if (Math.abs(knobTarget - knob.rotation.x) > 1e-3) { knob.rotation.x += (knobTarget - knob.rotation.x) * (1 - Math.exp(-dt * 18)); moving = true; } else knob.rotation.x = knobTarget;
-    if (ramp) { let b = bright + ramp.dir * dt * 0.9; if (b >= 2.2 || b <= 0.15) ramp.dir *= -1; setBright(b); moving = true; }
     controls.update();
     camera.updateMatrixWorld();
     const camMoved = !lastCam.equals(camera.matrixWorld); if (camMoved) lastCam.copy(camera.matrixWorld);
@@ -221,10 +279,21 @@ export async function mount(root) {
   renderer.render(scene, camera);
   root.classList.add('is-ready');
   modeEl.hidden = false; root.dataset.mode = order[modeIdx];
+  root.dataset.simReady = '1';
   if (hint) hint.textContent = matchMedia('(hover: hover)').matches
-    ? 'Drag to orbit, scroll to zoom. Click the knob to change mode; hold it or scroll over it for brightness.'
-    : 'Drag to orbit, pinch to zoom. Tap the pod to change mode; long-press for brightness.';
+    ? 'Drag to orbit, scroll to zoom. Click the pod or Mode to change the screen; scroll over the pod for brightness.'
+    : 'Drag to orbit, pinch to zoom. Tap the pod or Mode to change the screen.';
   window.__mx = { setPose, get pose() { return poseName; }, get mode() { return order[modeIdx]; }, get bright() { return bright; }, camera, controls, podTarget: () => podTarget(new THREE.Vector3()).toArray(), sightColor: () => '#' + smatSL.color.getHexString(), knob, info: renderer.info,
+    get uvDeg() { return uvDeg; },
+    sample(name = 'screen', r = 6) { // render now and read back the real pixels around a part's on-screen centre
+      renderer.render(scene, camera); const gl = renderer.getContext(), c = canvas;
+      const o = N(name); const v = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()).project(camera);
+      const x = Math.round((v.x * .5 + .5) * c.width), y = Math.round((v.y * .5 + .5) * c.height), w = 2 * r + 1, px = new Uint8Array(w * w * 4);
+      gl.readPixels(x - r, y - r, w, w, gl.RGBA, gl.UNSIGNED_BYTE, px);
+      let R = 0, G = 0, B = 0; for (let i = 0; i < px.length; i += 4) { R += px[i]; G += px[i + 1]; B += px[i + 2]; }
+      const k = w * w; return [R / k, G / k, B / k].map(Math.round);
+    },
+    horizon(deg) { const tl = tiltFor(deg === undefined ? uvDeg : deg); return { tilt: +tl.toFixed(2), upright: tiltFor.upY > 0, parts: uvRot[poseName], uvDeg: +uvDeg.toFixed(2), map: smat.emissiveMap.uuid.slice(0, 6), same: smat.emissiveMap === tex[order[modeIdx]] }; },
     project(name) { const o = N(name); const v = new THREE.Box3().setFromObject(o).getCenter(new THREE.Vector3()).project(camera); const r = canvas.getBoundingClientRect(); return [r.left + (v.x * .5 + .5) * r.width, r.top + (-v.y * .5 + .5) * r.height]; } };
 }
 

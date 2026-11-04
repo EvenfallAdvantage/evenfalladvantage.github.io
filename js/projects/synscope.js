@@ -25,7 +25,7 @@
   if (!gl) { shots.forEach(function (p) { var i = p.querySelector('img'); i.loading = 'eager'; }); return; }
   var go = function () {
     root.classList.add('is-loading');
-    import('/js/projects/mount-sim.js').then(function (mod) { return mod.mount(root); })
+    import('/js/projects/mount-sim.js?v=20261103b').then(function (mod) { return mod.mount(root); })
       .catch(function (err) { console.warn('3D mount unavailable', err); })
       .then(function () { root.classList.remove('is-loading'); });
   };
