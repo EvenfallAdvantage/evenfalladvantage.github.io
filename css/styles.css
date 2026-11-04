@@ -249,8 +249,6 @@ nav, .navbar {
     max-height: 123px;
     display: block;
     border-radius: 12px;
-    filter: blur(0.6px);
-    transition: filter 0.3s ease;
 }
 
 @media (max-width: 768px) {
