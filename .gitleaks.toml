@@ -66,6 +66,12 @@ regexTarget = "secret"
 regexes = ['''^ova_live_[A-Za-z0-9_]+$''']
 
 [[allowlists]]
+description = "Synthetic Airtable record ids in roster sync tests. Repeated-character rec fixtures sit next to the field name and match the Airtable key rule. Not credentials."
+condition = "AND"
+targetRules = ["airtable-api-key"]
+paths = ['''^overwatch-src/src/__tests__/airtable-sync\.test\.ts$''']
+
+[[allowlists]]
 description = "Keyword-rule false positives on code identifiers / template placeholders (reviewed 2026-10-18)"
 condition = "AND"
 targetRules = ["linkedin-client-secret", "curl-auth-header"]
