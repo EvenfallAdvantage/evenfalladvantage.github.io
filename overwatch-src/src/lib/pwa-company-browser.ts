@@ -21,3 +21,20 @@ export async function writeCompanyCacheInBrowser(
     );
   }
 }
+
+/**
+ * Registers the Overwatch worker and waits until one is active.
+ * The document this runs in can still have a null controller. Callers
+ * navigate after this returns; that next navigation is what the worker controls.
+ * https://www.w3.org/TR/service-workers/#navigator-service-worker-ready
+ */
+export async function activateServiceWorkerForInstall(): Promise<boolean> {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return false;
+  try {
+    await navigator.serviceWorker.register("/overwatch/sw.js", { scope: "/overwatch/" });
+    const registration = await navigator.serviceWorker.ready;
+    return registration.active !== null;
+  } catch {
+    return false;
+  }
+}

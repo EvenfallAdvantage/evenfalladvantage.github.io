@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useAuthStore } from "@/stores/auth-store";
-import { LAUNCH_SESSION_KEY, resolveLaunchCompany, SHARED_MANIFEST_PATH } from "@/lib/pwa-company-install";
+import { LAUNCH_SESSION_KEY, launchSessionMayRetargetManifest, resolveLaunchCompany, SHARED_MANIFEST_PATH } from "@/lib/pwa-company-install";
 
 /**
  * Applies the installed app's start-URL company only when this account has
@@ -14,6 +14,7 @@ export function PwaLaunchCompany() {
   const setActiveCompany = useAuthStore((s) => s.setActiveCompany);
 
   useEffect(() => {
+    if (!launchSessionMayRetargetManifest(window.location.pathname)) return;
     if (!user) return;
     let requested: string | null = null;
     try {

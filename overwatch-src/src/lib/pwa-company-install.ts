@@ -189,8 +189,70 @@ export function resolveLaunchCompany(companies: InstallMembership[], requested: 
   return hit ? hit.companyId : null;
 }
 
-export const PWA_LAUNCH_BOOT = `(function(){
+/** Static export path for the company chooser. Query is not known at build time. */
+export function isInstallDocumentPath(pathname: string): boolean {
+  return pathname.endsWith("/install") || pathname.endsWith("/install/");
+}
+
+export function installCompanyIdFromSearch(search: string): string | null {
+  const query = search.startsWith("?") ? search.slice(1) : search;
+  const id = new URLSearchParams(query).get(INSTALL_QUERY);
+  return isUuid(id) ? id.toLowerCase() : null;
+}
+
+export function companyInstallPath(companyId: string): string {
+  return `/overwatch/install/?${INSTALL_QUERY}=${companyId.toLowerCase()}`;
+}
+
+/**
+ * The launch session may retarget the manifest on an installed app's pages.
+ * The install document's manifest belongs to ?company=, not to that session
+ * and not to whichever company is active in the app.
+ */
+export function launchSessionMayRetargetManifest(pathname: string): boolean {
+  return !isInstallDocumentPath(pathname);
+}
+
+export const INSTALL_CONTROL_RELOAD_KEY = "overwatch:pwa-install-sw-reload";
+
+/**
+ * A company manifest fetch during parse is intercepted only when this
+ * document is already controlled. navigator.serviceWorker.ready means an
+ * active worker exists; it does not set controller on the current document.
+ * One same-tab reload after the worker is active is controlled. A second
+ * reload is not attempted.
+ */
+export function shouldReloadUncontrolledInstall(input: {
+  pathname: string;
+  companyId: string | null;
+  hasController: boolean;
+  alreadyReloaded: boolean;
+}): boolean {
+  if (!isInstallDocumentPath(input.pathname)) return false;
+  if (!isUuid(input.companyId)) return false;
+  if (input.hasController) return false;
+  if (input.alreadyReloaded) return false;
+  return true;
+}
+
+/**
+ * Inline head script. Runs while the document is parsing.
+ *
+ * The previous script only rewrote a manifest link that was already in the
+ * tree. Next emits that link from root metadata, often after this script, so
+ * the rewrite did not run and Chromium obtained /overwatch/manifest.json
+ * (name "Overwatch"). The manifest spec does allow a page to replace the
+ * link (https://www.w3.org/TR/appmanifest/, internationalization considerations).
+ * This script does not depend on that replacement winning: the exported
+ * install document has no manifest link (scripts/strip-install-manifest.mjs),
+ * and the href is set before the new link is connected. A shared link added
+ * later, while ?company= is a uuid, is removed. Other pages keep their link.
+ *
+ * Marker ow-install-manifest is how the export check finds this script.
+ */
+export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
   var KEY=${JSON.stringify(LAUNCH_SESSION_KEY)};
+  var SHARED=${JSON.stringify(SHARED_MANIFEST_PATH)};
   var UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   function param(search,name){
     var q=search.charAt(0)==="?"?search.slice(1):search;
@@ -201,26 +263,70 @@ export const PWA_LAUNCH_BOOT = `(function(){
     }
     return "";
   }
-  function setManifest(id){
-    var link=document.querySelector('link[rel="manifest"]');
-    if(!link)return;
-    link.setAttribute("href","/overwatch/pwa/"+id.toLowerCase()+"/manifest.webmanifest");
+  function isInstall(path){
+    return path.endsWith("/install")||path.endsWith("/install/");
   }
-  try{
+  function companyHref(id){
+    return "/overwatch/pwa/"+id.toLowerCase()+"/manifest.webmanifest";
+  }
+  function manifestLinks(){
+    var found=[];
+    var links=document.getElementsByTagName("link");
+    for(var i=0;i<links.length;i++){
+      var rel=(links[i].getAttribute("rel")||"").toLowerCase();
+      if(rel.split(/\\s+/).indexOf("manifest")!==-1)found.push(links[i]);
+    }
+    return found;
+  }
+  function setOnly(href){
+    var links=manifestLinks();
+    var keep=null;
+    for(var i=0;i<links.length;i++){
+      if(!keep&&links[i].getAttribute("href")===href)keep=links[i];
+    }
+    for(var j=0;j<links.length;j++){
+      if(links[j]!==keep&&links[j].parentNode)links[j].parentNode.removeChild(links[j]);
+    }
+    if(keep)return;
+    var parent=document.head||document.documentElement;
+    if(!parent)return;
+    var link=document.createElement("link");
+    link.setAttribute("rel","manifest");
+    link.setAttribute("href",href);
+    parent.insertBefore(link,parent.firstChild);
+  }
+  function desired(){
     var path=location.pathname||"";
     var search=location.search||"";
-    if(path.indexOf("/install")!==-1){
+    if(isInstall(path)){
       var chosen=param(search,${JSON.stringify(INSTALL_QUERY)});
-      if(chosen&&UUID.test(chosen))setManifest(chosen);
-      return;
+      if(chosen&&UUID.test(chosen))return companyHref(chosen);
+      return SHARED;
     }
     var launch=param(search,${JSON.stringify(LAUNCH_QUERY)});
     if(launch&&UUID.test(launch)){
-      sessionStorage.setItem(KEY,launch.toLowerCase());
-      setManifest(launch);
-      return;
+      try{sessionStorage.setItem(KEY,launch.toLowerCase());}catch(e){}
+      return companyHref(launch);
     }
-    var saved=sessionStorage.getItem(KEY);
-    if(saved&&UUID.test(saved))setManifest(saved);
+    try{
+      var saved=sessionStorage.getItem(KEY);
+      if(saved&&UUID.test(saved))return companyHref(saved);
+    }catch(e2){}
+    return "";
+  }
+  try{
+    var href=desired();
+    if(!href)return;
+    setOnly(href);
+    var path=location.pathname||"";
+    var chosen=param(location.search||"",${JSON.stringify(INSTALL_QUERY)});
+    if(!isInstall(path)||!chosen||!UUID.test(chosen)||typeof MutationObserver!=="function"||!document.head)return;
+    var lock=companyHref(chosen);
+    var obs=new MutationObserver(function(){
+      var links=manifestLinks();
+      if(links.length===1&&links[0].getAttribute("href")===lock)return;
+      setOnly(lock);
+    });
+    obs.observe(document.head,{childList:true,subtree:true,attributes:true,attributeFilter:["href","rel"]});
   }catch(e){}
 })();`;
