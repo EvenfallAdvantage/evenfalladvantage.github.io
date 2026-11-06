@@ -361,4 +361,113 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
       await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
     }
   }, 60_000);
+
+  it("does not let the install dialog read the Overwatch name or shield from the shared manifest", async () => {
+    const membership: InstallMembership = {
+      companyId: COMPANY,
+      companyName: COMPANY_NAME,
+      companyLogo: `https://abc.supabase.co/storage/v1/object/public/company-logos/${COMPANY}/logo.png`,
+      brandColor: "#102030",
+      status: "active",
+    };
+    const built = buildCompanyManifest([membership], COMPANY, true)!;
+    const shield = fs.readFileSync(path.join(rootDir, "public/favicon.png"));
+    const installHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Overwatch — Security Workforce Management Platform</title><meta name="apple-mobile-web-app-title" content="Overwatch"><link rel="icon" href="/overwatch/favicon.png"><link rel="manifest" href="/overwatch/manifest.json"><script>${PWA_LAUNCH_BOOT}</script></head><body>install</body></html>`;
+    const homeHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Overwatch</title><link rel="manifest" href="/overwatch/manifest.json"><script>${PWA_LAUNCH_BOOT}</script></head><body>home</body></html>`;
+    const files = new Map<string, { body: Buffer; type: string }>([
+      ["/overwatch/index.html", { body: Buffer.from(homeHtml), type: "text/html" }],
+      ["/overwatch/install/index.html", { body: Buffer.from(installHtml), type: "text/html" }],
+      ["/overwatch/manifest.json", { body: fs.readFileSync(path.join(rootDir, "public/manifest.json")), type: "application/manifest+json" }],
+      ["/overwatch/favicon.png", { body: shield, type: "image/png" }],
+      ["/overwatch/sw.js", { body: fs.readFileSync(path.join(rootDir, "public/sw.js")), type: "text/javascript" }],
+      ["/overwatch/pwa-company-cache.js", { body: fs.readFileSync(path.join(rootDir, "public/pwa-company-cache.js")), type: "text/javascript" }],
+    ]);
+    const { server, port } = await startServer(files);
+    const origin = `http://127.0.0.1:${port}`;
+    const { chromium } = await import("playwright-core");
+    const browser = await chromium.launch({
+      executablePath: chromePath,
+      headless: true,
+      args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    });
+    try {
+      const page = await browser.newPage();
+      await page.goto(`${origin}/overwatch/`, { waitUntil: "domcontentloaded" });
+      await page.evaluate(async () => {
+        const claimed = new Promise<void>((resolve) => {
+          if (navigator.serviceWorker.controller) resolve();
+          navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), { once: true });
+        });
+        await navigator.serviceWorker.register("/overwatch/sw.js", { scope: "/overwatch/" });
+        await navigator.serviceWorker.ready;
+        await claimed;
+      });
+      const homeManifest = await page.evaluate(async () => {
+        const response = await fetch("/overwatch/manifest.json", { cache: "no-store" });
+        return { status: response.status, name: (await response.json() as { name?: string }).name };
+      });
+      expect(homeManifest).toEqual({ status: 200, name: "Overwatch" });
+
+      await page.evaluate(async ({ cacheName, manifestPath, manifestBody, iconPath, png }) => {
+        const cache = await caches.open(cacheName);
+        await cache.put(new URL(manifestPath, location.origin).toString(), new Response(manifestBody, {
+          headers: { "Content-Type": "application/manifest+json" },
+        }));
+        await cache.put(new URL(iconPath, location.origin).toString(), new Response(Uint8Array.from(png), {
+          headers: { "Content-Type": "image/png" },
+        }));
+      }, {
+        cacheName: companyCacheName(COMPANY),
+        manifestPath: built.manifestPath,
+        manifestBody: JSON.stringify(built.body),
+        iconPath: companyIconPath(COMPANY, "icon-192.png"),
+        png: Array.from(PNG),
+      });
+
+      await page.goto(`${origin}/overwatch/install/?company=${COMPANY}`, { waitUntil: "load" });
+      await page.waitForFunction((name) => document.title === name, COMPANY_NAME);
+      const dialogInputs = await page.evaluate(async () => {
+        const manifest = await fetch("/overwatch/manifest.json", { cache: "no-store" });
+        const manifestJson = await manifest.json() as { name?: string; icons?: { src: string }[] };
+        const icon = await fetch("/overwatch/favicon.png", { cache: "no-store" });
+        return {
+          sharedManifestStatus: manifest.status,
+          sharedManifestName: manifestJson.name,
+          sharedManifestIcon: manifestJson.icons?.[0]?.src || "",
+          faviconBytes: Array.from(new Uint8Array(await icon.arrayBuffer())),
+          title: document.title,
+          apple: document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute("content"),
+          links: Array.from(document.querySelectorAll('link[rel="manifest"]')).map((el) => el.getAttribute("href")),
+        };
+      });
+      expect(dialogInputs.links).toEqual([built.manifestPath]);
+      expect(dialogInputs.sharedManifestStatus).toBe(200);
+      expect(dialogInputs.sharedManifestName).toBe(COMPANY_NAME);
+      expect(dialogInputs.sharedManifestName).not.toBe("Overwatch");
+      expect(dialogInputs.sharedManifestIcon).toBe(companyIconPath(COMPANY, "icon-192.png"));
+      expect(Buffer.from(dialogInputs.faviconBytes)).toEqual(PNG);
+      expect(Buffer.from(dialogInputs.faviconBytes).equals(shield)).toBe(false);
+      expect(dialogInputs.title).toBe(COMPANY_NAME);
+      expect(dialogInputs.apple).toBe(COMPANY_NAME);
+      const appManifest = await readAppManifest(page);
+      const parsed = JSON.parse(appManifest.data || "{}") as { name?: string };
+      expect(parsed.name).toBe(COMPANY_NAME);
+
+      await page.evaluate(async (cacheName) => { await caches.delete(cacheName); }, companyCacheName(COMPANY));
+      await page.goto(`${origin}/overwatch/install/?company=${COMPANY}`, { waitUntil: "load" });
+      await page.waitForFunction(() => document.title === "Company app");
+      const missed = await page.evaluate(async () => {
+        const response = await fetch("/overwatch/manifest.json", { cache: "no-store" });
+        const apple = document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute("content");
+        return { status: response.status, body: await response.text(), title: document.title, apple };
+      });
+      expect(missed.status).toBe(404);
+      expect(missed.body).not.toContain("Overwatch");
+      expect(missed.title).toBe("Company app");
+      expect(missed.apple).toBe("Company app");
+    } finally {
+      await browser.close();
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  }, 60_000);
 });

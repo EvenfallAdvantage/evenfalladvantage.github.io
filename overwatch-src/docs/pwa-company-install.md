@@ -18,6 +18,8 @@ The Install button writes that company's cache, then fetches `/overwatch/pwa/{uu
 
 The company id in that URL is the membership the person pressed Install for. It is not whichever company is currently active, and a launch-session id does not replace it. The id has to be an active membership or the cache is not written.
 
+Brave's desktop Install app dialog uses the manifest name and icons when that manifest parses. If the manifest request fails, the dialog falls back to the apple web app title `Overwatch` and the site favicon, which is the shield. On `/overwatch/install/?company={uuid}` the service worker therefore serves that company's cached manifest for `/overwatch/manifest.json` as well, and does not serve the shared Overwatch manifest. The page title and apple web app title are replaced from the cached company name so the fallback dialog cannot stay on Overwatch. Other pages still receive the shared manifest and the shield.
+
 The home-screen app opens `/overwatch/?ow_company={company-id}`. After sign-in, Overwatch selects that company only when the account has an active membership loaded by the normal profile read. Any other id is ignored and does not open that company's records.
 
 Logos are used only when the membership's logo is already an `https` object in the public `company-logos` bucket for that same company. The page draws it into opaque PNG icons and stores those in the company cache. If the logo is missing or cannot be read, the install uses the default Overwatch icons. The manifest does not point at the storage URL.

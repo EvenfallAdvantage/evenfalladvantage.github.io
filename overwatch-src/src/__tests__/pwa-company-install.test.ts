@@ -52,9 +52,10 @@ const suspended = company({ companyId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", c
 
 function loadSwHelpers() {
   const src = fs.readFileSync(path.join(rootDir, "public/pwa-company-cache.js"), "utf8");
-  const sandbox: { self: { owCompanyPwa?: Record<string, (...args: never[]) => unknown> }; globalThis: object } = {
+  const sandbox: { self: { owCompanyPwa?: Record<string, (...args: never[]) => unknown> }; globalThis: object; URL: typeof URL } = {
     self: {},
     globalThis: {},
+    URL,
   };
   vm.runInNewContext(src, sandbox);
   return sandbox.self.owCompanyPwa as {
@@ -62,6 +63,7 @@ function loadSwHelpers() {
     matchCompanyPwaPath: (pathname: string) => { companyId: string; file: string } | null;
     shouldPreserveCompanyCache: (name: string) => boolean;
     iconSrcAllowedForCompany: (src: string, companyId: string) => boolean;
+    installCompanyIdFromUrl: (url: string) => string | null;
     manifestBodyMatchesCompany: (text: string, companyId: string) => boolean;
   };
 }
@@ -299,6 +301,10 @@ describe("service worker company cache separation", () => {
     expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${A}/icon-192.png`, A)).toBe(true);
     expect(api.iconSrcAllowedForCompany("/overwatch/images/icon-512.png", A)).toBe(true);
     expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${B}/icon-512.png`, A)).toBe(false);
+    expect(api.installCompanyIdFromUrl(`https://www.evenfalladvantage.com/overwatch/install/?company=${A.toUpperCase()}&x=1`)).toBe(A);
+    expect(api.installCompanyIdFromUrl(`https://www.evenfalladvantage.com/overwatch/install/?company=${B}`)).toBe(B);
+    expect(api.installCompanyIdFromUrl("https://www.evenfalladvantage.com/overwatch/")).toBeNull();
+    expect(api.installCompanyIdFromUrl("https://www.evenfalladvantage.com/overwatch/install/?company=not-a-uuid")).toBeNull();
     const branded = buildCompanyManifest([alpha], A, true)!;
     expect(api.manifestBodyMatchesCompany(JSON.stringify(branded.body), A)).toBe(true);
     expect(api.manifestBodyMatchesCompany(JSON.stringify({ ...branded.body, id: `/overwatch/pwa/${B}/` }), A)).toBe(false);
@@ -321,6 +327,12 @@ describe("service worker company cache separation", () => {
     expect(block).not.toContain("fetch(");
     expect(block).not.toContain("manifest.json");
     expect(block).toContain("owCompanyPwa.manifestBodyMatchesCompany");
+    expect(sw).toContain("serveInstallDocumentBrand");
+    expect(sw).toContain("installCompanyIdFromUrl");
+    const brandAt = sw.indexOf("serveInstallDocumentBrand");
+    const sharedManifestAt = sw.indexOf("event.respondWith(staleWhileRevalidate");
+    expect(brandAt).toBeGreaterThan(0);
+    expect(brandAt).toBeLessThan(sharedManifestAt);
     expect(sw).toContain("`${BASE_PATH}/install/`");
   });
 

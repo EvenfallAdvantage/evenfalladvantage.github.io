@@ -256,6 +256,46 @@ export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
     }
     return found;
   }
+  function setMeta(name, content){
+    var metas=document.getElementsByTagName("meta");
+    var found=null;
+    for(var i=0;i<metas.length;i++){
+      if((metas[i].getAttribute("name")||"").toLowerCase()===name)found=metas[i];
+    }
+    if(!found){
+      found=document.createElement("meta");
+      found.setAttribute("name",name);
+      (document.head||document.documentElement).appendChild(found);
+    }
+    found.setAttribute("content",content);
+  }
+  function applyInstallIdentity(id){
+    document.title="Company app";
+    setMeta("apple-mobile-web-app-title","Company app");
+    setMeta("application-name","Company app");
+    if(typeof caches==="undefined"||!caches.open)return;
+    caches.open("overwatch-company-"+id).then(function(cache){
+      return cache.match(companyHref(id));
+    }).then(function(res){
+      return res?res.json():null;
+    }).then(function(body){
+      if(!body||body.id!=="/overwatch/pwa/"+id+"/"||typeof body.name!=="string"||!body.name)return;
+      document.title=body.name;
+      setMeta("apple-mobile-web-app-title",body.name);
+      setMeta("application-name",body.name);
+      var src="";
+      var icons=body.icons||[];
+      for(var i=0;i<icons.length;i++){
+        if(icons[i]&&typeof icons[i].src==="string"&&icons[i].src.indexOf("/overwatch/pwa/"+id+"/")===0){src=icons[i].src;break;}
+      }
+      if(!src)return;
+      var links=document.getElementsByTagName("link");
+      for(var j=0;j<links.length;j++){
+        var rel=(links[j].getAttribute("rel")||"").toLowerCase();
+        if(rel==="icon"||rel==="apple-touch-icon")links[j].setAttribute("href",src);
+      }
+    }).catch(function(){});
+  }
   function setOnly(href){
     var links=manifestLinks();
     var keep=null;
@@ -306,5 +346,6 @@ export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
       setOnly(lock);
     });
     obs.observe(document.head,{childList:true,subtree:true,attributes:true,attributeFilter:["href","rel"]});
+    try{applyInstallIdentity(chosen.toLowerCase());}catch(e2){}
   }catch(e){}
 })();`;
