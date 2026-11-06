@@ -4,11 +4,18 @@ import { useState } from "react";
 import { render, screen, fireEvent, cleanup, waitFor, within } from "@testing-library/react";
 import { DEFAULT_OT_CONFIG } from "@/lib/supabase/db-overtime";
 import { DEFAULT_BREAK_POLICY } from "@/lib/supabase/db-breaks";
+import type { ClientMember } from "@/lib/supabase/db-client-portal";
+
+type SavedIntegration = {
+  provider: string;
+  config: Record<string, string>;
+  is_active: boolean;
+};
 
 const db = vi.hoisted(() => ({
   updateCompany: vi.fn(),
   saveIntegrationConfig: vi.fn(),
-  getIntegrationsConfig: vi.fn(async () => []),
+  getIntegrationsConfig: vi.fn(async (): Promise<SavedIntegration[]> => []),
   getOvertimeConfig: vi.fn(async () => DEFAULT_OT_CONFIG),
   saveOvertimeConfig: vi.fn(),
   getCompanyDefaultRates: vi.fn(async () => ({ payRate: 22, billRate: 35 })),
@@ -16,7 +23,7 @@ const db = vi.hoisted(() => ({
   getBreakPolicy: vi.fn(async () => DEFAULT_BREAK_POLICY),
   saveBreakPolicy: vi.fn(),
   isClientRoleSupported: vi.fn(async () => true),
-  getClientMembers: vi.fn(async () => []),
+  getClientMembers: vi.fn(async (): Promise<ClientMember[]> => []),
   addClientMember: vi.fn(),
   removeClientMember: vi.fn(),
   setUser: vi.fn(),
@@ -144,7 +151,12 @@ describe("HQ disclosure", () => {
     fireEvent.change(screen.getByLabelText("Note"), { target: { value: "keep-me" } });
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "false");
-    expect(screen.getByLabelText("Note", { hidden: true })).toHaveValue("keep-me");
+    expect(screen.queryByRole("textbox", { name: "Note" })).toBeNull();
+    const note = screen.getByLabelText("Note");
+    const panel = note.closest("[hidden]");
+    expect(panel).toBeInstanceOf(HTMLElement);
+    expect(panel?.getAttribute("aria-hidden")).toBe("true");
+    expect(note).toHaveValue("keep-me");
     fireEvent.click(trigger);
     fireEvent.change(screen.getByLabelText("Note"), { target: { value: "still here" } });
     fireEvent.change(screen.getByLabelText("Note"), { target: { value: "keep-me" } });
