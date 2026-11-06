@@ -563,6 +563,49 @@ function cleanOptional(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+/** Shown for a phone unique violation. No phone number and no other account's identity. */
+export const ROSTER_PHONE_IN_USE =
+  "Phone is already on another Overwatch account. That account was not changed, and this row was not saved. Accounts are not matched or merged by phone.";
+
+/** Digits only. Blank, whitespace, and values with no digits are not phone numbers. */
+export function rosterPhoneDigits(value: string | null | undefined): string | null {
+  const digits = (value ?? "").replace(/\D/g, "");
+  return digits.length > 0 ? digits : null;
+}
+
+/**
+ * Decide one incoming phone for one already-chosen account.
+ * `takenByOther` must be true only when a different account has the same digits.
+ * This never selects that other account.
+ */
+export function decideRosterPhone(
+  incoming: string | null | undefined,
+  current: string | null | undefined,
+  takenByOther: boolean,
+): "omit" | "write" | "refuse" {
+  const digits = rosterPhoneDigits(incoming);
+  if (!digits) return "omit";
+  if (rosterPhoneDigits(current) === digits) return "omit";
+  if (takenByOther) return "refuse";
+  return "write";
+}
+
+/** Rewrite the raw users_phone_key toast. Other messages lose long digit runs. */
+export function scrubRosterWriteError(message: string): string {
+  const raw = message ?? "";
+  if (/users_phone_key|users_phone_unique/i.test(raw) || raw.startsWith("Phone is already on another Overwatch account")) {
+    return ROSTER_PHONE_IN_USE;
+  }
+  return sanitizeDiagnosticMessage(raw).replace(/\+?\d[\d\s().-]{6,}\d/g, "[phone]");
+}
+
+export function rosterWriteFailureToast(messages: readonly string[]): string {
+  const first = scrubRosterWriteError(messages[0] ?? "");
+  if (!first) return "Some rows failed. The report lists them.";
+  if (messages.length <= 1) return first;
+  return `${first} ${messages.length} rows failed. The report lists each one.`;
+}
+
 function normalizeRosterEmail(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
@@ -650,6 +693,43 @@ export function planRosterSync(
     return ids;
   };
 
+  // Digits claimed by an account. A later row with the same digits is refused.
+  // It is not linked to the account that already has the number.
+  const phonesByUser = new Map<string, Set<string>>();
+  const claimPhone = (userId: string, phone: string | null | undefined) => {
+    const digits = rosterPhoneDigits(phone);
+    if (!digits) return;
+    const held = phonesByUser.get(userId) ?? new Set<string>();
+    held.add(digits);
+    phonesByUser.set(userId, held);
+  };
+  for (const person of locals) claimPhone(person.userId, person.phone);
+  const takenByOther = (digits: string, userId: string) => {
+    for (const [owner, held] of phonesByUser) {
+      if (owner !== userId && held.has(digits)) return true;
+    }
+    return false;
+  };
+  const resolvePhone = (
+    userId: string,
+    incoming: string | undefined,
+    current: string | null,
+    blanksOnly: boolean,
+  ): { phone?: string; refuse: boolean } => {
+    const digits = rosterPhoneDigits(incoming);
+    const decision = decideRosterPhone(incoming, current, digits ? takenByOther(digits, userId) : false);
+    if (decision === "refuse") return { refuse: true };
+    if (decision === "omit") return { refuse: false };
+    if (blanksOnly && rosterPhoneDigits(current)) return { refuse: false };
+    const phone = cleanOptional(incoming);
+    if (!phone) return { refuse: false };
+    claimPhone(userId, phone);
+    return { phone, refuse: false };
+  };
+  const refusePhone = (airtableId: string, email: string, membershipId?: string) => {
+    plan.conflicts.push({ airtableId, email, reason: "phone_in_use", membershipId });
+  };
+
   const seenIds = new Set<string>();
   const presentIds = new Set<string>();
   const presentEmails = new Set<string>();
@@ -725,7 +805,14 @@ export function planRosterSync(
           continue;
         }
       }
+      const phone = resolvePhone(linked.userId, row.values.phone, linked.phone, false);
+      if (phone.refuse) {
+        refusePhone(row.airtableId, email, linked.membershipId);
+        if (protectedRole) logProtected(linked, row.airtableId, "phone_unchanged");
+        continue;
+      }
       const set = profileSet(row.values, linked, false);
+      if (phone.phone) set.phone = phone.phone;
       if (!set.firstName && !set.lastName && !set.phone && !set.title) plan.unchanged.push(row.airtableId);
       else {
         plan.updates.push({
@@ -786,12 +873,18 @@ export function planRosterSync(
         logProtected(owner, row.airtableId, "email_not_linked");
         continue;
       }
+      const phone = resolvePhone(owner.userId, row.values.phone, owner.phone, true);
+      if (phone.refuse) {
+        refusePhone(row.airtableId, email, owner.membershipId);
+        continue;
+      }
       plan.links.push({
         kind: "link",
         airtableId: row.airtableId,
         membershipId: owner.membershipId,
         userId: owner.userId,
         ...profileSet(row.values, owner, true),
+        ...(phone.phone ? { phone: phone.phone } : {}),
       });
       continue;
     }
@@ -810,6 +903,11 @@ export function planRosterSync(
       });
       continue;
     }
+    const phone = resolvePhone(`create:${row.airtableId}`, row.values.phone, null, false);
+    if (phone.refuse) {
+      refusePhone(row.airtableId, email);
+      continue;
+    }
     plan.creates.push({
       kind: "create",
       airtableId: row.airtableId,
@@ -817,7 +915,7 @@ export function planRosterSync(
       role: "staff",
       firstName: row.values.first_name,
       lastName: cleanOptional(row.values.last_name),
-      phone: cleanOptional(row.values.phone),
+      phone: phone.phone,
       title: cleanOptional(row.values.title),
     });
   }
@@ -909,7 +1007,6 @@ function profileSet(values: Record<string, string>, local: RosterPerson, blanksO
   };
   take("firstName", values.first_name, local.firstName);
   take("lastName", values.last_name, local.lastName);
-  take("phone", values.phone, local.phone);
   take("title", values.title, local.title);
   return next;
 }
@@ -1225,6 +1322,7 @@ const CONFLICT_REASON: Record<string, string> = {
   email_owned_by_other_user: "Email belongs to a different Overwatch account",
   email_already_linked: "Email is already linked to another Airtable record",
   record_matches_multiple_people: "This Airtable record is linked to more than one person",
+  phone_in_use: ROSTER_PHONE_IN_USE,
 };
 
 const SKIP_REASON: Record<string, string> = {
@@ -1311,7 +1409,7 @@ export function rosterDiagnosticReport(input: {
     rows.push({
       airtableId,
       op: "failure",
-      reason: `${failure.op}: ${sanitizeDiagnosticMessage(failure.message)}`,
+      reason: `${failure.op}: ${scrubRosterWriteError(failure.message)}`,
       name: nameFor(airtableId),
     });
   }

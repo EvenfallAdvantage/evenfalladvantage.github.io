@@ -18,6 +18,7 @@ import {
   assessFieldMapping,
   destinationsFor,
   rosterConfirmDescription,
+  rosterWriteFailureToast,
   suggestFieldMapping,
   type MappedPurpose,
   type RosterDiagnosticReport,
@@ -147,7 +148,7 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
       toast.success(purpose === "roster"
         ? `Read ${result.read?.rawRead ?? "?"} records. Created ${result.created}, linked ${result.linked ?? 0}, updated ${result.updated}, removed ${result.removed ?? 0}, write failures ${failed}.`
         : `Synced ${result.created} new, ${result.updated} updated${result.linked ? `, ${result.linked} linked` : ""}`);
-      if (result.errors.length) toast.error(result.errors[0]?.message ?? "Some rows failed");
+      if (result.errors.length) toast.error(rosterWriteFailureToast(result.errors.map((row) => row.message)));
       onSynced();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Sync failed");

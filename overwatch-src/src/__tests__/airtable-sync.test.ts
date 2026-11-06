@@ -14,8 +14,13 @@ import {
   rosterAuditEntityId,
   rosterConfirmDescription,
   rosterCounts,
+  decideRosterPhone,
   rosterDiagnosticReport,
+  rosterPhoneDigits,
+  rosterWriteFailureToast,
+  ROSTER_PHONE_IN_USE,
   sanitizeDiagnosticMessage,
+  scrubRosterWriteError,
   rosterPlanToken,
   rosterSyncPayload,
   sameFieldMap,
@@ -356,6 +361,96 @@ describe("roster sync plan", () => {
     const capped = planRosterSync([staff], [], { truncated: false, rosterTruncated: true });
     expect(capped.removals).toEqual([]);
     expect(capped.removalHold).toBe("roster_truncated");
+  });
+
+  it("treats a blank phone as no phone and keeps the account's own number", () => {
+    expect(rosterPhoneDigits("  ")).toBeNull();
+    expect(rosterPhoneDigits("call me")).toBeNull();
+    expect(decideRosterPhone("", "5551234567", false)).toBe("omit");
+    expect(decideRosterPhone("(555) 123-4567", "5551234567", true)).toBe("omit");
+    const own = planRosterSync([
+      person({ phone: "(555) 123-4567", airtableRecordId: "recAAAAAAAAAAAAAA" }),
+    ], [
+      incoming("recAAAAAAAAAAAAAA", { "First Name": "Ada", "Last Name": "Lovelace", Email: "ada@example.com", Phone: "555-123-4567", Title: "Captain" }),
+    ], { truncated: false });
+    expect(own.conflicts).toEqual([]);
+    expect(own.updates).toHaveLength(1);
+    expect(own.updates[0]?.phone).toBeUndefined();
+    expect(own.updates[0]?.title).toBe("Captain");
+    expect(own.removalHold).toBeNull();
+  });
+
+  it("refuses another account's number, including a different format, and does not link by phone", () => {
+    expect(decideRosterPhone("555.123.4567", null, true)).toBe("refuse");
+    expect(decideRosterPhone("5551234567", "999", false)).toBe("write");
+    const other = person({ membershipId: "m-other", userId: "u-other", email: "other@example.com", phone: "(555) 123-4567", role: "staff" });
+    const plan = planRosterSync([
+      other,
+      person({ membershipId: "m-ada", userId: "u-ada", email: "ada@example.com", phone: "", airtableRecordId: null }),
+    ], [
+      incoming("recAAAAAAAAAAAAAA", { "First Name": "Ada", "Last Name": "Lovelace", Email: "ada@example.com", Phone: "5551234567" }),
+      incoming("recBBBBBBBBBBBBBB", { "First Name": "Bea", "Last Name": "Ng", Email: "bea@example.com", Phone: "555-123-4567" }),
+    ], { truncated: false });
+    expect(plan.links).toEqual([]);
+    expect(plan.creates).toEqual([]);
+    expect(plan.updates).toEqual([]);
+    expect(plan.attaches).toEqual([]);
+    expect(plan.conflicts.map((row) => row.reason)).toEqual(["phone_in_use", "phone_in_use"]);
+    expect(plan.conflicts.every((row) => row.membershipId !== "m-other")).toBe(true);
+    expect(JSON.stringify(rosterSyncPayload(plan))).not.toContain("u-other");
+    expect(JSON.stringify(rosterSyncPayload(plan))).not.toContain("555");
+    expect(plan.removals).toEqual([]);
+    expect(plan.removalHold).toBe("conflicts");
+    expect(plan.held.map((row) => row.membershipId)).toEqual(["m-other"]);
+  });
+
+  it("lets the first new row keep a phone and refuses the later duplicate without merging them", () => {
+    const plan = planRosterSync([], [
+      incoming("recAAAAAAAAAAAAAA", { "First Name": "Ada", "Last Name": "Lovelace", Email: "ada@example.com", Phone: "(555) 010-0000" }),
+      incoming("recBBBBBBBBBBBBBB", { "First Name": "Bea", "Last Name": "Ng", Email: "bea@example.com", Phone: "5550100000" }),
+    ], { truncated: false });
+    expect(plan.creates.map((row) => row.email)).toEqual(["ada@example.com"]);
+    expect(plan.creates[0]?.phone).toBe("(555) 010-0000");
+    expect(plan.conflicts).toEqual([expect.objectContaining({ airtableId: "recBBBBBBBBBBBBBB", reason: "phone_in_use", email: "bea@example.com" })]);
+    expect(plan.conflicts[0]).not.toHaveProperty("userId");
+    expect(plan.removalHold).toBe("conflicts");
+  });
+
+  it("keeps a protected role when their Airtable phone belongs to someone else", () => {
+    const plan = planRosterSync([
+      person({ membershipId: "m-owner", userId: "u-owner", role: "owner", email: "owner@example.com", phone: "111", airtableRecordId: "recAAAAAAAAAAAAAA" }),
+      person({ membershipId: "m-staff", userId: "u-staff", role: "staff", email: "staff@example.com", phone: "(555) 010-9999" }),
+    ], [
+      incoming("recAAAAAAAAAAAAAA", { "First Name": "Olivia", "Last Name": "Owner", Email: "owner@example.com", Phone: "555.010.9999" }),
+    ], { truncated: false });
+    expect(plan.updates).toEqual([]);
+    expect(plan.removals).toEqual([]);
+    expect(plan.conflicts.map((row) => row.reason)).toEqual(["phone_in_use"]);
+    expect(plan.protected.some((row) => row.membershipId === "m-owner" && row.reason === "phone_unchanged")).toBe(true);
+    expect(plan.removalHold).toBe("conflicts");
+    expect(JSON.stringify(rosterSyncPayload(plan))).not.toContain("555");
+  });
+});
+
+describe("roster phone write errors", () => {
+  it("replaces the users_phone_key toast and strips a leaked number", () => {
+    const raw = 'duplicate key value violates unique constraint "users_phone_key"';
+    expect(scrubRosterWriteError(raw)).toBe(ROSTER_PHONE_IN_USE);
+    expect(scrubRosterWriteError(raw)).not.toMatch(/users_phone_key|\d{3}/);
+    expect(scrubRosterWriteError("Key (phone)=(555-010-0000) already exists")).not.toMatch(/555/);
+    expect(scrubRosterWriteError("Could not reuse the existing account for this email")).toMatch(/existing account/);
+    expect(rosterWriteFailureToast([raw, raw])).toMatch(/2 rows failed/);
+    const plan = planRosterSync([], [], { truncated: false });
+    const report = rosterDiagnosticReport({
+      kind: "sync",
+      plan,
+      pages: 1,
+      failures: [{ op: "update", airtableId: "recAAAAAAAAAAAAAA", message: raw }],
+      writeFailures: { update: 1 },
+    });
+    expect(report.rows[0]?.reason).toBe(`update: ${ROSTER_PHONE_IN_USE}`);
+    expect(report.writeFailureTotal).toBe(1);
+    expect(JSON.stringify(report)).not.toMatch(/users_phone_key/);
   });
 });
 
