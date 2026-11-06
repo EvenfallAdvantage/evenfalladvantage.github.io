@@ -1,3 +1,5 @@
+importScripts("pwa-company-cache.js");
+
 /**
  * Overwatch service worker.
  *
@@ -11,6 +13,9 @@
  *     (Turbopack uses base36 names like `2zgy1mcgpg4zs.js`, which the old
  *     hex-only regex never matched), so a cached copy is always correct.
  *   - Other same-origin GETs (icons, manifest, images): stale-while-revalidate.
+ *   - /overwatch/pwa/{companyId}/ is NOT this cache. Each company install
+ *     lives in overwatch-company-{id}, which activate does not delete, and
+ *     which a company switch does not write.
  *   - Never cached: non-GET, cross-origin (Supabase, CDNs), /auth/, /api/,
  *     Range requests, and large media/model files (.wasm, audio, video).
  *
@@ -143,7 +148,9 @@ self.addEventListener("activate", (event) => {
       const keep = new Set([PAGES_CACHE, STATIC_CACHE, RUNTIME_CACHE]);
       const keys = await caches.keys();
       await Promise.all(
-        keys.filter((k) => k.startsWith("overwatch-") && !keep.has(k)).map((k) => caches.delete(k)),
+        keys
+          .filter((k) => k.startsWith("overwatch-") && !owCompanyPwa.shouldPreserveCompanyCache(k) && !keep.has(k))
+          .map((k) => caches.delete(k)),
       );
       await self.clients.claim();
     })(),
@@ -162,6 +169,20 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(req.url);
   if (url.origin !== self.location.origin) return; // Supabase, CDNs, etc.
   if (!url.pathname.startsWith(BASE_PATH)) return;
+
+  // Company install manifests and icons. Never the shared runtime cache,
+  // and never /overwatch/manifest.json.
+  const companyPwa = owCompanyPwa.matchCompanyPwaPath(url.pathname);
+  if (companyPwa) {
+    event.respondWith((async () => {
+      const cache = await caches.open(owCompanyPwa.companyCacheName(companyPwa.companyId));
+      const hit = (await cache.match(req)) || (await cache.match(url.pathname));
+      if (hit) return hit;
+      return new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain" } });
+    })());
+    return;
+  }
+
   if (url.pathname.startsWith(`${BASE_PATH}/api/`)) return;
   if (url.pathname.startsWith(`${BASE_PATH}/auth/`)) return;
   if (NEVER_CACHE.test(url.pathname)) return;

@@ -4,18 +4,13 @@ import { useEffect, useState, useCallback } from "react";
 import { Download, X, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
 /**
  * Floating install / update banner. On phones it sits ABOVE the bottom nav
  * (and respects the iOS home-indicator inset) so it never covers page content
  * or the nav itself. Dismiss is a 44×44 target.
+ * Install opens the company chooser. It does not install the shared manifest.
  */
 export function PwaInstallPrompt() {
-  const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showInstall, setShowInstall] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
 
@@ -25,12 +20,11 @@ export function PwaInstallPrompt() {
       if (captured) return;
       captured = true;
       e.preventDefault();
-      setDeferredPrompt(e as BeforeInstallPromptEvent);
       const dismissed = localStorage.getItem("pwa-install-dismissed");
       if (!dismissed) setShowInstall(true);
     };
     window.addEventListener("beforeinstallprompt", handler);
-    const installed = () => { setShowInstall(false); setDeferredPrompt(null); };
+    const installed = () => { setShowInstall(false); };
     window.addEventListener("appinstalled", installed);
     return () => {
       window.removeEventListener("beforeinstallprompt", handler);
@@ -63,13 +57,11 @@ export function PwaInstallPrompt() {
     return () => document.documentElement.classList.remove("ow-install-banner");
   }, [showInstall, showUpdate]);
 
-  const handleInstall = useCallback(async () => {
-    if (!deferredPrompt) return;
-    await deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === "accepted") setShowInstall(false);
-    setDeferredPrompt(null);
-  }, [deferredPrompt]);
+  const handleInstall = useCallback(() => {
+    // Company installs use their own manifest. The shared prompt would
+    // install the default Overwatch icon and is not used here.
+    window.location.assign(`${window.location.origin}/overwatch/install/`);
+  }, []);
 
   const handleDismiss = useCallback(() => {
     setShowInstall(false);
@@ -108,8 +100,8 @@ export function PwaInstallPrompt() {
             <Download className="h-4 w-4 text-primary" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-xs font-semibold">Install Overwatch</p>
-            <p className="text-[10px] text-muted-foreground truncate">Add to home screen for quick access</p>
+            <p className="text-xs font-semibold">Install a company app</p>
+            <p className="text-[10px] text-muted-foreground truncate">Choose the company for this home-screen icon</p>
           </div>
           <Button size="sm" className="h-9 min-w-[72px] text-xs shrink-0" onClick={handleInstall}>Install</Button>
           <button

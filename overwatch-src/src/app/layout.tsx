@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { FIELD_MODE_BOOT } from "@/lib/field-mode";
 import { companySurfaceHex, DEFAULT_BRAND } from "@/lib/brand-utils";
+import { PWA_LAUNCH_BOOT } from "@/lib/pwa-company-install";
 import { Oswald, Barlow } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { AppShell } from "@/components/app-shell";
@@ -84,6 +85,8 @@ export default function RootLayout({
       <head>
         {/* Field mode (large text) before first paint; see lib/field-mode.ts */}
         <script dangerouslySetInnerHTML={{ __html: FIELD_MODE_BOOT }} />
+        {/* Points an installed company app at its own manifest. Does not run a company switch. */}
+        <script dangerouslySetInnerHTML={{ __html: PWA_LAUNCH_BOOT }} />
         {/*
           NIST 800-171 §3.13 — Content Security Policy
 

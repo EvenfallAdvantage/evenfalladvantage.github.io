@@ -62,6 +62,7 @@ import {
   BookOpenCheck,
   Menu,
   ArrowRightLeft,
+  Download,
   Check,
   X,
   type LucideIcon,
@@ -231,6 +232,14 @@ export default function MorePage() {
               <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
             </button>
           )}
+          <Link
+            href="/install"
+            className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"
+          >
+            <Download className="h-[18px] w-[18px] text-muted-foreground" />
+            <span className="flex-1">Install company app</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground/40" />
+          </Link>
           <Link
             href="/join"
             className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors active:bg-accent"
