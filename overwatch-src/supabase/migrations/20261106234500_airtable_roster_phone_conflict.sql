@@ -16,9 +16,11 @@
 -- does not strip extensions, so 5551234567 and 5551234567x12 stay different.
 -- users_phone_key remains an exact btree on the stored text.
 --
--- Locks: every distinct digit key in the plan is try-locked in sorted order
--- before any membership row lock. try_lock does not wait. A key held by
--- another sync fails that row closed. Blocking locks in plan order can
+-- Locks: the caller's own membership row is locked first, for authorization.
+-- After that, every distinct digit key in the plan is try-locked in sorted
+-- order, before the per-target membership locks. A false try-lock is ignored
+-- there. The helper try-locks again when that row is processed and fails the
+-- row closed. try_lock does not wait. Blocking locks in plan order can
 -- deadlock opposite batches and wait until the other call commits.
 -- =============================================================================
 
@@ -41,8 +43,9 @@ $guard$;
 -- that account. Digits are not a canonical phone number: country codes and
 -- extensions are not removed. The existence check repeats regexp_replace on
 -- users.phone and can scan that table once per phone; there is no expression
--- index. A warm lookup of 4000 users measured about 1 ms. The caller try-locks
--- distinct digits in sorted order first.
+-- index. A warm lookup of 4000 users measured about 1 ms. The apply function
+-- try-locks sorted digits after the caller membership lock, then this helper
+-- try-locks again for the row.
 CREATE OR REPLACE FUNCTION public.airtable_roster_phone_to_store(
   p_user_id uuid,
   p_phone text
@@ -66,8 +69,8 @@ BEGIN
   END IF;
   -- Fail closed. A blocking lock would wait until the other sync commits,
   -- and locks taken in plan order deadlock when two batches use opposite
-  -- phone order. try_lock returns immediately. The caller also takes these
-  -- locks in sorted digit order before any membership row lock.
+  -- phone order. try_lock returns immediately. The apply function also
+  -- try-locks these digits in sorted order after the caller membership lock.
   IF NOT pg_catalog.pg_try_advisory_xact_lock(pg_catalog.hashtextextended('airtable-roster-phone:' || v_digits, 0)) THEN
     RAISE EXCEPTION 'Another roster sync is updating this phone. This row was not saved. Run the sync again.'
       USING ERRCODE = 'P0001';
@@ -235,8 +238,9 @@ BEGIN
     RAISE EXCEPTION 'Roster plan is too large' USING ERRCODE = '22023';
   END IF;
 
-  -- Sorted try-locks before any membership FOR UPDATE. False is remembered
-  -- by a second try in airtable_roster_phone_to_store, which fails that row.
+  -- Sorted try-locks after the caller membership lock above, and before
+  -- per-target membership locks. PERFORM discards a false result. The helper
+  -- try-locks again for each row and fails that row closed.
   FOR v_digits IN
     SELECT DISTINCT pg_catalog.regexp_replace(
       pg_catalog.left(pg_catalog.btrim(coalesce(phones.phone, '')), 200),

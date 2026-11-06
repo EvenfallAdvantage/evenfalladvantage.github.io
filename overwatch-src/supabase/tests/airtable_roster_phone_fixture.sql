@@ -134,3 +134,6 @@ $$;
 
 REVOKE ALL ON FUNCTION public.assert_mfa_for_company(uuid) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.assert_mfa_for_company(uuid) TO authenticated, service_role;
+
+-- Explicit schema usage so a denied helper call is EXECUTE, not schema access.
+GRANT USAGE ON SCHEMA public TO authenticated, anon;

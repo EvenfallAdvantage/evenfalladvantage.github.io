@@ -38,10 +38,13 @@ describe("Airtable roster phone conflict migration", () => {
     expect(apply).toMatch(/IF v_fail_create = 0 AND v_fail_attach = 0 AND v_fail_link = 0 AND v_fail_update = 0 THEN/);
     expect(apply).toMatch(/ORDER BY 1/);
     expect(apply).toMatch(/pg_try_advisory_xact_lock/);
+    expect(apply).not.toMatch(/before any membership/);
+    const callerLock = apply.indexOf("FOR UPDATE OF cm");
     const sortedLock = apply.indexOf("ORDER BY 1");
-    const firstRowLock = apply.indexOf("FOR UPDATE;");
-    expect(sortedLock).toBeGreaterThan(0);
-    expect(firstRowLock).toBeGreaterThan(sortedLock);
+    const targetLock = apply.indexOf("\n    FOR UPDATE;");
+    expect(callerLock).toBeGreaterThan(0);
+    expect(sortedLock).toBeGreaterThan(callerLock);
+    expect(targetLock).toBeGreaterThan(sortedLock);
     expect(apply).toMatch(/Airtable cannot remove an owner, admin, or manager/);
     expect(apply).toMatch(/role::text NOT IN \('owner', 'admin', 'manager'\)/);
   });

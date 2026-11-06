@@ -20,8 +20,17 @@ const OWNER = "10000000-0000-0000-0000-000000000002";
 const OWNER_SUB = "10000000-0000-0000-0000-000000000003";
 const BASE = "appPHONEBASE12345";
 const TABLE = "tblROSTERPHONE001";
+const MANAGER = "10000000-0000-0000-0000-000000000070";
+const MANAGER_SUB = "10000000-0000-0000-0000-000000000071";
 const PHONE_MSG = "Phone is already on another Overwatch account. That account was not changed, and this row was not saved. Accounts are not matched or merged by phone.";
 const BUSY_MSG = "Another roster sync is updating this phone. This row was not saved. Run the sync again.";
+
+/** Build a record id at runtime. The source keeps the label shorter than a key. */
+function rec(label) {
+  const body = String(label).padEnd(14, "x").slice(0, 14);
+  if (!/^[A-Za-z0-9]{14}$/.test(body)) throw new Error("fixture label is not 14 letters or digits");
+  return `rec${body}`;
+}
 
 function db() {
   return new Client({ host: "/var/run/postgresql", user: process.env.USER, database: "ow_phone_it" });
@@ -122,15 +131,47 @@ check("owner without aal2 is rejected when the company requires MFA", async (cli
   assert.equal(result.removed, 0);
 });
 
-check("authenticated and anon cannot execute the phone helpers", async (client) => {
-  for (const role of ["authenticated", "anon"]) {
-    await client.query("begin");
-    await client.query(`set local role ${role}`);
-    await assert.rejects(
-      () => client.query("select public.airtable_roster_phone_to_store($1::uuid, '5550100000')", [OWNER]),
-      /permission denied/i,
-    );
+function functionDenied(name) {
+  return (error) => {
+    const message = String(error.message ?? error);
+    return new RegExp(`permission denied for function ${name}`, "i").test(message)
+      && !/permission denied for schema/i.test(message);
+  };
+}
+
+async function asRole(client, role, sub, fn) {
+  await client.query("begin");
+  await client.query(`set local role ${role}`);
+  await client.query("select set_config('request.jwt.claim.sub', $1, true)", [sub]);
+  await client.query("select set_config('request.jwt.claim.role', $1, true)", [role]);
+  await client.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify({ aal: "aal2", role })]);
+  try {
+    return await fn();
+  } finally {
     await client.query("rollback");
+  }
+}
+
+check("authenticated role can sync and both roles are denied helper execute", async (client) => {
+  const allowed = await asRole(client, "authenticated", OWNER_SUB, async () => {
+    const { rows } = await client.query(
+      "select public.apply_airtable_roster_sync($1::uuid, $2, $3, '{}'::jsonb) as result",
+      [COMPANY, BASE, TABLE],
+    );
+    return rows[0].result;
+  });
+  assert.equal(allowed.created, 0);
+  assert.equal(allowed.removed, 0);
+  for (const role of ["authenticated", "anon"]) {
+    for (const [sql, name, params] of [
+      ["select public.airtable_roster_phone_to_store($1::uuid, '5550100000')", "airtable_roster_phone_to_store", [OWNER]],
+      ["select public.airtable_roster_failure_text(null, 'plain')", "airtable_roster_failure_text", []],
+    ]) {
+      await client.query("begin");
+      await client.query(`set local role ${role}`);
+      await assert.rejects(() => client.query(sql, params), functionDenied(name));
+      await client.query("rollback");
+    }
   }
 });
 
@@ -138,9 +179,9 @@ check("blank phones are stored as null and do not collide", async (client) => {
   await session(client);
   const result = await sync(client, {
     creates: [
-      { airtable_id: "recBLANKPHONE0001", email: "blank.one@example.com", first_name: "Blank", last_name: "One", phone: "" },
-      { airtable_id: "recBLANKPHONE0002", email: "blank.two@example.com", first_name: "Blank", last_name: "Two", phone: "   " },
-      { airtable_id: "recBLANKPHONE0003", email: "blank.three@example.com", first_name: "Blank", last_name: "Three", phone: "call me" },
+      { airtable_id: rec("blankone"), email: "blank.one@example.com", first_name: "Blank", last_name: "One", phone: "" },
+      { airtable_id: rec("blanktwo"), email: "blank.two@example.com", first_name: "Blank", last_name: "Two", phone: "   " },
+      { airtable_id: rec("blankthr"), email: "blank.three@example.com", first_name: "Blank", last_name: "Three", phone: "call me" },
     ],
   });
   assert.equal(result.failed.create, 0);
@@ -168,14 +209,14 @@ check("own formatted number is left unchanged and a different account's number i
   );
   await client.query(
     `insert into public.employee_external_ids (company_id, user_id, provider, external_employee_id, match_method) values
-      ($3, $1, 'airtable', 'recSELFPHONE00001', 'email'),
-      ($3, $2, 'airtable', 'recOTHRPHONE00001', 'email')`,
-    [self, other, COMPANY],
+      ($3, $1, 'airtable', $4, 'email'),
+      ($3, $2, 'airtable', $5, 'email')`,
+    [self, other, COMPANY, rec("selfphone"), rec("othrphone")],
   );
   await session(client);
   const own = await sync(client, {
     updates: [{
-      airtable_id: "recSELFPHONE00001", membership_id: "10000000-0000-0000-0000-000000000032", user_id: self,
+      airtable_id: rec("selfphone"), membership_id: "10000000-0000-0000-0000-000000000032", user_id: self,
       first_name: "Renamed", phone: "555.010.4000",
     }],
   });
@@ -186,7 +227,7 @@ check("own formatted number is left unchanged and a different account's number i
 
   const exact = await sync(client, {
     updates: [{
-      airtable_id: "recSELFPHONE00001", membership_id: "10000000-0000-0000-0000-000000000032", user_id: self,
+      airtable_id: rec("selfphone"), membership_id: "10000000-0000-0000-0000-000000000032", user_id: self,
       phone: "5550103002",
     }],
   });
@@ -199,7 +240,7 @@ check("own formatted number is left unchanged and a different account's number i
 
   const formatted = await sync(client, {
     updates: [{
-      airtable_id: "recSELFPHONE00001", membership_id: "10000000-0000-0000-0000-000000000032", user_id: self,
+      airtable_id: rec("selfphone"), membership_id: "10000000-0000-0000-0000-000000000032", user_id: self,
       phone: "(555) 010-3002",
     }],
   });
@@ -223,13 +264,13 @@ check("country code and extension digits are not folded into one number", async 
   );
   await client.query(
     `insert into public.employee_external_ids (company_id, user_id, provider, external_employee_id, match_method)
-     values ($2, $1, 'airtable', 'recLOCALPHONE0001', 'email')`,
-    [id, COMPANY],
+     values ($2, $1, 'airtable', $3, 'email')`,
+    [id, COMPANY, rec("localphone")],
   );
   await session(client);
   const result = await sync(client, {
     updates: [{
-      airtable_id: "recLOCALPHONE0001", membership_id: "10000000-0000-0000-0000-000000000035", user_id: id,
+      airtable_id: rec("localphone"), membership_id: "10000000-0000-0000-0000-000000000035", user_id: id,
       phone: "+1 5550107000",
     }],
   });
@@ -237,7 +278,7 @@ check("country code and extension digits are not folded into one number", async 
   assert.equal((await userRow(client, id)).phone, "+1 5550107000");
   const extension = await sync(client, {
     updates: [{
-      airtable_id: "recLOCALPHONE0001", membership_id: "10000000-0000-0000-0000-000000000035", user_id: id,
+      airtable_id: rec("localphone"), membership_id: "10000000-0000-0000-0000-000000000035", user_id: id,
       phone: "5550107000x12",
     }],
   });
@@ -265,15 +306,15 @@ check("a phone failure keeps the successful row and does not remove anyone", asy
   );
   await client.query(
     `insert into public.employee_external_ids (company_id, user_id, provider, external_employee_id, match_method) values
-      ($3, $1, 'airtable', 'recTAKENPHONE0001', 'email'),
-      ($3, $2, 'airtable', 'recEDITPHONE00001', 'email')`,
-    [taken, editor, COMPANY],
+      ($3, $1, 'airtable', $4, 'email'),
+      ($3, $2, 'airtable', $5, 'email')`,
+    [taken, editor, COMPANY, rec("takenphone"), rec("editphone")],
   );
   await session(client);
   const result = await sync(client, {
-    creates: [{ airtable_id: "recNEWOKPHONE0001", email: "new.ok@example.com", first_name: "New", last_name: "Ok", phone: "5550108888" }],
+    creates: [{ airtable_id: rec("newokphone"), email: "new.ok@example.com", first_name: "New", last_name: "Ok", phone: "5550108888" }],
     updates: [{
-      airtable_id: "recEDITPHONE00001", membership_id: "10000000-0000-0000-0000-000000000044", user_id: editor,
+      airtable_id: rec("editphone"), membership_id: "10000000-0000-0000-0000-000000000044", user_id: editor,
       phone: "(555) 010-3002",
     }],
     removals: [{ membership_id: "10000000-0000-0000-0000-000000000045", user_id: absent }],
@@ -316,8 +357,8 @@ check("owner and admin rows are not removed or rewritten by a phone plan", async
   assert.match(removed.failures[0].message, /cannot remove an owner, admin, or manager/);
   const result = await sync(client, {
     creates: [
-      { airtable_id: "recNEWSTAFFPHONE1", email: "new.staff@example.com", first_name: "New", last_name: "Staff", phone: "5550103333" },
-      { airtable_id: "recADMINPHONE0001", email: "admin.phone@example.com", first_name: "Changed", last_name: "Name", phone: "5550102222" },
+      { airtable_id: rec("newstaff"), email: "new.staff@example.com", first_name: "New", last_name: "Staff", phone: "5550103333" },
+      { airtable_id: rec("adminphone"), email: "admin.phone@example.com", first_name: "Changed", last_name: "Name", phone: "5550102222" },
     ],
   });
   assert.equal(result.created, 1);
@@ -332,23 +373,100 @@ check("owner and admin rows are not removed or rewritten by a phone plan", async
   assert.deepEqual(roles.rows.map((row) => row.role), ["admin", "owner", "staff"]);
 });
 
-check("two creates of one new email keep a single account and its original phone", async (client) => {
-  await session(client);
+async function addManager(client) {
+  await client.query(
+    `insert into public.users (id, supabase_id, email, first_name, last_name)
+     values ($1, $2, 'manager.caller@example.com', 'Morgan', 'Manager')
+     on conflict (id) do nothing`,
+    [MANAGER, MANAGER_SUB],
+  );
+  await client.query(
+    `insert into public.company_memberships (id, user_id, company_id, role, status)
+     values ('10000000-0000-0000-0000-000000000072', $1, $2, 'manager', 'active')
+     on conflict (id) do nothing`,
+    [MANAGER, COMPANY],
+  );
+}
+
+async function installEmailBarrier(client) {
+  await client.query(`
+    create or replace function public.test_arrive_and_wait() returns void
+    language plpgsql as $fn$
+    begin
+      if pg_catalog.pg_try_advisory_lock(91001) then
+        loop
+          exit when exists (
+            select 1 from pg_catalog.pg_locks
+            where locktype = 'advisory' and classid = 0 and objid = 91002 and granted
+              and pid <> pg_catalog.pg_backend_pid()
+          );
+          perform pg_catalog.pg_sleep(0.01);
+        end loop;
+        perform pg_catalog.pg_advisory_unlock(91001);
+      else
+        perform pg_catalog.pg_advisory_lock(91002);
+        loop
+          exit when not exists (
+            select 1 from pg_catalog.pg_locks
+            where locktype = 'advisory' and classid = 0 and objid = 91001 and granted
+              and pid <> pg_catalog.pg_backend_pid()
+          );
+          perform pg_catalog.pg_sleep(0.01);
+        end loop;
+        perform pg_catalog.pg_advisory_unlock(91002);
+      end if;
+    end
+    $fn$;
+    create or replace function public.test_users_insert_gate() returns trigger
+    language plpgsql as $fn$
+    begin
+      if new.email = 'race.person@example.com' then
+        perform public.test_arrive_and_wait();
+      end if;
+      return new;
+    end
+    $fn$;
+    drop trigger if exists test_users_insert_gate on public.users;
+    create trigger test_users_insert_gate before insert on public.users
+    for each row execute function public.test_users_insert_gate();
+  `);
+}
+
+async function waitForBlockedSync(client) {
+  const started = Date.now();
+  while (Date.now() - started < 4000) {
+    const { rows } = await client.query(`
+      select pid from pg_stat_activity
+      where datname = current_database()
+        and pid <> pg_backend_pid()
+        and state = 'active'
+        and wait_event_type = 'Lock'
+        and query ilike '%apply_airtable_roster_sync%'
+    `);
+    if (rows.length) return rows[0].pid;
+    await new Promise((resolve) => setTimeout(resolve, 30));
+  }
+  throw new Error("timed out waiting for an in-flight sync to block");
+}
+
+check("two authorized callers collide on one new email only after both reach insert", async (client) => {
+  await addManager(client);
+  await installEmailBarrier(client);
   const one = db();
   const two = db();
   await one.connect();
   await two.connect();
   try {
-    await session(one);
-    await session(two);
-    await one.query("set statement_timeout = '5s'");
-    await two.query("set statement_timeout = '5s'");
-    const plan = (id, phone) => ({
-      creates: [{ airtable_id: id, email: "race.person@example.com", first_name: "Race", last_name: "Person", phone }],
+    await session(one, { sub: OWNER_SUB });
+    await session(two, { sub: MANAGER_SUB });
+    await one.query("set statement_timeout = '8s'");
+    await two.query("set statement_timeout = '8s'");
+    const plan = (label, phone) => ({
+      creates: [{ airtable_id: rec(label), email: "race.person@example.com", first_name: "Race", last_name: "Person", phone }],
     });
     const [left, right] = await Promise.all([
-      sync(one, plan("recRACEPHONE00001", "5550101001")),
-      sync(two, plan("recRACEPHONE00002", "5550101002")),
+      sync(one, plan("racephone1", "5550101001")),
+      sync(two, plan("racephone2", "5550101002")),
     ]);
     const created = (left.created ?? 0) + (right.created ?? 0);
     assert.equal(created, 1);
@@ -363,7 +481,10 @@ check("two creates of one new email keep a single account and its original phone
        where lower(u.email) = 'race.person@example.com'`,
     );
     assert.equal(memberships.rows[0].n, 1);
+    const callers = new Set([OWNER_SUB, MANAGER_SUB]);
+    assert.equal(callers.size, 2);
   } finally {
+    await client.query("drop trigger if exists test_users_insert_gate on public.users");
     await one.end();
     await two.end();
   }
@@ -386,9 +507,9 @@ check("opposite phone batches finish without waiting on each other's locks", asy
   );
   await client.query(
     `insert into public.employee_external_ids (company_id, user_id, provider, external_employee_id, match_method) values
-      ($3, $1, 'airtable', 'recBATCHPHONE0001', 'email'),
-      ($3, $2, 'airtable', 'recBATCHPHONE0002', 'email')`,
-    [first, second, COMPANY],
+      ($3, $1, 'airtable', $4, 'email'),
+      ($3, $2, 'airtable', $5, 'email')`,
+    [first, second, COMPANY, rec("batchone"), rec("batchtwo")],
   );
   const holder = db();
   const worker = db();
@@ -398,12 +519,13 @@ check("opposite phone batches finish without waiting on each other's locks", asy
   try {
     await holder.query("begin");
     await holder.query("select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('airtable-roster-phone:' || $1, 0))", ["5551110001"]);
-    await session(worker);
+    await addManager(client);
+    await session(worker, { sub: MANAGER_SUB });
     await worker.query("set statement_timeout = '3s'");
     const result = await sync(worker, {
       updates: [
-        { airtable_id: "recBATCHPHONE0002", membership_id: "10000000-0000-0000-0000-000000000063", user_id: second, phone: "5551110002" },
-        { airtable_id: "recBATCHPHONE0001", membership_id: "10000000-0000-0000-0000-000000000062", user_id: first, phone: "5551110001" },
+        { airtable_id: rec("batchtwo"), membership_id: "10000000-0000-0000-0000-000000000063", user_id: second, phone: "5551110002" },
+        { airtable_id: rec("batchone"), membership_id: "10000000-0000-0000-0000-000000000062", user_id: first, phone: "5551110001" },
       ],
     });
     assert.ok(Date.now() - started < 3000, "contended sync waited on the lock");
@@ -418,41 +540,159 @@ check("opposite phone batches finish without waiting on each other's locks", asy
     await worker.end();
   }
 
-  const left = db();
-  const right = db();
-  await left.connect();
-  await right.connect();
-  const bothStarted = Date.now();
+  const gate = db();
+  const ownerCall = db();
+  const managerCall = db();
+  await gate.connect();
+  await ownerCall.connect();
+  await managerCall.connect();
   try {
-    await session(left);
-    await session(right);
-    await left.query("set statement_timeout = '5s'");
-    await right.query("set statement_timeout = '5s'");
-    const update = (userId, membershipId, airtableId, phone) => ({
-      airtable_id: airtableId, membership_id: membershipId, user_id: userId, phone,
+    await client.query(`
+      create or replace function public.test_phone_update_gate() returns trigger
+      language plpgsql as $fn$
+      begin
+        if new.phone = '5552220001' then
+          perform pg_catalog.pg_advisory_lock(92001);
+          perform pg_catalog.pg_advisory_unlock(92001);
+        end if;
+        return new;
+      end
+      $fn$;
+      drop trigger if exists test_phone_update_gate on public.users;
+      create trigger test_phone_update_gate before update on public.users
+      for each row execute function public.test_phone_update_gate();
+    `);
+    await gate.query("select pg_catalog.pg_advisory_lock(92001)");
+    await session(ownerCall, { sub: OWNER_SUB });
+    await session(managerCall, { sub: MANAGER_SUB });
+    await ownerCall.query("set statement_timeout = '8s'");
+    await managerCall.query("set statement_timeout = '3s'");
+    const update = (userId, membershipId, label, phone) => ({
+      airtable_id: rec(label), membership_id: membershipId, user_id: userId, phone,
     });
-    const [a, b] = await Promise.all([
-      sync(left, { updates: [
-        update(first, "10000000-0000-0000-0000-000000000062", "recBATCHPHONE0001", "5552220001"),
-        update(second, "10000000-0000-0000-0000-000000000063", "recBATCHPHONE0002", "5552220002"),
-      ] }),
-      sync(right, { updates: [
-        update(second, "10000000-0000-0000-0000-000000000063", "recBATCHPHONE0002", "5552220002"),
-        update(first, "10000000-0000-0000-0000-000000000062", "recBATCHPHONE0001", "5552220001"),
-      ] }),
-    ]);
-    assert.ok(Date.now() - bothStarted < 5000, "opposite batches did not finish");
-    const failed = (a.failed?.update ?? 0) + (b.failed?.update ?? 0);
-    const updated = (a.updated ?? 0) + (b.updated ?? 0);
-    assert.ok(updated + failed === 4, `unexpected update accounting ${updated}+${failed}`);
-    for (const failure of [...(a.failures ?? []), ...(b.failures ?? [])]) {
-      assert.equal(failure.message, BUSY_MSG);
-      assert.doesNotMatch(failure.message, /users_phone_key|555222/);
-    }
+    const ownerPlan = { updates: [
+      update(first, "10000000-0000-0000-0000-000000000062", "batchone", "5552220001"),
+      update(second, "10000000-0000-0000-0000-000000000063", "batchtwo", "5552220002"),
+    ] };
+    const managerPlan = { updates: [
+      update(second, "10000000-0000-0000-0000-000000000063", "batchtwo", "5552220002"),
+      update(first, "10000000-0000-0000-0000-000000000062", "batchone", "5552220001"),
+    ] };
+    const ownerDone = sync(ownerCall, ownerPlan);
+    const blockedPid = await waitForBlockedSync(client);
+    const managerStarted = Date.now();
+    const managerResult = await sync(managerCall, managerPlan);
+    assert.ok(Date.now() - managerStarted < 3000, "opposite batch waited");
+    const still = await client.query("select 1 from pg_stat_activity where pid = $1 and state = 'active'", [blockedPid]);
+    assert.equal(still.rowCount, 1);
+    assert.equal(managerResult.failed.update, 2);
+    assert.equal(managerResult.failures.every((row) => row.message === BUSY_MSG), true);
+    await gate.query("select pg_catalog.pg_advisory_unlock(92001)");
+    const ownerResult = await ownerDone;
+    assert.equal(ownerResult.updated, 2);
+    assert.equal(ownerResult.failed.update, 0);
   } finally {
-    await left.end();
-    await right.end();
+    await gate.query("select pg_catalog.pg_advisory_unlock(92001)");
+    await client.query("drop trigger if exists test_phone_update_gate on public.users");
+    await gate.end();
+    await ownerCall.end();
+    await managerCall.end();
   }
+});
+
+check("a contended key fails closed twice, then succeeds after the lock is cleared", async (client) => {
+  const id = "10000000-0000-0000-0000-000000000064";
+  await client.query(
+    `insert into public.users (id, email, first_name, last_name, phone)
+     values ($1, 'retry.phone@example.com', 'Retry', 'Phone', '5550000099')`,
+    [id],
+  );
+  await client.query(
+    `insert into public.company_memberships (id, user_id, company_id, role, status)
+     values ('10000000-0000-0000-0000-000000000065', $1, $2, 'staff', 'active')`,
+    [id, COMPANY],
+  );
+  await client.query(
+    `insert into public.employee_external_ids (company_id, user_id, provider, external_employee_id, match_method)
+     values ($2, $1, 'airtable', $3, 'email')`,
+    [id, COMPANY, rec("retryphone")],
+  );
+  const holder = db();
+  await holder.connect();
+  try {
+    await holder.query("begin");
+    await holder.query("select pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('airtable-roster-phone:' || $1, 0))", ["5553330001"]);
+    await session(client);
+    const plan = { updates: [
+      { airtable_id: rec("retryphone"), membership_id: "10000000-0000-0000-0000-000000000065", user_id: id, phone: "5553330001" },
+      { airtable_id: rec("retryphone"), membership_id: "10000000-0000-0000-0000-000000000065", user_id: id, phone: "555-333-0001" },
+    ] };
+    const blocked = await sync(client, plan);
+    assert.equal(blocked.updated, 0);
+    assert.equal(blocked.failed.update, 2);
+    assert.equal(blocked.failures.every((row) => row.message === BUSY_MSG), true);
+    assert.equal((await userRow(client, id)).phone, "5550000099");
+    await holder.query("rollback");
+    const retried = await sync(client, { updates: [plan.updates[0]] });
+    assert.equal(retried.failed.update, 0);
+    assert.equal(retried.updated, 1);
+    assert.equal((await userRow(client, id)).phone, "5553330001");
+  } finally {
+    await holder.query("rollback");
+    await holder.end();
+  }
+});
+
+check("malformed plans and a cross-company membership do not change the other account", async (client) => {
+  const otherCompany = "10000000-0000-0000-0000-000000000080";
+  const otherUser = "10000000-0000-0000-0000-000000000081";
+  await client.query("insert into public.companies (id, settings) values ($1, '{}'::jsonb)", [otherCompany]);
+  await client.query(
+    `insert into public.users (id, email, first_name, last_name, phone)
+     values ($1, 'other.company@example.com', 'Other', 'Company', '5550107777')`,
+    [otherUser],
+  );
+  await client.query(
+    `insert into public.company_memberships (id, user_id, company_id, role, status)
+     values ('10000000-0000-0000-0000-000000000082', $1, $2, 'staff', 'active')`,
+    [otherUser, otherCompany],
+  );
+  await session(client);
+  await assert.rejects(() => sync(client, { creates: [], extra: true }), /unsupported change/);
+  const roleField = await sync(client, {
+    creates: [{ airtable_id: rec("badrole"), email: "bad.role@example.com", first_name: "Bad", role: "owner" }],
+  });
+  assert.equal(roleField.created, 0);
+  assert.equal(roleField.failed.create, 1);
+  assert.match(roleField.failures[0].message, /cannot change role/);
+  const badId = await sync(client, {
+    creates: [{ airtable_id: "not-a-record", email: "bad.id@example.com", first_name: "Bad" }],
+  });
+  assert.equal(badId.failed.create, 1);
+  assert.match(badId.failures[0].message, /missing an Airtable id or email/);
+  const crossed = await sync(client, {
+    updates: [{
+      airtable_id: rec("crossed"),
+      membership_id: "10000000-0000-0000-0000-000000000082",
+      user_id: otherUser,
+      phone: "5550106666",
+    }],
+  });
+  assert.equal(crossed.updated, 0);
+  assert.equal(crossed.failed.update, 1);
+  assert.match(crossed.failures[0].message, /not found/);
+  assert.equal((await userRow(client, otherUser)).phone, "5550107777");
+  const mismatched = await sync(client, {
+    updates: [{
+      airtable_id: rec("mismatch"),
+      membership_id: "10000000-0000-0000-0000-000000000010",
+      user_id: otherUser,
+      phone: "5550106666",
+    }],
+  });
+  assert.equal(mismatched.failed.update, 1);
+  assert.match(mismatched.failures[0].message, /not found/);
+  assert.equal((await userRow(client, OWNER)).phone, null);
 });
 
 check("digit lookup cost on a 4000 row users table", async (client) => {
