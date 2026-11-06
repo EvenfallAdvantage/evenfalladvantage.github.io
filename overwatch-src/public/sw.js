@@ -172,18 +172,6 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return; // Supabase, CDNs, etc.
   if (!url.pathname.startsWith(BASE_PATH)) return;
 
-  // On the company install document, the shared manifest and the EA favicon
-  // must not be what the install dialog reads if this company's cache is ready.
-  if (
-    url.pathname === `${BASE_PATH}/manifest.json` ||
-    url.pathname === `${BASE_PATH}/favicon.png` ||
-    url.pathname === `${BASE_PATH}/images/apple-touch-icon.png` ||
-    url.pathname.startsWith(`${BASE_PATH}/images/icon-`)
-  ) {
-    event.respondWith(serveInstallDocumentBrand(event, req, url));
-    return;
-  }
-
   // Company install manifests and icons. Cache only: a miss is 404.
   // Do not fetch the network and do not substitute /overwatch/manifest.json.
   // An uncontrolled document would otherwise store that response and the
@@ -236,43 +224,6 @@ self.addEventListener("fetch", (event) => {
 
   event.respondWith(staleWhileRevalidate(event, req, RUNTIME_CACHE));
 });
-
-async function installDocumentCompanyId(event) {
-  const candidates = [];
-  if (event.clientId) {
-    const client = await self.clients.get(event.clientId);
-    if (client) candidates.push(client.url);
-  }
-  if (event.request.referrer) candidates.push(event.request.referrer);
-  for (const candidate of candidates) {
-    const id = owCompanyPwa.installCompanyIdFromUrl(candidate);
-    if (id) return id;
-  }
-  return null;
-}
-
-async function serveInstallDocumentBrand(event, req, url) {
-  const companyId = await installDocumentCompanyId(event);
-  if (!companyId) return staleWhileRevalidate(event, req, RUNTIME_CACHE);
-  const cache = await caches.open(owCompanyPwa.companyCacheName(companyId));
-  if (url.pathname === `${BASE_PATH}/manifest.json`) {
-    const hit = (await cache.match(`${BASE_PATH}/pwa/${companyId}/manifest.webmanifest`));
-    if (hit) {
-      const text = await hit.clone().text();
-      if (owCompanyPwa.manifestBodyMatchesCompany(text, companyId)) return hit;
-    }
-    // Do not hand the dialog the shared Overwatch manifest for this document.
-    return new Response("Not found", {
-      status: 404,
-      headers: { "Content-Type": "text/plain", "Cache-Control": "no-store" },
-    });
-  }
-  const iconName = url.pathname.includes("512") ? "icon-512.png" : "icon-192.png";
-  const icon = await cache.match(`${BASE_PATH}/pwa/${companyId}/${iconName}`)
-    || await cache.match(`${BASE_PATH}/pwa/${companyId}/icon-192.png`);
-  if (icon) return icon;
-  return staleWhileRevalidate(event, req, RUNTIME_CACHE);
-}
 
 // ── Strategies ─────────────────────────────────────────────────────────────
 // Each strategy registers its background cache write with event.waitUntil()

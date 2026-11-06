@@ -213,6 +213,30 @@ export function launchSessionMayRetargetManifest(pathname: string): boolean {
   return !isInstallDocumentPath(pathname);
 }
 
+/** Set before the one navigation that publishes the company manifest. */
+export const INSTALL_CONTROL_ONCE_KEY = "overwatch:pwa-install-control-once";
+
+/**
+ * An uncontrolled install document must not publish the company manifest URL:
+ * the browser would request it from the network and keep the Overwatch fallback.
+ * One navigation after the cache is stored and a worker is active is controlled.
+ * An empty cache does not navigate. A second attempt does not loop.
+ */
+export function shouldReplaceForControl(input: {
+  pathname: string;
+  companyId: string | null;
+  hasController: boolean;
+  cacheReady: boolean;
+  alreadyReplaced: boolean;
+}): boolean {
+  if (!isInstallDocumentPath(input.pathname)) return false;
+  if (!isUuid(input.companyId)) return false;
+  if (input.hasController) return false;
+  if (!input.cacheReady) return false;
+  if (input.alreadyReplaced) return false;
+  return true;
+}
+
 /**
  * Inline head script. Runs while the document is parsing.
  *
@@ -222,9 +246,10 @@ export function launchSessionMayRetargetManifest(pathname: string): boolean {
  * (name "Overwatch"). The manifest spec does allow a page to replace the
  * link (https://www.w3.org/TR/appmanifest/, internationalization considerations).
  * This script does not depend on that replacement winning: the exported
- * install document has no manifest link (scripts/strip-install-manifest.mjs),
- * and the href is set before the new link is connected. A shared link added
- * later, while ?company= is a uuid, is removed. Other pages keep their link.
+ * install document has no manifest link (scripts/strip-install-manifest.mjs).
+ * The company URL is inserted only when this document already has a
+ * controlling service worker, so the browser's own manifest fetch is not a
+ * network 404. Other pages keep their link.
  *
  * Marker ow-install-manifest is how the export check finds this script.
  */
@@ -256,45 +281,14 @@ export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
     }
     return found;
   }
-  function setMeta(name, content){
-    var metas=document.getElementsByTagName("meta");
-    var found=null;
-    for(var i=0;i<metas.length;i++){
-      if((metas[i].getAttribute("name")||"").toLowerCase()===name)found=metas[i];
-    }
-    if(!found){
-      found=document.createElement("meta");
-      found.setAttribute("name",name);
-      (document.head||document.documentElement).appendChild(found);
-    }
-    found.setAttribute("content",content);
+  function controlling(){
+    try{return !!(navigator.serviceWorker&&navigator.serviceWorker.controller);}catch(e){return false;}
   }
-  function applyInstallIdentity(id){
-    document.title="Company app";
-    setMeta("apple-mobile-web-app-title","Company app");
-    setMeta("application-name","Company app");
-    if(typeof caches==="undefined"||!caches.open)return;
-    caches.open("overwatch-company-"+id).then(function(cache){
-      return cache.match(companyHref(id));
-    }).then(function(res){
-      return res?res.json():null;
-    }).then(function(body){
-      if(!body||body.id!=="/overwatch/pwa/"+id+"/"||typeof body.name!=="string"||!body.name)return;
-      document.title=body.name;
-      setMeta("apple-mobile-web-app-title",body.name);
-      setMeta("application-name",body.name);
-      var src="";
-      var icons=body.icons||[];
-      for(var i=0;i<icons.length;i++){
-        if(icons[i]&&typeof icons[i].src==="string"&&icons[i].src.indexOf("/overwatch/pwa/"+id+"/")===0){src=icons[i].src;break;}
-      }
-      if(!src)return;
-      var links=document.getElementsByTagName("link");
-      for(var j=0;j<links.length;j++){
-        var rel=(links[j].getAttribute("rel")||"").toLowerCase();
-        if(rel==="icon"||rel==="apple-touch-icon")links[j].setAttribute("href",src);
-      }
-    }).catch(function(){});
+  function removeManifests(){
+    var links=manifestLinks();
+    for(var i=0;i<links.length;i++){
+      if(links[i].parentNode)links[i].parentNode.removeChild(links[i]);
+    }
   }
   function setOnly(href){
     var links=manifestLinks();
@@ -318,7 +312,7 @@ export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
     var search=location.search||"";
     if(isInstall(path)){
       var chosen=param(search,${JSON.stringify(INSTALL_QUERY)});
-      if(chosen&&UUID.test(chosen))return companyHref(chosen);
+      if(chosen&&UUID.test(chosen))return controlling()?companyHref(chosen):"strip";
       return SHARED;
     }
     var launch=param(search,${JSON.stringify(LAUNCH_QUERY)});
@@ -335,10 +329,19 @@ export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
   try{
     var href=desired();
     if(!href)return;
-    setOnly(href);
     var path=location.pathname||"";
     var chosen=param(location.search||"",${JSON.stringify(INSTALL_QUERY)});
-    if(!isInstall(path)||!chosen||!UUID.test(chosen)||typeof MutationObserver!=="function"||!document.head)return;
+    var companyInstall=isInstall(path)&&chosen&&UUID.test(chosen);
+    if(href==="strip"){
+      removeManifests();
+      if(companyInstall&&typeof MutationObserver==="function"&&document.head){
+        var stripObs=new MutationObserver(function(){ if(manifestLinks().length)removeManifests(); });
+        stripObs.observe(document.head,{childList:true,subtree:true,attributes:true,attributeFilter:["href","rel"]});
+      }
+      return;
+    }
+    setOnly(href);
+    if(!companyInstall||typeof MutationObserver!=="function"||!document.head)return;
     var lock=companyHref(chosen);
     var obs=new MutationObserver(function(){
       var links=manifestLinks();
@@ -346,6 +349,5 @@ export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
       setOnly(lock);
     });
     obs.observe(document.head,{childList:true,subtree:true,attributes:true,attributeFilter:["href","rel"]});
-    try{applyInstallIdentity(chosen.toLowerCase());}catch(e2){}
   }catch(e){}
 })();`;

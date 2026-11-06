@@ -14,8 +14,10 @@ import {
   companyCacheName,
   companyInstallPath,
   companyManifestPath,
+  INSTALL_CONTROL_ONCE_KEY,
   installCompanyIdFromSearch,
   installableCompanies,
+  shouldReplaceForControl,
   isInstallDocumentPath,
   launchSessionMayRetargetManifest,
   resolveLaunchCompany,
@@ -63,7 +65,6 @@ function loadSwHelpers() {
     matchCompanyPwaPath: (pathname: string) => { companyId: string; file: string } | null;
     shouldPreserveCompanyCache: (name: string) => boolean;
     iconSrcAllowedForCompany: (src: string, companyId: string) => boolean;
-    installCompanyIdFromUrl: (url: string) => string | null;
     manifestBodyMatchesCompany: (text: string, companyId: string) => boolean;
   };
 }
@@ -142,7 +143,7 @@ describe("launch boot script", () => {
     setAttribute: (name: string, value: string) => void;
   };
 
-  function run(href: string, session: Record<string, string> = {}, options?: { links?: { rel: string; href: string }[]; observe?: boolean }) {
+  function run(href: string, session: Record<string, string> = {}, options?: { links?: { rel: string; href: string }[]; observe?: boolean; controlling?: boolean }) {
     const store = new Map(Object.entries(session));
     const observers: Array<() => void> = [];
     const head: { children: LinkEl[]; insertBefore: (node: LinkEl, before: LinkEl | null) => void; removeChild: (node: LinkEl) => void } = {
@@ -197,6 +198,7 @@ describe("launch boot script", () => {
       },
       decodeURIComponent,
       queueMicrotask,
+      navigator: { serviceWorker: { controller: options?.controlling ? {} : null } },
     };
     if (options?.observe !== false) {
       sandbox.MutationObserver = class {
@@ -224,14 +226,20 @@ describe("launch boot script", () => {
     expect(stayed.manifests()).toEqual([companyManifestPath(A)]);
     expect(stayed.session[LAUNCH_SESSION_KEY]).toBe(A);
 
-    const installing = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${B}`, { [LAUNCH_SESSION_KEY]: A });
+    const uncontrolled = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${B}`, { [LAUNCH_SESSION_KEY]: A });
+    expect(uncontrolled.manifests()).toEqual([]);
+    expect(uncontrolled.session[LAUNCH_SESSION_KEY]).toBe(A);
+
+    const installing = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${B}`, { [LAUNCH_SESSION_KEY]: A }, { controlling: true });
     expect(installing.manifests()).toEqual([companyManifestPath(B)]);
     expect(installing.session[LAUNCH_SESSION_KEY]).toBe(A);
     expect(installing.manifests().some((href) => href === SHARED_MANIFEST_PATH)).toBe(false);
   });
 
-  it("inserts the company manifest when the install document has no link yet", () => {
-    const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [] });
+  it("inserts the company manifest only when the install document is controlled", () => {
+    const uncontrolled = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [] });
+    expect(uncontrolled.manifests()).toEqual([]);
+    const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [], controlling: true });
     expect(result.manifests()).toEqual([companyManifestPath(A)]);
   });
 
@@ -245,7 +253,7 @@ describe("launch boot script", () => {
   });
 
   it("drops a shared link added after the company install link", async () => {
-    const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [] });
+    const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [], controlling: true });
     expect(result.manifests()).toEqual([companyManifestPath(A)]);
     result.addManifest(SHARED_MANIFEST_PATH);
     await result.flush();
@@ -279,12 +287,30 @@ describe("install navigation", () => {
     expect(buildCompanyManifest([bravo], A, false)).toBeNull();
   });
 
-  it("does not reload the install page while waiting for a worker", () => {
+  it("navigates once for control only after the company cache exists", () => {
+    const base = {
+      pathname: "/overwatch/install/",
+      companyId: A,
+      hasController: false,
+      cacheReady: true,
+      alreadyReplaced: false,
+    };
+    expect(shouldReplaceForControl(base)).toBe(true);
+    expect(shouldReplaceForControl({ ...base, hasController: true })).toBe(false);
+    expect(shouldReplaceForControl({ ...base, cacheReady: false })).toBe(false);
+    expect(shouldReplaceForControl({ ...base, alreadyReplaced: true })).toBe(false);
+    expect(shouldReplaceForControl({ ...base, companyId: null })).toBe(false);
+    expect(shouldReplaceForControl({ ...base, pathname: "/overwatch/" })).toBe(false);
+    expect(INSTALL_CONTROL_ONCE_KEY).toBe("overwatch:pwa-install-control-once");
+  });
+
+  it("publishes the company manifest with one navigation after the worker is active", () => {
     const page = fs.readFileSync(path.join(rootDir, "src/app/install/page.tsx"), "utf8");
     expect(page).not.toContain("location.reload");
-    expect(page).not.toContain("location.replace");
-    expect(page).toContain("finalizeCompanyInstallInBrowser");
+    expect(page).toContain("shouldReplaceForControl");
+    expect(page).toContain("waitForActiveServiceWorker");
     expect(page).toContain("location.assign");
+    expect(page).not.toContain("Company app");
   });
 });
 
@@ -301,10 +327,6 @@ describe("service worker company cache separation", () => {
     expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${A}/icon-192.png`, A)).toBe(true);
     expect(api.iconSrcAllowedForCompany("/overwatch/images/icon-512.png", A)).toBe(true);
     expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${B}/icon-512.png`, A)).toBe(false);
-    expect(api.installCompanyIdFromUrl(`https://www.evenfalladvantage.com/overwatch/install/?company=${A.toUpperCase()}&x=1`)).toBe(A);
-    expect(api.installCompanyIdFromUrl(`https://www.evenfalladvantage.com/overwatch/install/?company=${B}`)).toBe(B);
-    expect(api.installCompanyIdFromUrl("https://www.evenfalladvantage.com/overwatch/")).toBeNull();
-    expect(api.installCompanyIdFromUrl("https://www.evenfalladvantage.com/overwatch/install/?company=not-a-uuid")).toBeNull();
     const branded = buildCompanyManifest([alpha], A, true)!;
     expect(api.manifestBodyMatchesCompany(JSON.stringify(branded.body), A)).toBe(true);
     expect(api.manifestBodyMatchesCompany(JSON.stringify({ ...branded.body, id: `/overwatch/pwa/${B}/` }), A)).toBe(false);
@@ -327,12 +349,8 @@ describe("service worker company cache separation", () => {
     expect(block).not.toContain("fetch(");
     expect(block).not.toContain("manifest.json");
     expect(block).toContain("owCompanyPwa.manifestBodyMatchesCompany");
-    expect(sw).toContain("serveInstallDocumentBrand");
-    expect(sw).toContain("installCompanyIdFromUrl");
-    const brandAt = sw.indexOf("serveInstallDocumentBrand");
-    const sharedManifestAt = sw.indexOf("event.respondWith(staleWhileRevalidate");
-    expect(brandAt).toBeGreaterThan(0);
-    expect(brandAt).toBeLessThan(sharedManifestAt);
+    expect(sw).not.toContain("serveInstallDocumentBrand");
+    expect(sw).not.toContain("installCompanyIdFromUrl");
     expect(sw).toContain("`${BASE_PATH}/install/`");
   });
 

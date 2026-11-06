@@ -160,13 +160,38 @@ async function readResponse(response: Promise<Response>): Promise<{ status: numb
   }
 }
 
-/**
- * Proves the service worker will serve this company's cached manifest and icons.
- * The company URL is fetched only after the cache entries exist and this
- * document is controlled. One AbortSignal covers that wait and every proving
- * fetch, so a hung request cannot leave Install busy. `cache: "no-store"`
- * keeps an earlier network 404 from answering. Failure does not navigate.
- */
+/** Active worker only. Does not fetch the company manifest from this document. */
+export async function waitForActiveServiceWorker(ms: number = COMPANY_INSTALL_READY_MS): Promise<boolean> {
+  if (typeof navigator === "undefined" || !("serviceWorker" in navigator)) return false;
+  const budget = startInstallBudget(ms);
+  try {
+    await settleWithSignal(
+      navigator.serviceWorker.register("/overwatch/sw.js", { scope: "/overwatch/" }),
+      budget.signal,
+    );
+    await settleWithSignal(navigator.serviceWorker.ready, budget.signal);
+    const registration = await navigator.serviceWorker.getRegistration();
+    return Boolean(registration?.active);
+  } catch {
+    return false;
+  } finally {
+    budget.stop();
+  }
+}
+
+export async function companyManifestIsCached(companyId: string): Promise<boolean> {
+  if (typeof caches === "undefined") return false;
+  try {
+    const cache = await caches.open(`overwatch-company-${companyId.toLowerCase()}`);
+    const hit = await cache.match(new URL(`/overwatch/pwa/${companyId.toLowerCase()}/manifest.webmanifest`, location.origin).toString());
+    if (!hit) return false;
+    const body = await hit.json() as { id?: string };
+    return body.id === `/overwatch/pwa/${companyId.toLowerCase()}/`;
+  } catch {
+    return false;
+  }
+}
+
 export async function finalizeCompanyInstallInBrowser(
   built: BuiltCompanyManifest,
   icons: { path: string; blob: Blob }[],

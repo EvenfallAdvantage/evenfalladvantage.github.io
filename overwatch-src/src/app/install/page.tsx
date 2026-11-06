@@ -6,18 +6,22 @@ import { Download } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
 import {
+  INSTALL_CONTROL_ONCE_KEY,
   INSTALL_QUERY,
   activeMembership,
   approvedLogoUrl,
   buildCompanyManifest,
+  companyInstallPath,
   companyManifestPath,
+  installCompanyIdFromSearch,
   installableCompanies,
+  shouldReplaceForControl,
   type InstallMembership,
 } from "@/lib/pwa-company-install";
 import { companySurfaceHex, DEFAULT_BRAND } from "@/lib/brand-utils";
 import { rasterizeCompanyIcons } from "@/lib/pwa-company-raster";
-import { finalizeCompanyInstallInBrowser, writeCompanyCacheInBrowser } from "@/lib/pwa-company-browser";
-import { companyInstallUrlIfVerified, INSTALL_TIMEOUT_MESSAGE } from "@/lib/pwa-company-finalize";
+import { companyManifestIsCached, waitForActiveServiceWorker, writeCompanyCacheInBrowser } from "@/lib/pwa-company-browser";
+import { INSTALL_TIMEOUT_MESSAGE, INSTALL_WORKER_MESSAGE } from "@/lib/pwa-company-finalize";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -45,6 +49,48 @@ function InstallScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
+  const [readyToInstall, setReadyToInstall] = useState(false);
+
+  useEffect(() => {
+    const companyId = installCompanyIdFromSearch(window.location.search);
+    if (!companyId) return;
+    let cancelled = false;
+    void (async () => {
+      await Promise.resolve();
+      if (cancelled) return;
+      const controlled = Boolean(navigator.serviceWorker?.controller);
+      if (controlled) {
+        try { sessionStorage.removeItem(INSTALL_CONTROL_ONCE_KEY); } catch { /* private mode */ }
+        setReadyToInstall(true);
+        return;
+      }
+      setReadyToInstall(false);
+      const cacheReady = await companyManifestIsCached(companyId);
+      let alreadyReplaced = false;
+      try { alreadyReplaced = sessionStorage.getItem(INSTALL_CONTROL_ONCE_KEY) === companyId; } catch { alreadyReplaced = true; }
+      if (!shouldReplaceForControl({
+        pathname: window.location.pathname,
+        companyId,
+        hasController: false,
+        cacheReady,
+        alreadyReplaced,
+      })) {
+        if (!cacheReady && !cancelled) {
+          setNote("This company app is not stored in this browser yet. Press Install, then use the browser menu on the page that opens.");
+        }
+        return;
+      }
+      const active = await waitForActiveServiceWorker();
+      if (cancelled) return;
+      if (!active) {
+        setNote(INSTALL_WORKER_MESSAGE);
+        return;
+      }
+      try { sessionStorage.setItem(INSTALL_CONTROL_ONCE_KEY, companyId); } catch { /* private mode */ }
+      window.location.replace(window.location.href);
+    })();
+    return () => { cancelled = true; };
+  }, [requested]);
 
   useEffect(() => {
     const onPrompt = (event: Event) => {
@@ -97,15 +143,20 @@ function InstallScreen() {
       return;
     }
     await writeCompanyCacheInBrowser(built, useLogo ? icons : []);
-    const verified = await finalizeCompanyInstallInBrowser(built, useLogo ? icons : []);
-    const next = companyInstallUrlIfVerified(verified, built.companyId);
-    if (!verified.ok || !next) {
+    const active = await waitForActiveServiceWorker();
+    if (!active) {
       setBusy(null);
-      setNote(verified.ok ? "The company manifest could not be confirmed. Stay on this page and press Install again." : verified.message);
+      setNote(INSTALL_WORKER_MESSAGE);
       return;
     }
-    // One same-tab navigation, and only after the worker served this company's
-    // cached manifest and icons. No reload loop and no shared-manifest fallback.
+    // The next document is controlled by the active worker, so its parser can
+    // request the company manifest. This page does not fetch that URL first.
+    const next = companyInstallPath(built.companyId);
+    if (navigator.serviceWorker.controller && window.location.pathname.endsWith("/install/") && installCompanyIdFromSearch(window.location.search) === built.companyId) {
+      setBusy(null);
+      setReadyToInstall(true);
+      return;
+    }
     window.location.assign(new URL(next, window.location.origin).toString());
   }
 
@@ -131,7 +182,7 @@ function InstallScreen() {
             The saved name, icon, and start link stay on this company. The browser menu on this page reads that saved manifest. An Android home-screen app keeps its current name and icon until Chrome refreshes that install, or you remove the icon and install again from this page.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
-            {prompt && (
+            {readyToInstall && prompt && (
               <Button type="button" onClick={() => void prompt.prompt()}>
                 <Download className="mr-1.5 h-4 w-4" aria-hidden="true" />
                 Add {chosen.companyName}
@@ -141,11 +192,15 @@ function InstallScreen() {
               {busy === chosen.companyId ? "Saving…" : "Save icon again"}
             </Button>
           </div>
+          {readyToInstall ? (
           <ol className="mt-3 list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
             <li>Android Chrome or Brave: use Add above, or the browser menu (Install app / Add to Home screen) while this page is open.</li>
             <li>iPhone: tap Share, then Add to Home Screen, while this page is open. iOS may still show the Overwatch icon.</li>
             <li>Open the home-screen icon, then switch company inside Overwatch. The home-screen icon should stay the one you just saved.</li>
           </ol>
+          ) : (
+            <p className="mt-3 text-xs text-muted-foreground">Press Install. The browser menu can install this company only after that page is being served by the app worker.</p>
+          )}
         </section>
       )}
 

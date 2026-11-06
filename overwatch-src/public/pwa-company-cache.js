@@ -32,16 +32,6 @@
     return { companyId: id.toLowerCase(), file: file };
   }
 
-  function installCompanyIdFromUrl(url) {
-    var parsed;
-    try { parsed = new URL(url); } catch { return null; }
-    var path = parsed.pathname || "";
-    if (!(path.endsWith("/install") || path.endsWith("/install/"))) return null;
-    var id = parsed.searchParams.get("company");
-    if (!isUuid(id)) return null;
-    return id.toLowerCase();
-  }
-
   function shouldPreserveCompanyCache(name) {
     if (typeof name !== "string" || name.indexOf("overwatch-company-") !== 0) return false;
     return isUuid(name.slice("overwatch-company-".length));
@@ -92,7 +82,6 @@
     isUuid: isUuid,
     companyCacheName: companyCacheName,
     matchCompanyPwaPath: matchCompanyPwaPath,
-    installCompanyIdFromUrl: installCompanyIdFromUrl,
     shouldPreserveCompanyCache: shouldPreserveCompanyCache,
     iconSrcAllowedForCompany: iconSrcAllowedForCompany,
     manifestBodyMatchesCompany: manifestBodyMatchesCompany,
