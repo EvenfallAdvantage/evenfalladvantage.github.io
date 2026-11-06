@@ -43,3 +43,26 @@ export const HQ_SECTIONS = [
 ] as const;
 
 export type HqSectionId = (typeof HQ_SECTIONS)[number]["id"];
+
+/**
+ * Cards inside each jump-bar section, top to bottom.
+ * Organization is identity then what the company sees.
+ * People & Time is leave, then pay, then client access.
+ * Integrations is outbound delivery, then vendor connections, then legacy tiles.
+ */
+export const HQ_BLOCK_ORDER = [
+  { section: "organization", blocks: ["company-profile", "feature-visibility"] },
+  { section: "people", blocks: ["leave-policies", "pay-overtime", "client-portal"] },
+  { section: "operations", blocks: ["incident-config", "radio-state"] },
+  { section: "integrations", blocks: ["delivery-channels", "vendor-connections", "external-integrations"] },
+  { section: "developer", blocks: ["api-sources"] },
+  { section: "diagnostics", blocks: ["integration-health", "error-log"] },
+] as const;
+
+export type HqBlockId = (typeof HQ_BLOCK_ORDER)[number]["blocks"][number];
+
+/** Primary HQ actions: 44px on phones, 32px from the sm breakpoint up. */
+export const HQ_ACTION_CLASS = "h-11 gap-1.5 sm:h-8";
+
+/** Field labels. 12px, not 10px, so they stay readable on a phone. */
+export const HQ_LABEL_CLASS = "text-xs font-medium text-muted-foreground";

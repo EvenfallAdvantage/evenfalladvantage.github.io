@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Save, Loader2, Check, Plug, Mail, Eye, EyeOff, ChevronDown } from "lucide-react";
+import { Save, Loader2, Check, Plug, Mail, Eye, EyeOff } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { getIntegrationsConfig, saveIntegrationConfig } from "@/lib/supabase/db";
 import { isSecretKey } from "@/lib/integration-secrets";
+import { HQ_ACTION_CLASS, HQ_LABEL_CLASS } from "@/lib/hq-config";
+import { HqDisclosure } from "./hq-disclosure";
 
 type IntField = { key: string; label: string; type: string; placeholder?: string; options?: string[] };
 /** Integration definition: renders an inline credentials form. Email and SMS live on their own pages (see Delivery channels). */
@@ -105,17 +107,48 @@ const savedSecrets = (row: IntConfig | undefined): string[] => {
 export const isIntegrationAvailable = (def: Pick<IntDef, "available">) => def.available !== false;
 export const INTEGRATION_PROVIDERS = ALL_INTEGRATIONS.map((d) => ({ provider: d.provider, available: isIntegrationAvailable(d) }));
 
+function savedPublic(row: IntConfig | undefined): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries((row?.config ?? {}) as Record<string, unknown>)) {
+    if (k === "secret_keys_set" || isSecretKey(k) || typeof v !== "string") continue;
+    out[k] = v;
+  }
+  return out;
+}
+
+/** True when an available vendor has a typed secret, a changed field, or a changed Enabled flag. */
+function providerDirty(
+  def: IntDef,
+  form: { config: Record<string, string>; isActive: boolean } | undefined,
+  existing: IntConfig | undefined,
+): boolean {
+  if (!isIntegrationAvailable(def) || !form) return false;
+  if (form.isActive !== (existing?.is_active ?? false)) return true;
+  const saved = savedPublic(existing);
+  const keys = new Set([...Object.keys(form.config), ...Object.keys(saved)]);
+  for (const key of keys) {
+    if (isSecretKey(key)) {
+      if ((form.config[key] ?? "").trim()) return true;
+      continue;
+    }
+    if ((form.config[key] ?? "") !== (saved[key] ?? "")) return true;
+  }
+  return false;
+}
+
 interface IntegrationsSectionProps {
   companyId: string;
   initialIntegrations: IntConfig[];
+  /** Defaults to the live catalog. Tests pass a fixture with an available vendor. */
+  groups?: IntGroup[];
 }
 
-export default function IntegrationsSection({ companyId, initialIntegrations }: IntegrationsSectionProps) {
+export default function IntegrationsSection({ companyId, initialIntegrations, groups = INTEGRATION_GROUPS }: IntegrationsSectionProps) {
+  const catalog = groups.flatMap((g) => g.items);
   const [integrations, setIntegrations] = useState<IntConfig[]>(initialIntegrations);
   const [savingInt, setSavingInt] = useState<string | null>(null);
   const [savedInt, setSavedInt] = useState<string | null>(null);
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
-  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
   // Build initial forms
   const buildForms = () => {
@@ -126,7 +159,7 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
       void _set;
       forms[int.provider] = { config: cfg as Record<string, string>, isActive: int.is_active ?? false };
     }
-    for (const def of ALL_INTEGRATIONS) {
+    for (const def of catalog) {
       if (!forms[def.provider]) {
         const cfg: Record<string, string> = {};
         for (const f of def.fields) cfg[f.key] = "";
@@ -186,34 +219,28 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
           <p className="text-xs text-muted-foreground">Connect external tools to automate intake, onboarding, and communications</p>
         </div>
 
-        {INTEGRATION_GROUPS.map(group => {
-          const isOpen = expandedGroups[group.id] ?? false;
+        {groups.map(group => {
           const activeCount = group.items.filter(d => {
             const f = intForms[d.provider];
             return isIntegrationAvailable(d) && f?.isActive;
           }).length;
           const configuredCount = group.items.filter(d => isIntegrationAvailable(d) && integrations.find((i: IntConfig) => i.provider === d.provider)).length;
+          const dirty = group.items.some((def) => providerDirty(def, intForms[def.provider], integrations.find((i) => i.provider === def.provider)));
 
           return (
-            <div key={group.id} className="rounded-lg border border-border/40 overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setExpandedGroups(p => ({ ...p, [group.id]: !p[group.id] }))}
-                className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/30 transition-colors text-left"
-              >
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{group.label}</span>
-                    {activeCount > 0 && <Badge className="text-[10px] bg-green-500/15 text-green-500">{activeCount} active</Badge>}
-                    {configuredCount > 0 && activeCount === 0 && <Badge variant="outline" className="text-[10px]">{configuredCount} configured</Badge>}
-                  </div>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{group.desc}</p>
-                </div>
-                <ChevronDown className={`h-4 w-4 shrink-0 text-muted-foreground transition-transform ${isOpen ? "rotate-180" : ""}`} />
-              </button>
-
-              {isOpen && (
-                <div className="border-t border-border/30 px-4 py-3 space-y-3">
+            <HqDisclosure
+              key={group.id}
+              testId={`hq-integration-group-${group.id}`}
+              title={group.label}
+              description={group.desc}
+              forceOpen={dirty}
+              meta={
+                <>
+                  {activeCount > 0 && <Badge className="text-[10px] bg-green-500/15 text-green-500">{activeCount} active</Badge>}
+                  {configuredCount > 0 && activeCount === 0 && <Badge variant="outline" className="text-[10px]">{configuredCount} configured</Badge>}
+                </>
+              }
+            >
                   {group.items.map(def => {
                     const form = intForms[def.provider];
                     const existing = integrations.find((i: IntConfig) => i.provider === def.provider);
@@ -230,8 +257,8 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
                             <span className="text-sm font-semibold">{def.label}</span>
                             <Badge variant="outline" className="text-[10px]">Not available yet</Badge>
                           </div>
-                          <p className="mt-1 text-[10px] text-muted-foreground">{def.desc}</p>
-                          <p className="mt-1 text-[10px] text-muted-foreground">This connection isn&apos;t supported yet. Contact support if you need it.</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{def.desc}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">This connection isn&apos;t supported yet. Contact support if you need it.</p>
                         </div>
                       );
                     }
@@ -259,25 +286,28 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
                             Enabled
                           </label>
                         </div>
-                        <p className="text-[10px] text-muted-foreground">{def.desc}</p>
+                        <p className="text-xs text-muted-foreground">{def.desc}</p>
 
                         <form onSubmit={(e) => { e.preventDefault(); handleSaveIntegration(def.provider); }} autoComplete="off">
-                          <div className="space-y-2">
-                            {def.fields.map(field => (
+                          <div className="space-y-3">
+                            {def.fields.map(field => {
+                              const shown = !!showSecret[`${def.provider}.${field.key}`];
+                              return (
                               <div key={field.key}>
-                                <Label className="text-[10px] text-muted-foreground">{field.label}</Label>
+                                <Label className={HQ_LABEL_CLASS}>{field.label}</Label>
                                 {field.type === "select" && "options" in field && field.options ? (
                                   <select
                                     value={form?.config?.[field.key] ?? ""}
                                     onChange={(e) => updateIntField(def.provider, field.key, e.target.value)}
-                                    className="mt-0.5 h-8 w-full rounded border border-border/40 bg-background px-2 text-xs">
+                                    aria-label={field.label}
+                                    className="mt-1 h-11 w-full rounded-md border border-border/40 bg-background px-2 text-sm sm:h-8">
                                     <option value="">Select...</option>
                                     {field.options.map((o: string) => <option key={o} value={o}>{o.charAt(0).toUpperCase() + o.slice(1)}</option>)}
                                   </select>
                                 ) : (
-                                  <div className="relative mt-0.5">
+                                  <div className="relative mt-1">
                                     <Input
-                                      type={field.type === "password" && !showSecret[`${def.provider}.${field.key}`] ? "password" : "text"}
+                                      type={field.type === "password" && !shown ? "password" : "text"}
                                       value={form?.config?.[field.key] ?? ""}
                                       onChange={(e) => updateIntField(def.provider, field.key, e.target.value)}
                                       placeholder={
@@ -287,21 +317,23 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
                                       }
                                       aria-label={field.label}
                                       autoComplete="off"
-                                      className="h-8 text-xs pr-8" />
+                                      className="h-11 pr-12 text-sm sm:h-8" />
                                     {field.type === "password" && (
                                       <button type="button"
+                                        aria-label={shown ? `Hide ${field.label}` : `Show ${field.label}`}
+                                        aria-pressed={shown}
                                         onClick={() => setShowSecret(p => ({ ...p, [`${def.provider}.${field.key}`]: !p[`${def.provider}.${field.key}`] }))}
-                                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-foreground">
-                                        {showSecret[`${def.provider}.${field.key}`] ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+                                        className="absolute right-1 top-1/2 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 sm:h-7 sm:w-7">
+                                        {shown ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
                                       </button>
                                     )}
                                   </div>
                                 )}
                               </div>
-                            ))}
+                            );})}
                           </div>
 
-                          <Button type="submit" size="sm" className="gap-1.5 text-xs mt-3"
+                          <Button type="submit" size="sm" className={`${HQ_ACTION_CLASS} mt-3 text-xs`}
                             disabled={savingInt === def.provider}>
                             {savingInt === def.provider ? <Loader2 className="h-3 w-3 animate-spin" />
                               : savedInt === def.provider ? <Check className="h-3 w-3 text-green-500" />
@@ -312,9 +344,7 @@ export default function IntegrationsSection({ companyId, initialIntegrations }: 
                       </div>
                     );
                   })}
-                </div>
-              )}
-            </div>
+            </HqDisclosure>
           );
         })}
 

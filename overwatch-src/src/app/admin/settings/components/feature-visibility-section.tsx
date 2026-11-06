@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { updateCompanySettings } from "@/lib/supabase/db";
 import { TOGGLEABLE_TABS, TOGGLEABLE_SECTIONS } from "@/lib/feature-flags";
+import { HQ_ACTION_CLASS } from "@/lib/hq-config";
 import { useAuthStore } from "@/stores/auth-store";
 import { toast } from "sonner";
 
@@ -49,7 +50,7 @@ export default function FeatureVisibilitySection({ companyId, initialHiddenTabs 
             <h3 className="text-sm font-semibold flex items-center gap-2"><LayoutGrid className="h-4 w-4" /> Feature Visibility</h3>
             <p className="text-xs text-muted-foreground">Toggle which tabs are visible for your entire company</p>
           </div>
-          <Button size="sm" className="h-11 gap-1.5 text-xs sm:h-7" onClick={handleSave} disabled={savingTabs}>
+          <Button size="sm" className={`${HQ_ACTION_CLASS} text-xs`} onClick={handleSave} disabled={savingTabs}>
             {savingTabs ? <Loader2 className="h-3 w-3 animate-spin" /> : savedTabs ? <Check className="h-3 w-3 text-green-500" /> : <Save className="h-3 w-3" />}
             {savedTabs ? "Saved!" : "Save"}
           </Button>

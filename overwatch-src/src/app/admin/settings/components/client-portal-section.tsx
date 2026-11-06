@@ -2,8 +2,8 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { Users, Plus, Trash2, Loader2, Mail, Copy, ExternalLink, AlertTriangle } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { HqDisclosure } from "./hq-disclosure";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -81,19 +81,22 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
     ? `${window.location.origin}/overwatch/client`
     : "/overwatch/client";
 
+  const summary = migrationMissing
+    ? "Not available in this workspace yet."
+    : clients.length
+      ? `${clients.length} client${clients.length === 1 ? "" : "s"} with access. Open to add or remove.`
+      : "Grant clients read-only access to operations, incidents, invoices, and daily reports.";
+
   return (
     <>
-      <Card>
-        <CardContent className="space-y-4 pt-6">
-          <div>
-            <h3 className="text-sm font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4" /> Client Portal
-            </h3>
-            <p className="text-xs text-muted-foreground">
-              Grant clients read-only access to view operations, incidents, invoices, and daily reports.
-            </p>
-          </div>
-
+      <HqDisclosure
+        variant="card"
+        icon={<Users className="h-4 w-4" />}
+        title="Client portal"
+        description={summary}
+        forceOpen={email.trim().length > 0 || adding}
+        testId="hq-client-portal"
+      >
           {/* Migration not yet run — show a friendly banner instead of
               letting Add Client fail with an opaque "invalid input value
               for enum" error. */}
@@ -103,7 +106,7 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
                 <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0 space-y-1">
                   <p className="text-xs font-semibold">Client Portal isn&apos;t available yet</p>
-                  <p className="text-[11px] text-muted-foreground">
+                  <p className="text-xs text-muted-foreground">
                     This workspace isn&apos;t set up for client accounts. Contact Overwatch support to turn it on.
                   </p>
                 </div>
@@ -143,7 +146,7 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
               </Button>
             </div>
           </div>
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             The client must have an Overwatch account. They will see the client portal at the URL above.
           </p>
 
@@ -154,7 +157,7 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
             <p className="text-xs text-muted-foreground/60 py-2 text-center">No clients have portal access yet.</p>
           ) : (
             <div className="space-y-2">
-              <p className="text-[10px] font-semibold text-muted-foreground uppercase">{clients.length} Client{clients.length !== 1 ? "s" : ""}</p>
+              <p className="text-xs font-medium text-muted-foreground">{clients.length} client{clients.length !== 1 ? "s" : ""}</p>
               {clients.map((c) => (
                 <div key={c.id} className="flex items-center gap-3 rounded-lg border border-border/30 bg-background/50 px-3 py-2">
                   <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold text-primary shrink-0">
@@ -179,8 +182,7 @@ export default function ClientPortalSection({ companyId }: ClientPortalSectionPr
               ))}
             </div>
           )}
-        </CardContent>
-      </Card>
+      </HqDisclosure>
       <ConfirmDialog />
     </>
   );
