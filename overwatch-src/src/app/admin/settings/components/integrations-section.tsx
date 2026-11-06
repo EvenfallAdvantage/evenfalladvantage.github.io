@@ -53,11 +53,6 @@ const INTEGRATION_GROUPS: IntGroup[] = [
     { provider: "fillout", available: false, label: "Fillout", logo: "/images/integrations/fillout.png", desc: "Receive employment applications via Fillout webhook", fields: [
       { key: "webhook_secret", label: "Webhook Secret", type: "password", placeholder: "whsec_..." },
     ]},
-    { provider: "airtable", label: "Airtable", logo: "/images/integrations/airtable.jpeg", desc: "Sync applicant records with Airtable", fields: [
-      { key: "api_key", label: "API Key", type: "password", placeholder: "pat..." },
-      { key: "base_id", label: "Base ID", type: "text", placeholder: "app..." },
-      { key: "table_name", label: "Table Name", type: "text", placeholder: "Staff" },
-    ]},
     { provider: "checkr", available: false, label: "Checkr", logo: "/images/integrations/checkr.jpeg", desc: "Automated background checks triggered from the applicant pipeline on hire", fields: [
       { key: "api_key", label: "API Key", type: "password", placeholder: "checkr_..." },
       { key: "package_slug", label: "Default Package", type: "select", options: ["tasker_standard", "tasker_plus", "driver_standard", "driver_plus", "basic_criminal", "essential_criminal"] },

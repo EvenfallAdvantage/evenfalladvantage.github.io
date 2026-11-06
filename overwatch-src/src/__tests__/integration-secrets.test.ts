@@ -9,6 +9,8 @@ const root = path.resolve(__dirname, "../../..");
 describe("integration secret rules", () => {
   it("app copy matches the Edge Function module", () => {
     expect(app.SECRET_KEYS).toEqual(shared.SECRET_KEYS);
+    expect([...app.GENERIC_PROVIDERS].sort()).toEqual([...shared.GENERIC_PROVIDERS].sort());
+    expect(app.GENERIC_PROVIDERS.has("airtable")).toBe(false);
   });
   it("SQL migrations use the same key list", () => {
     const list = `ARRAY[${shared.SECRET_KEYS.map((k) => `'${k}'`).join(",")}]`;

@@ -32,10 +32,32 @@ async function callFunction<T>(name: string, body: Record<string, unknown>): Pro
 }
 
 /** test / disconnect / vendor actions, via integration-action. */
-export function runIntegrationAction(companyId: string, provider: string, action: string, input?: Record<string, unknown>) {
-  return callFunction<{ ok: boolean; detail?: string | null; status?: string }>("integration-action", {
+export function runIntegrationAction<T = unknown>(companyId: string, provider: string, action: string, input?: Record<string, unknown>) {
+  return callFunction<{ ok: boolean; detail?: string | null; status?: string; result?: T }>("integration-action", {
     company_id: companyId, provider, action, input: input ?? {},
   });
+}
+
+const AIRTABLE_SETTING_KEYS = ["base_id", "base_name", "table_id", "table_name"] as const;
+
+/** Persist the base and table an owner picked. The database trigger drops anything else. */
+export async function saveIntegrationConnectionSettings(companyId: string, provider: string, settings: Record<string, string>): Promise<IntegrationConnection> {
+  const clean: Record<string, string> = {};
+  for (const key of AIRTABLE_SETTING_KEYS) {
+    const value = settings[key];
+    if (typeof value === "string" && value.trim()) clean[key] = value.trim();
+  }
+  const supabase = createClient();
+  const { data, error } = await supabase
+    .from("integration_connections")
+    .update({ settings: clean })
+    .eq("company_id", companyId)
+    .eq("provider", provider)
+    .select(CONNECTION_SELECT)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Could not save these settings. Only an owner or admin of this company can.");
+  return data as unknown as IntegrationConnection;
 }
 
 /** Returns the vendor authorize URL; the caller redirects the browser to it. */

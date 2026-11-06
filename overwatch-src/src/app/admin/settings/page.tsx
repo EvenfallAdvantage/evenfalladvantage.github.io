@@ -15,6 +15,7 @@ import PayOvertimeSection from "./components/pay-overtime-section";
 import FeatureVisibilitySection from "./components/feature-visibility-section";
 import IntegrationsSection from "./components/integrations-section";
 import ConnectionCards from "./components/connection-cards";
+import AirtableConnectionPanel from "./components/airtable-connection-panel";
 import IntegrationHealthStrip from "./components/integration-health-strip";
 import DeliveryChannelsSection from "./components/delivery-channels-section";
 import ClientPortalSection from "./components/client-portal-section";
@@ -219,6 +220,12 @@ export default function AdminSettingsPage() {
               canManage={isAdminPlus}
               providers={FRAMEWORK_PROVIDERS}
               initialConnections={connections}
+            />
+            <AirtableConnectionPanel
+              companyId={activeCompanyId!}
+              canManage={isAdminPlus}
+              connection={connections.find((c) => c.provider === "airtable") ?? null}
+              onSaved={() => void load()}
             />
             <IntegrationsSection
               companyId={activeCompanyId!}

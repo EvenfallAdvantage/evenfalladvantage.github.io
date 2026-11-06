@@ -47,7 +47,15 @@ export interface ConnectionProviderDef {
  * DocuSign, QuickBooks, Checkr, Gusto, Paychex, ADP) adds itself here and flips its
  * legacy tile from "Not available yet" in integrations-section.tsx.
  */
-export const FRAMEWORK_PROVIDERS: ConnectionProviderDef[] = [];
+export const FRAMEWORK_PROVIDERS: ConnectionProviderDef[] = [
+  {
+    provider: "airtable",
+    label: "Airtable",
+    logo: "/images/integrations/airtable.jpeg",
+    desc: "OAuth read of one base. Applicant import is reviewed and does not write back to Airtable.",
+    connect: "oauth",
+  },
+];
 
 export type BadgeKind = "connected" | "pending" | "attention" | "disconnected";
 export const BADGE_LABEL: Record<BadgeKind, string> = {

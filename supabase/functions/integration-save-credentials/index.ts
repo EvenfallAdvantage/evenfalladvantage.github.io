@@ -1,6 +1,7 @@
 /**
  * integration-save-credentials: write-only credential save for the generic
- * HQ Config integration tiles (Airtable, WhatsApp, ...). Email and SMS keep
+ * HQ Config integration tiles (WhatsApp, ...). Airtable is OAuth-only and is
+ * rejected here. Email and SMS keep
  * their own email-save-credentials / sms-save-credentials functions.
  *
  * Auth: user JWT (verify_jwt = true). Caller must be owner/admin.

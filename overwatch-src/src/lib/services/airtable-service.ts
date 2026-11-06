@@ -1,35 +1,65 @@
 /**
- * Airtable (applicant intake), server-side via the `airtable-proxy` Edge
- * Function. The Personal Access Token lives in Vault and never reaches the
- * browser.
+ * Airtable applicant review. OAuth tokens stay on the server.
+ * preview is read-only. import runs only after the user confirms, and the
+ * server dedupes by company + Airtable record id.
  */
-import { createClient } from "@/lib/supabase/client";
+import { runIntegrationAction } from "@/lib/supabase/db-integrations";
 
-export interface AirtableApplicant { firstName: string; lastName: string; email: string; phone?: string; airtableId: string }
-
-async function callProxy<T>(companyId: string, action: "pull_new_applicants" | "verify"): Promise<T> {
-  const supabase = createClient();
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not signed in");
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!base) throw new Error("Supabase URL missing");
-  const res = await fetch(`${base.replace(/\/+$/, "")}/functions/v1/airtable-proxy`, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ company_id: companyId, action }),
-  });
-  const body = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(body.error ?? `Airtable request failed (${res.status})`);
-  return body;
+export interface AirtablePreviewRecord {
+  airtableId: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
 }
 
-/** Pull Airtable records with no "Overwatch ID" yet (max 50). */
-export async function pullNewApplicantsFromAirtable(companyId: string): Promise<AirtableApplicant[]> {
-  const r = await callProxy<{ applicants?: AirtableApplicant[] }>(companyId, "pull_new_applicants");
-  return r.applicants ?? [];
+export interface AirtablePreview {
+  records: AirtablePreviewRecord[];
+  truncated: boolean;
 }
 
-export async function verifyAirtableConnection(companyId: string): Promise<{ connected: boolean; tableName?: string }> {
-  try { return await callProxy<{ connected: boolean; tableName?: string }>(companyId, "verify"); }
-  catch { return { connected: false }; }
+export interface AirtableImportResult {
+  imported: { airtableId: string; email: string; applicantId: string }[];
+  alreadyImported: { airtableId: string; email: string; applicantId: string }[];
+  emailConflicts: { airtableId: string; email: string; existingApplicantId: string | null }[];
+  skipped: { airtableId: string; reason: string }[];
+}
+
+interface ActionBody<T> {
+  ok?: boolean;
+  error?: string;
+  result?: T & { ok?: boolean; error?: string };
+}
+
+function unwrap<T>(body: ActionBody<T>): T {
+  const result = body.result;
+  if (!result || result.ok === false) throw new Error(result?.error ?? body.error ?? "Airtable request failed");
+  return result;
+}
+
+export async function listAirtableBases(companyId: string): Promise<{ id: string; name: string }[]> {
+  const body = await runIntegrationAction<{ ok: boolean; bases: { id: string; name: string }[]; error?: string }>(companyId, "airtable", "list_bases");
+  return unwrap(body).bases ?? [];
+}
+
+export async function listAirtableTables(companyId: string, baseId: string): Promise<{ id: string; name: string }[]> {
+  const body = await runIntegrationAction<{ ok: boolean; tables: { id: string; name: string }[]; error?: string }>(companyId, "airtable", "list_tables", { base_id: baseId });
+  return unwrap(body).tables ?? [];
+}
+
+export async function previewAirtableApplicants(companyId: string): Promise<AirtablePreview> {
+  const body = await runIntegrationAction<{ ok: boolean; records: AirtablePreviewRecord[]; truncated: boolean; error?: string }>(companyId, "airtable", "preview_records");
+  const result = unwrap(body);
+  return { records: result.records ?? [], truncated: Boolean(result.truncated) };
+}
+
+export async function importReviewedAirtableApplicants(companyId: string, recordIds: string[]): Promise<AirtableImportResult> {
+  const body = await runIntegrationAction<AirtableImportResult & { ok: boolean; error?: string }>(companyId, "airtable", "import_applicants", { record_ids: recordIds });
+  const result = unwrap(body);
+  return {
+    imported: result.imported ?? [],
+    alreadyImported: result.alreadyImported ?? [],
+    emailConflicts: result.emailConflicts ?? [],
+    skipped: result.skipped ?? [],
+  };
 }
