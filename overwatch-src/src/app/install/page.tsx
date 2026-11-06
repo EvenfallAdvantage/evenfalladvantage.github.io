@@ -17,7 +17,7 @@ import {
 import { companySurfaceHex, DEFAULT_BRAND } from "@/lib/brand-utils";
 import { rasterizeCompanyIcons } from "@/lib/pwa-company-raster";
 import { finalizeCompanyInstallInBrowser, writeCompanyCacheInBrowser } from "@/lib/pwa-company-browser";
-import { companyInstallUrlIfVerified } from "@/lib/pwa-company-finalize";
+import { companyInstallUrlIfVerified, INSTALL_TIMEOUT_MESSAGE } from "@/lib/pwa-company-finalize";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -60,6 +60,15 @@ function InstallScreen() {
   async function prepare(company: InstallMembership) {
     setBusy(company.companyId);
     setNote(null);
+    try {
+      await prepareCompany(company);
+    } catch {
+      setBusy(null);
+      setNote(INSTALL_TIMEOUT_MESSAGE);
+    }
+  }
+
+  async function prepareCompany(company: InstallMembership) {
     let useLogo = false;
     let icons: { path: string; blob: Blob }[] = [];
     const logo = approvedLogoUrl(company.companyId, company.companyLogo);
