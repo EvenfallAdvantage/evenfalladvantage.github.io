@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/components/auth-provider";
 import { SecurityProvider } from "@/components/security-provider";
 import BrandThemeProvider from "@/components/brand-theme-provider";
+import { PwaLaunchCompany } from "@/components/pwa-launch-company";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { LazyCommandPalette } from "@/components/command-palette-lazy";
 import { installGlobalErrorHandlers } from "@/lib/error-tracker";
@@ -43,6 +44,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <QueryClientProvider client={getQueryClient()}>
         <AuthProvider>
+          <PwaLaunchCompany />
           <BrandThemeProvider />
           <SecurityProvider>
             {/* TooltipProvider lives in DashboardShell: tooltips are only used

@@ -86,7 +86,8 @@ describe("service worker cache version", () => {
     expect(sw).toContain("overwatch-pages-${VERSION_TAG}");
     expect(sw).toContain("overwatch-static-${VERSION_TAG}");
     expect(sw).toContain("overwatch-runtime-${VERSION_TAG}");
-    expect(sw).toContain('keys.filter((k) => k.startsWith("overwatch-") && !keep.has(k))');
+    expect(sw).toContain("owCompanyPwa.shouldPreserveCompanyCache(k)");
+    expect(sw).toContain('k.startsWith("overwatch-") && !owCompanyPwa.shouldPreserveCompanyCache(k) && !keep.has(k)');
   });
 
   it("precaches the shared manifest, not a per-company icon cache", () => {
