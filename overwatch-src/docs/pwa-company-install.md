@@ -1,6 +1,6 @@
 # Company PWA install
 
-This is a manual phone check. It was not run on a device in CI, and a green deploy does not mean a handset was verified. The Chromium check in `src/__tests__/pwa-company-manifest.browser.test.ts` runs only when Google Chrome is installed on the machine running the tests. It reads the manifest with `Page.getAppManifest`. It does not install an Android WebAPK.
+This is a manual phone check. It was not run on a device in CI, and a green deploy does not mean a handset was verified. The Chromium check in `src/__tests__/pwa-company-manifest.browser.test.ts` runs with `npm test` only when Google Chrome is installed. The built install page, including the Install click and a warm-cache reload, runs only when you explicitly run `npm run test:pwa-install` from `overwatch-src`. That command builds into a temporary directory and does not run as part of `npm test`. Both checks read `Page.getAppManifest`. Neither installs an Android WebAPK.
 
 The public file `/overwatch/manifest.json` stays the default Overwatch app. It does not name a company or a logo. Choosing a company on **More → Install company app** writes a separate manifest at `/overwatch/pwa/{company-id}/manifest.webmanifest` into a cache named `overwatch-company-{company-id}` on that phone. The service worker serves that URL only from that cache. A cache miss is a 404. The worker does not fetch the network for that URL and does not substitute the shared manifest. A deploy does not delete those caches. Switching the active company does not write them.
 

@@ -1,5 +1,4 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
-import { execFileSync, execSync } from "node:child_process";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
@@ -8,8 +7,7 @@ import type { AddressInfo } from "node:net";
 import type { Browser, BrowserContext, Page } from "playwright-core";
 import { INSTALL_TIMEOUT_MESSAGE } from "@/lib/pwa-company-finalize";
 
-const rootDir = path.resolve(__dirname, "../..");
-const repoRoot = path.resolve(rootDir, "..");
+const exportRoot = process.env.PWA_INSTALL_EXPORT || "";
 const chromeCandidates = [process.env.CHROME_PATH, "/usr/local/bin/google-chrome", "/usr/bin/google-chrome"].filter(
   (item): item is string => Boolean(item),
 );
@@ -21,7 +19,6 @@ const COMPANY_NAME = "Northstar Recruitment";
 const OTHER_NAME = "Harbor Watch";
 const AUTH_ID = "11111111-1111-4111-8111-111111111111";
 const USER_ID = "22222222-2222-4222-8222-222222222222";
-const FIXTURE_SUPABASE = "https://pwa-fixture.supabase.co";
 
 const MANIFEST_FAILURES = [
   "manifest-parsing-or-network-error",
@@ -44,49 +41,27 @@ let origin = "";
 let server: http.Server | null = null;
 let swBody = Buffer.alloc(0);
 
-function bakedHost(): string | null {
-  try {
-    const found = execFileSync(
-      "rg",
-      ["-o", "--no-filename", "-g", "!*.map", "https://[a-z0-9-]+\\.supabase\\.co", "out/_next/static/chunks"],
-      { cwd: rootDir, encoding: "utf8" },
-    );
-    return found.split("\n").find(Boolean) ?? null;
-  } catch {
-    return null;
+function findSupabaseHost(dir: string): string {
+  const chunks = path.join(dir, "_next/static/chunks");
+  const pending = [chunks];
+  const pattern = /https:\/\/[a-z0-9-]+\.supabase\.co/;
+  while (pending.length > 0) {
+    const current = pending.pop();
+    if (!current || !fs.existsSync(current)) continue;
+    for (const name of fs.readdirSync(current)) {
+      if (name.endsWith(".map")) continue;
+      const full = path.join(current, name);
+      const stat = fs.statSync(full);
+      if (stat.isDirectory()) {
+        pending.push(full);
+        continue;
+      }
+      if (!name.endsWith(".js") || stat.size > 8_000_000) continue;
+      const match = pattern.exec(fs.readFileSync(full, "utf8"));
+      if (match) return match[0];
+    }
   }
-}
-
-function exportIsCurrent(): boolean {
-  const html = path.join(rootDir, "out/install/index.html");
-  if (!fs.existsSync(html)) return false;
-  const built = fs.statSync(html).mtimeMs;
-  const sources = [
-    "src/app/install/page.tsx",
-    "src/lib/pwa-company-install.ts",
-    "src/lib/pwa-company-browser.ts",
-    "public/sw.js",
-    "public/pwa-company-cache.js",
-  ];
-  return sources.every((file) => fs.statSync(path.join(rootDir, file)).mtimeMs <= built);
-}
-
-function ensureBuiltApp(): string {
-  const host = bakedHost();
-  if (host && exportIsCurrent()) return host;
-  const env = { ...process.env };
-  if (!env.NEXT_PUBLIC_SUPABASE_URL) {
-    env.NEXT_PUBLIC_SUPABASE_URL = FIXTURE_SUPABASE;
-    env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "sb_publishable_pwa_fixture_test_key";
-  }
-  execSync("npm run build", { cwd: rootDir, env, stdio: "inherit" });
-  execFileSync("git", ["checkout", "--", "overwatch-src/src/lib/generated-releases.json"], { cwd: repoRoot });
-  const after = bakedHost();
-  if (!after) throw new Error("built install app has no Supabase host to fixture");
-  const html = fs.readFileSync(path.join(rootDir, "out/install/index.html"), "utf8");
-  if (html.includes('rel="manifest"')) throw new Error("built install document still has a manifest link");
-  if (!html.includes("ow-install-manifest")) throw new Error("built install document is missing the boot script");
-  return after;
+  throw new Error(`No Supabase host in ${chunks}. Run npm run test:pwa-install so the export is built with a fixture host.`);
 }
 
 function contentType(file: string): string {
@@ -110,7 +85,7 @@ function resolveOut(pathname: string): string | null {
   let rel = pathname;
   if (rel.startsWith("/overwatch/")) rel = rel.slice("/overwatch".length) || "/";
   else if (rel === "/overwatch") rel = "/";
-  const outRoot = path.resolve(rootDir, "out");
+  const outRoot = path.resolve(exportRoot);
   const file = path.resolve(outRoot, `.${rel}`);
   if (file !== outRoot && !file.startsWith(`${outRoot}${path.sep}`)) return null;
   if (fs.existsSync(file) && fs.statSync(file).isDirectory()) {
@@ -358,12 +333,18 @@ describe.skipIf(!chromePath).sequential("built company install flow", () => {
   let supabaseHost = "";
 
   beforeAll(async () => {
-    supabaseHost = ensureBuiltApp();
-    swBody = fs.readFileSync(path.join(rootDir, "out/sw.js"));
+    if (!exportRoot) {
+      throw new Error("PWA_INSTALL_EXPORT is unset. From overwatch-src run: npm run test:pwa-install");
+    }
+    const installHtml = fs.readFileSync(path.join(exportRoot, "install/index.html"), "utf8");
+    if (installHtml.includes('rel="manifest"')) throw new Error("export install document still has a manifest link");
+    if (!installHtml.includes("ow-install-manifest")) throw new Error("export install document is missing the boot script");
+    supabaseHost = findSupabaseHost(exportRoot);
+    swBody = fs.readFileSync(path.join(exportRoot, "sw.js"));
     const started = await startServer();
     server = started.server;
     origin = `http://127.0.0.1:${started.port}`;
-  }, 180_000);
+  }, 30_000);
 
   afterAll(async () => {
     await new Promise<void>((resolve, reject) => {
@@ -378,17 +359,21 @@ describe.skipIf(!chromePath).sequential("built company install flow", () => {
   it("clicks Install on the built page while uncontrolled, then after claim Chrome reads that company", async () => {
     const browser = await launchChrome();
     const context = await browser.newContext();
+    let swBlock = Promise.resolve();
     let openSw = () => {};
-    let swOpen = false;
-    const opened = new Promise<void>((resolve) => {
-      openSw = () => {
-        if (swOpen) return;
-        swOpen = true;
-        resolve();
-      };
-    });
+    const holdServiceWorker = () => {
+      let opened = false;
+      swBlock = new Promise<void>((resolve) => {
+        openSw = () => {
+          if (opened) return;
+          opened = true;
+          resolve();
+        };
+      });
+    };
+    holdServiceWorker();
     await context.route("**/sw.js", async (route) => {
-      if (!swOpen) await opened;
+      await swBlock;
       await route.continue();
     });
     await installFixtures(context, supabaseHost);
@@ -459,19 +444,69 @@ describe.skipIf(!chromePath).sequential("built company install flow", () => {
       expect(parsed(await readAppManifest(pageA)).name).toBe(COMPANY_NAME);
       expect(parsed(await readAppManifest(pageA)).id).toBe(`/overwatch/pwa/${COMPANY}/`);
 
-      swBody = Buffer.concat([swBody, Buffer.from("\n// company cache survives an update\n")]);
-      await pageA.goto(`${origin}/overwatch/install/?company=${COMPANY}`, { waitUntil: "load" });
+      holdServiceWorker();
       await pageA.evaluate(async () => {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+      });
+      await pageB.close();
+      await pageA.close();
+      const outside = await context.newPage();
+      await outside.goto(`${origin}/`, { waitUntil: "commit" });
+      const workerClient = await context.newCDPSession(outside);
+      await workerClient.send("ServiceWorker.enable");
+      await workerClient.send("ServiceWorker.stopAllWorkers");
+      const remaining = await outside.evaluate(async () => {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((registration) => registration.unregister()));
+        return registrations.length;
+      });
+      expect(remaining).toBe(0);
+      await outside.close();
+      const warm = await context.newPage();
+      await warm.addInitScript(() => {
+        const mark = window as unknown as { __bootController?: boolean };
+        mark.__bootController = Boolean(navigator.serviceWorker?.controller);
+        const seen = Number(sessionStorage.getItem("ow-test-docs") || "0") + 1;
+        sessionStorage.setItem("ow-test-docs", String(seen));
+      });
+      await warm.goto(`${origin}/overwatch/install/?company=${COMPANY}`, { waitUntil: "domcontentloaded" });
+      const born = await warm.evaluate(() => ({
+        boot: (window as unknown as { __bootController?: boolean }).__bootController === true,
+        href: document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "",
+      }));
+      expect(born.boot).toBe(false);
+      expect(born.href).not.toContain("/overwatch/pwa/");
+      let automaticNavigations = 0;
+      const onAutomatic = () => { automaticNavigations += 1; };
+      warm.on("framenavigated", onAutomatic);
+      openSw();
+      await warm.waitForFunction(
+        (id) => (document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "").includes(id),
+        COMPANY,
+        { timeout: 30_000 },
+      );
+      await warm.waitForTimeout(1000);
+      const documents = await warm.evaluate(() => Number(sessionStorage.getItem("ow-test-docs") || "0"));
+      expect(automaticNavigations).toBeGreaterThan(0);
+      expect(documents).toBe(2);
+      expect(warm.url()).toContain(`/install/?company=${COMPANY}`);
+      expect(parsed(await readAppManifest(warm)).name).toBe(COMPANY_NAME);
+      expect(parsed(await readAppManifest(warm)).id).toBe(`/overwatch/pwa/${COMPANY}/`);
+
+      swBody = Buffer.concat([swBody, Buffer.from("\n// company cache survives an update\n")]);
+      await warm.goto(`${origin}/overwatch/install/?company=${COMPANY}`, { waitUntil: "load" });
+      await warm.evaluate(async () => {
         const registration = await navigator.serviceWorker.getRegistration();
         await registration?.update();
       });
-      await pageA.waitForTimeout(500);
-      const updated = parsed(await readAppManifest(pageA));
+      await warm.goto(`${origin}/overwatch/install/?company=${COMPANY}`, { waitUntil: "load" });
+      const updated = parsed(await readAppManifest(warm));
       expect(updated.name).toBe(COMPANY_NAME);
       expect(updated.id).toBe(`/overwatch/pwa/${COMPANY}/`);
 
-      await pageA.goto(`${origin}/overwatch/`, { waitUntil: "load" });
-      expect(parsed(await readAppManifest(pageA)).name).toBe("Overwatch");
+      await warm.goto(`${origin}/overwatch/`, { waitUntil: "load" });
+      expect(parsed(await readAppManifest(warm)).name).toBe("Overwatch");
     } finally {
       openSw();
       await browser.close();

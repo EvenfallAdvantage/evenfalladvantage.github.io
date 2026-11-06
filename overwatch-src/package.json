@@ -10,6 +10,7 @@
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
+    "test:pwa-install": "node scripts/pwa-install-browser.mjs",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
     "staging:start": "npx supabase start",

@@ -1,0 +1,68 @@
+name: Company PWA install browser
+
+# Builds the install page into a gitignored directory and runs the Chrome
+# install flow. This is not part of the Pages test step: that step runs
+# `npm test` before `npm run build` and does not have an export yet. This job
+# does not deploy and does not receive production secrets.
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "overwatch-src/src/app/install/**"
+      - "overwatch-src/src/lib/pwa-company-install.ts"
+      - "overwatch-src/src/lib/pwa-company-browser.ts"
+      - "overwatch-src/src/lib/pwa-company-finalize.ts"
+      - "overwatch-src/src/lib/pwa-company-raster.ts"
+      - "overwatch-src/src/__tests__/pwa-company-install-flow.browser.integration.ts"
+      - "overwatch-src/public/sw.js"
+      - "overwatch-src/public/pwa-company-cache.js"
+      - "overwatch-src/public/manifest.json"
+      - "overwatch-src/scripts/pwa-install-browser.mjs"
+      - "overwatch-src/scripts/install-document-manifest.mjs"
+      - "overwatch-src/scripts/strip-install-manifest.mjs"
+      - "overwatch-src/next.config.ts"
+      - "overwatch-src/vitest.config.ts"
+      - "overwatch-src/package.json"
+      - "overwatch-src/package-lock.json"
+      - ".github/workflows/pwa-install-browser.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pwa-install-browser-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: overwatch-src/package-lock.json
+
+      - name: Install Overwatch dependencies
+        working-directory: overwatch-src
+        run: npm ci
+
+      - name: Install Chrome when the runner does not have it
+        run: |
+          set -euo pipefail
+          if command -v google-chrome >/dev/null 2>&1 || command -v google-chrome-stable >/dev/null 2>&1; then
+            exit 0
+          fi
+          wget -q -O /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get update
+          sudo apt-get install -y /tmp/chrome.deb
+
+      - name: Built company install browser test
+        working-directory: overwatch-src
+        run: npm run test:pwa-install

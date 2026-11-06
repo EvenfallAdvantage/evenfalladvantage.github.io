@@ -16,6 +16,8 @@
 # next.js
 /.next/
 /out/
+# Disposable export for npm run test:pwa-install. Not the Pages output.
+/.pwa-install-export-*/
 
 # production
 /build
