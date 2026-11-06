@@ -29,6 +29,17 @@ function logoWebsiteSummary(logo: string, website: string): string {
   }
 }
 
+/**
+ * Address safe to put in an img src. Only a parsed http(s) URL is returned.
+ * encodeURI then escapes the remaining HTML meta-characters so a typed
+ * address is not re-read as markup.
+ */
+function httpLogoSrc(input: string): string | null {
+  const parsed = normalizeHttpUrl(input, "Logo URL");
+  if (!parsed.ok || parsed.value == null) return null;
+  return encodeURI(parsed.value);
+}
+
 // Get all IANA timezone names
 const ALL_TIMEZONES: string[] = typeof Intl !== "undefined" && Intl.supportedValuesOf
   ? Intl.supportedValuesOf("timeZone")
@@ -88,6 +99,7 @@ export default function CompanyProfileSection({
   const tzRef = useRef<HTMLDivElement>(null);
   const logoFileRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoSrc = httpLogoSrc(logoUrl);
 
   async function handleSave() {
     if (!companyId) return;
@@ -178,9 +190,9 @@ export default function CompanyProfileSection({
             <div>
               <Label htmlFor="company-logo-url" className="text-xs text-muted-foreground">Company Logo</Label>
               <div className="flex items-center gap-2 mt-1">
-                {logoUrl ? (
+                {logoSrc ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logoUrl} alt="Logo" className="h-9 w-9 rounded-lg object-cover border border-border" />
+                  <img src={logoSrc} alt="Logo" className="h-9 w-9 rounded-lg object-cover border border-border" />
                 ) : (
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted border border-border">
                     <ImageIcon className="h-4 w-4 text-muted-foreground" />

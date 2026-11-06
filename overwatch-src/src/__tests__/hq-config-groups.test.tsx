@@ -220,7 +220,7 @@ describe("company profile stays editable and keeps the selected colors", () => {
     expect(screen.getByRole("button", { name: /^Save$/ }).closest("[hidden]")).toBeNull();
     expect(logo).toHaveAttribute("aria-expanded", "false");
     expect(logo.textContent).toMatch(/Logo on file/);
-    expect(logo.textContent).toMatch(/old\.example\.com/);
+    expect(logo.textContent).toMatch(/(?:^|[^\w.])old\.example\.com(?:$|[^\w.])/);
     expect(screen.getByLabelText(/Company Website/i).closest("[hidden]")).toBeTruthy();
 
     fireEvent.click(logo);
@@ -271,6 +271,27 @@ describe("company profile stays editable and keeps the selected colors", () => {
     expect(setItem).not.toHaveBeenCalled();
     setItem.mockRestore();
     localStorage.clear();
+  });
+
+  it("only uses a parsed http(s) logo address as the image source", () => {
+    const props = {
+      companyId: "c1",
+      initialName: "Old",
+      initialTimezone: "America/Los_Angeles",
+      initialBrandColor: "#080626",
+      initialAccentColor: "#22c55e",
+      initialWebsiteUrl: "",
+      joinCode: "ABC123",
+    };
+    const { unmount } = render(
+      <CompanyProfileSection {...props} initialLogoUrl="javascript:alert(1)" />,
+    );
+    expect(document.querySelector("img")).toBeNull();
+    unmount();
+    render(
+      <CompanyProfileSection {...props} initialLogoUrl="https://cdn.example.com/mark.png?x=1&y=2" />,
+    );
+    expect(document.querySelector("img")?.getAttribute("src")).toBe("https://cdn.example.com/mark.png?x=1&y=2");
   });
 });
 
