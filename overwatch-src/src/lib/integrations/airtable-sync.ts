@@ -1166,6 +1166,257 @@ export function rosterConfirmDescription(
   return `${accounting}Create ${counts.create ?? 0}, link ${link}, update ${counts.update ?? 0}. ${hold} Conflicts ${counts.conflict ?? 0}, skipped ${counts.skipped ?? 0}. Owners, admins, and managers stay. Airtable is not written.${blanks}`;
 }
 
+/** How many diagnostic rows a response or audit entry will keep. The count fields stay complete. */
+export const ROSTER_REPORT_ROW_CAP = 400;
+
+export interface RosterDiagnosticRow {
+  airtableId: string;
+  op: "failure" | "conflict" | "skip" | "optional" | "held" | "protected";
+  reason: string;
+  name: string;
+}
+
+export interface RosterWriteFailureCounts {
+  create: number;
+  attach: number;
+  link: number;
+  update: number;
+  remove: number;
+}
+
+export interface RosterDiagnosticReport {
+  kind: "preview" | "sync";
+  rawRead: number;
+  seen: number;
+  valid: number;
+  invalidId: number;
+  duplicateRecord: number;
+  duplicateEmail: number;
+  localConflict: number;
+  conflict: number;
+  missingEmail: number;
+  missingFirstName: number;
+  missingRequired: number;
+  create: number;
+  attach: number;
+  link: number;
+  update: number;
+  unchanged: number;
+  remove: number;
+  held: number;
+  protected: number;
+  pages: number;
+  truncated: boolean;
+  cap: number;
+  removalHold: RosterRemovalHold;
+  writeFailures: RosterWriteFailureCounts;
+  writeFailureTotal: number;
+  /** Messages returned by the database function. The applied function keeps 25. */
+  writeFailuresListed: number;
+  rows: RosterDiagnosticRow[];
+  rowsTotal: number;
+  rowsOmitted: number;
+  reconcile: string;
+}
+
+const CONFLICT_REASON: Record<string, string> = {
+  duplicate_email_in_airtable: "Duplicate email in this Airtable table",
+  email_matches_multiple_people: "Email matches more than one person in this company",
+  email_owned_by_other_user: "Email belongs to a different Overwatch account",
+  email_already_linked: "Email is already linked to another Airtable record",
+  record_matches_multiple_people: "This Airtable record is linked to more than one person",
+};
+
+const SKIP_REASON: Record<string, string> = {
+  missing_email: "No valid email, so this row was not added",
+  missing_value: "Required first name is missing",
+  missing_required_value: "Required first name is missing",
+  invalid_id: "Airtable record id is not usable",
+  duplicate_record: "Repeated Airtable record id",
+};
+
+export function sanitizeDiagnosticMessage(value: string): string {
+  return value
+    .replace(/Bearer\s+\S+/gi, "Bearer [redacted]")
+    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[redacted]")
+    .replace(/\b(?:sk|pat|key|token|secret)_[A-Za-z0-9]+\b/gi, "[redacted]")
+    .replace(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/g, "[email]")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 180);
+}
+
+export function rosterDisplayName(first?: string | null, last?: string | null): string {
+  const name = [first, last].map((part) => (part ?? "").trim()).filter(Boolean).join(" ");
+  return sanitizeDiagnosticMessage(name).replace(/\[email\]/g, "").trim().slice(0, 80);
+}
+
+function reasonLabel(code: string, table: Record<string, string>): string {
+  return table[code] ?? sanitizeDiagnosticMessage(code.replace(/_/g, " "));
+}
+
+export function rosterReconcileText(report: Pick<RosterDiagnosticReport, "kind" | "rawRead" | "invalidId" | "duplicateRecord" | "seen" | "valid" | "create" | "attach" | "link" | "update" | "unchanged" | "duplicateEmail" | "localConflict" | "missingEmail" | "missingFirstName" | "remove" | "held" | "protected" | "removalHold" | "truncated" | "cap" | "pages" | "writeFailureTotal">): string {
+  const hold = report.removalHold === "truncated" || report.removalHold === "roster_truncated" || report.truncated
+    ? "The read was incomplete, so nobody is removed."
+    : report.removalHold === "conflicts"
+      ? "Identity conflicts are unresolved, so nobody is removed."
+      : report.remove > 0
+        ? report.kind === "preview"
+          ? `${report.remove} company memberships would be removed on sync. Logins stay.`
+          : `${report.remove} company memberships were removed. Logins stay.`
+        : "Nobody is removed.";
+  return [
+    `Airtable returned ${report.rawRead} records across ${report.pages} page${report.pages === 1 ? "" : "s"} (cap ${report.cap}).`,
+    `${report.invalidId} had an unusable id and ${report.duplicateRecord} repeated an id, leaving ${report.seen} distinct records.`,
+    `${report.valid} could be applied: ${report.create} new, ${report.attach} existing accounts, ${report.link} linked, ${report.update} updated, ${report.unchanged} already matched.`,
+    `${report.duplicateEmail} were a second Airtable row for an email already in this read.`,
+    `${report.localConflict} conflicted with someone already in Overwatch.`,
+    `${report.missingEmail} had no valid email and were not added. ${report.missingFirstName} were missing a first name.`,
+    hold,
+    `${report.held} absent people were held. ${report.protected} owner, admin, or manager rows stay.`,
+    report.writeFailureTotal > 0
+      ? `${report.writeFailureTotal} database write${report.writeFailureTotal === 1 ? "" : "s"} failed. Those rows are not counted as created, linked, updated, or removed.`
+      : "No database writes failed.",
+  ].join(" ");
+}
+
+export function rosterDiagnosticReport(input: {
+  kind: "preview" | "sync";
+  plan: RosterPlan;
+  pages: number;
+  namesByRecord?: ReadonlyMap<string, string>;
+  namesByMembership?: ReadonlyMap<string, string>;
+  failures?: readonly { op: string; airtableId: string; message: string }[];
+  writeFailures?: Partial<RosterWriteFailureCounts>;
+}): RosterDiagnosticReport {
+  const names = input.namesByRecord ?? new Map<string, string>();
+  const memberNames = input.namesByMembership ?? new Map<string, string>();
+  const nameFor = (airtableId: string, membershipId?: string) =>
+    names.get(airtableId) || (membershipId ? memberNames.get(membershipId) : "") || "";
+  const missingEmail = input.plan.skipped.filter((row) => row.reason === "missing_email").length;
+  const missingFirstName = input.plan.skipped.filter((row) => row.reason === "missing_value" || row.reason === "missing_required_value").length;
+  const duplicateEmail = input.plan.conflicts.filter((row) => row.reason === "duplicate_email_in_airtable").length;
+  const localConflict = input.plan.conflicts.length - duplicateEmail;
+  const writeFailures: RosterWriteFailureCounts = {
+    create: input.writeFailures?.create ?? 0,
+    attach: input.writeFailures?.attach ?? 0,
+    link: input.writeFailures?.link ?? 0,
+    update: input.writeFailures?.update ?? 0,
+    remove: input.writeFailures?.remove ?? 0,
+  };
+  const writeFailureTotal = writeFailures.create + writeFailures.attach + writeFailures.link + writeFailures.update + writeFailures.remove;
+  const rows: RosterDiagnosticRow[] = [];
+  for (const failure of input.failures ?? []) {
+    const airtableId = /^rec[A-Za-z0-9]{14}$/.test(failure.airtableId) ? failure.airtableId : "";
+    rows.push({
+      airtableId,
+      op: "failure",
+      reason: `${failure.op}: ${sanitizeDiagnosticMessage(failure.message)}`,
+      name: nameFor(airtableId),
+    });
+  }
+  for (const row of input.plan.conflicts) {
+    rows.push({
+      airtableId: row.airtableId,
+      op: "conflict",
+      reason: reasonLabel(row.reason, CONFLICT_REASON),
+      name: nameFor(row.airtableId, row.membershipId),
+    });
+  }
+  for (const row of input.plan.skipped) {
+    rows.push({
+      airtableId: row.airtableId,
+      op: "skip",
+      reason: reasonLabel(row.reason, SKIP_REASON),
+      name: nameFor(row.airtableId),
+    });
+  }
+  for (const problem of input.plan.valueProblems) {
+    if (problem.destination === "email" || problem.destination === "first_name") continue;
+    rows.push({
+      airtableId: /^rec[A-Za-z0-9]{14}$/.test(problem.airtableId) ? problem.airtableId : "",
+      op: "optional",
+      reason: `Optional ${problem.destination} left unchanged`,
+      name: nameFor(problem.airtableId),
+    });
+  }
+  for (const row of input.plan.held) {
+    rows.push({
+      airtableId: row.airtableId ?? "",
+      op: "held",
+      reason: "Not in Airtable. Removal is held until the read is complete and unambiguous.",
+      name: memberNames.get(row.membershipId) ?? "",
+    });
+  }
+  for (const row of input.plan.protected) {
+    rows.push({
+      airtableId: row.airtableId ?? "",
+      op: "protected",
+      reason: row.reason === "absent_preserved"
+        ? `${row.role} stays on the roster`
+        : `${row.role} is not changed by Airtable`,
+      name: memberNames.get(row.membershipId) ?? "",
+    });
+  }
+  const rowsTotal = rows.length;
+  const kept = rows.slice(0, ROSTER_REPORT_ROW_CAP);
+  const report: RosterDiagnosticReport = {
+    kind: input.kind,
+    rawRead: input.plan.read.rawRead,
+    seen: input.plan.read.seen,
+    valid: input.plan.read.valid,
+    invalidId: input.plan.read.invalidId,
+    duplicateRecord: input.plan.read.duplicateRecord,
+    duplicateEmail,
+    localConflict,
+    conflict: input.plan.conflicts.length,
+    missingEmail,
+    missingFirstName,
+    missingRequired: input.plan.read.missingRequired,
+    create: input.plan.read.create,
+    attach: input.plan.read.attach,
+    link: input.plan.read.link,
+    update: input.plan.read.update,
+    unchanged: input.plan.read.unchanged,
+    remove: input.kind === "sync" ? input.plan.read.remove : input.plan.removals.length,
+    held: input.plan.held.length,
+    protected: input.plan.protected.length,
+    pages: input.pages,
+    truncated: input.plan.removalHold === "truncated" || input.plan.removalHold === "roster_truncated",
+    cap: input.plan.read.cap,
+    removalHold: input.plan.removalHold,
+    writeFailures,
+    writeFailureTotal,
+    writeFailuresListed: kept.filter((row) => row.op === "failure").length,
+    rows: kept,
+    rowsTotal,
+    rowsOmitted: Math.max(0, rowsTotal - kept.length),
+    reconcile: "",
+  };
+  report.reconcile = rosterReconcileText(report);
+  return report;
+}
+
+export function isRosterDiagnosticReport(value: unknown): value is RosterDiagnosticReport {
+  if (!value || typeof value !== "object") return false;
+  const row = value as Partial<RosterDiagnosticReport>;
+  return (row.kind === "preview" || row.kind === "sync") && typeof row.rawRead === "number" && typeof row.reconcile === "string" && Array.isArray(row.rows);
+}
+
+/** Metadata stored on the audit row. Counts stay; row text is already sanitized. */
+/** Connection id when the row exists. Company id only before a connection is loaded. Never null. */
+export function rosterAuditEntityId(connectionId: string, companyId: string): string {
+  const id = connectionId.trim();
+  return (id || companyId).slice(0, 200);
+}
+
+export function integrationAuditMetadata(result: unknown): Record<string, unknown> {
+  if (!result || typeof result !== "object") return {};
+  const report = (result as { report?: unknown }).report;
+  if (!isRosterDiagnosticReport(report)) return {};
+  return { report };
+}
+
 export function eventCounts(plan: EventPlan): Record<string, number> {
   return {
     create: plan.creates.length,

@@ -10,7 +10,8 @@
  *   user_id      (FK, nullable)
  *   action       (NOT NULL)            — equals event_type
  *   entity_type  (NOT NULL)            — "auth" for invite/login flows
- *   entity_id    (nullable)
+ *   entity_id    (text; production rejects an explicit null, SQLSTATE 23502.
+ *                 Pass the integration connection id. Do not send null.)
  *   metadata     (jsonb)
  *   event_type   (text)                — mirror of action
  *   outcome      ('success'|'failure'|'blocked')
@@ -39,10 +40,10 @@ export async function logAudit(
 ): Promise<void> {
   try {
     if (!entry.company_id) return;
-    await supabaseService.from("audit_logs").insert({
+    const entityId = typeof entry.entity_id === "string" ? entry.entity_id.trim().slice(0, 200) : "";
+    const row: Record<string, unknown> = {
       action: entry.event_type,
       entity_type: entry.entity_type ?? "auth",
-      entity_id: entry.entity_id ?? null,
       event_type: entry.event_type,
       user_id: entry.user_id ?? null,
       company_id: entry.company_id,
@@ -50,7 +51,16 @@ export async function logAudit(
       user_agent: entry.user_agent ?? null,
       metadata: entry.metadata ?? {},
       outcome: entry.outcome,
-    });
+    };
+    // An explicit null violates the production NOT NULL check. Omit the column
+    // only when the caller has no id; integration actions always pass the
+    // connection id, which stays after disconnect (the row is updated, not deleted).
+    if (entityId) row.entity_id = entityId;
+    const { error } = await supabaseService.from("audit_logs").insert(row);
+    if (error) {
+      console.warn("[audit] write failed:", error.message ? String(error.message).slice(0, 180) : "insert failed");
+    }
+    return;
   } catch (err) {
     // eslint-disable-next-line no-console -- audit must never break the request path
     console.warn(

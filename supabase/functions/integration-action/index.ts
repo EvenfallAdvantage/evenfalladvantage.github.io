@@ -10,12 +10,13 @@
  */
 import "jsr:@supabase/functions-js@2/edge-runtime.d.ts";
 import { getCallerIp, logAudit } from "../_shared/audit.ts";
-import { clearConnection, getConnection, withFreshToken } from "../_shared/integrations/connections.ts";
+import { clearConnection, getConnection, loadLive, withFreshToken } from "../_shared/integrations/connections.ts";
 import { adapterCtx, callerRole, env, jsonResponder, serviceClient } from "../_shared/integrations/http.ts";
 import { safeError } from "../_shared/integrations/redact.ts";
 import { getAdapter } from "../_shared/integrations/registry.ts";
 import { allowed, BUILTIN_ACCESS } from "../_shared/integrations/roles.ts";
 import { isProviderSlug } from "../_shared/integrations/urls.ts";
+import { integrationAuditMetadata, rosterAuditEntityId } from "../../../overwatch-src/src/lib/integrations/airtable-sync.ts";
 import { callerRpcClient, requireCompanyMfa } from "../_shared/mfa-guard.ts";
 
 Deno.serve(async (req) => {
@@ -38,8 +39,18 @@ Deno.serve(async (req) => {
   try {
     const caller = await callerRole(req, admin, companyId);
     if (!caller.authUserId) return json(401, { error: "Unauthorized" });
+    let connectionId = "";
     const audit = (outcome: "success" | "failure" | "blocked", metadata: Record<string, unknown> = {}) =>
-      logAudit(admin, { event_type: `integration.${provider}.${action}`, company_id: companyId, user_id: caller.userId, outcome, entity_type: "integration", ip_address: getCallerIp(req), metadata });
+      logAudit(admin, {
+        event_type: `integration.${provider}.${action}`,
+        company_id: companyId,
+        user_id: caller.userId,
+        outcome,
+        entity_type: "integration",
+        entity_id: rosterAuditEntityId(connectionId, companyId),
+        ip_address: getCallerIp(req),
+        metadata,
+      });
     if (!allowed(access, caller.role)) {
       await audit("blocked", { role: caller.role });
       return json(403, { error: access === "manage" ? "Only owners and admins can change integrations" : "Not allowed" });
@@ -51,6 +62,7 @@ Deno.serve(async (req) => {
 
     const row = await getConnection(admin, companyId, provider);
     if (!row) return json(404, { error: "Not connected" });
+    connectionId = row.id;
     const ctx = adapterCtx("integration-action");
     const authorization = req.headers.get("authorization");
     if (authorization?.toLowerCase().startsWith("bearer ")) ctx.callerAuthorization = authorization;
@@ -93,8 +105,12 @@ Deno.serve(async (req) => {
       return json(202, { ok: true, job: data });
     }
 
-    const out = await def!.run(await withFreshToken(admin, adapter, row, ctx), body.input ?? {}, ctx);
-    if (access === "manage") await audit("success");
+    const live = action === "roster_report" ? await loadLive(admin, row) : await withFreshToken(admin, adapter, row, ctx);
+    const out = await def!.run(live, body.input ?? {}, ctx);
+    if (access === "manage") {
+      const failed = Boolean(out && typeof out === "object" && (out as { ok?: boolean }).ok === false);
+      await audit(failed ? "failure" : "success", integrationAuditMetadata(out));
+    }
     return json(200, { ok: true, result: out });
   } catch (err) {
     console.error("[integration-action]", safeError(err));

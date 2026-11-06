@@ -69,7 +69,10 @@ regexes = ['''^ova_live_[A-Za-z0-9_]+$''']
 description = "Synthetic Airtable record ids in roster sync tests. Repeated-character rec fixtures sit next to the field name and match the Airtable key rule. Not credentials."
 condition = "AND"
 targetRules = ["airtable-api-key"]
-paths = ['''^overwatch-src/src/__tests__/airtable-sync\.test\.ts$''']
+paths = [
+  '''^overwatch-src/src/__tests__/airtable-sync\.test\.ts$''',
+  '''^overwatch-src/src/__tests__/roster-sync-report\.test\.tsx$''',
+]
 
 [[allowlists]]
 description = "Keyword-rule false positives on code identifiers / template placeholders (reviewed 2026-10-18)"

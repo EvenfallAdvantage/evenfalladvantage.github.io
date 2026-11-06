@@ -10,8 +10,12 @@ import {
   planEventSync,
   planRosterSync,
   readSchemaFields,
+  integrationAuditMetadata,
+  rosterAuditEntityId,
   rosterConfirmDescription,
   rosterCounts,
+  rosterDiagnosticReport,
+  sanitizeDiagnosticMessage,
   rosterPlanToken,
   rosterSyncPayload,
   sameFieldMap,
@@ -381,6 +385,64 @@ describe("Airtable record pages", () => {
     const stopped = takeAirtableRecords([page(50, "still-more")], 300);
     expect(stopped.truncated).toBe(true);
     expect(takeAirtableRecords([], 300)).toEqual({ records: [], truncated: false });
+  });
+});
+
+describe("roster diagnostic report", () => {
+  it("keeps the connection id, redacts secrets, and separates Airtable duplicates from local conflicts", () => {
+    expect(rosterAuditEntityId("connection-1", "company-1")).toBe("connection-1");
+    expect(rosterAuditEntityId("  ", "company-1")).toBe("company-1");
+    expect(sanitizeDiagnosticMessage("Bearer abc.def token user@example.com")).not.toMatch(/abc\.def|user@example.com/);
+    const mapping = {
+      first_name: { field_id: FIRST, name: "First Name", type: "singleLineText" },
+      last_name: { field_id: "fldLASTNAME123456", name: "Last Name", type: "singleLineText" },
+      email: { field_id: EMAIL, name: "Email", type: "email" },
+    };
+    const schema: SchemaField[] = Object.values(mapping).map((field) => ({ id: field.field_id, name: field.name, type: field.type }));
+    const incoming = (id: string, fields: Record<string, string>) => interpretRecord("roster", { id, fields }, mapping, schema);
+
+    const plan = planRosterSync([
+      person({ membershipId: "m1", userId: "u1", email: "ada@example.com", firstName: "Ada" }),
+      person({ membershipId: "m-other", userId: "u-other", email: "other@example.com", firstName: "Otto", role: "staff" }),
+    ], [
+      incoming("recAAAAAAAAAAAAAA", { "First Name": "Ada", "Last Name": "L", Email: "ada@example.com" }),
+      incoming("recBBBBBBBBBBBBBB", { "First Name": "Ada", "Last Name": "L", Email: "Ada@Example.com" }),
+      incoming("recCCCCCCCCCCCCCC", { "First Name": "", Email: "" }),
+    ], { truncated: false });
+    const preview = rosterDiagnosticReport({
+      kind: "preview",
+      plan,
+      pages: 6,
+      namesByRecord: new Map([["recAAAAAAAAAAAAAA", "Ada L"]]),
+      namesByMembership: new Map([["m-other", "Otto"]]),
+      failures: [{ op: "link", airtableId: "recAAAAAAAAAAAAAA", message: "Bearer secret-token user@example.com" }],
+      writeFailures: { link: 1 },
+    });
+    expect(preview.kind).toBe("preview");
+    expect(preview.writeFailures.link).toBe(1);
+    expect(preview.duplicateEmail).toBe(1);
+    expect(preview.localConflict).toBe(0);
+    expect(preview.missingEmail).toBe(1);
+    expect(preview.remove).toBe(0);
+    expect(preview.rows.some((row) => row.op === "held" && row.name === "Otto")).toBe(true);
+    expect(preview.rows.some((row) => row.reason === "Duplicate email in this Airtable table")).toBe(true);
+    expect(JSON.stringify(preview)).not.toMatch(/user@example.com|Bearer secret-token/);
+    expect(preview.reconcile).toMatch(/returned/);
+    expect(preview.reconcile).toMatch(/second Airtable row/);
+    const stored = integrationAuditMetadata({ report: preview, email: "hidden@example.com" });
+    expect(stored).toEqual({ report: preview });
+    expect(JSON.stringify(stored)).not.toMatch(/hidden@example.com/);
+
+    const owned = planRosterSync([
+      person({ membershipId: "m1", userId: "u1", email: "ada@example.com", airtableRecordId: "recAAAAAAAAAAAAAA" }),
+    ], [incoming("recAAAAAAAAAAAAAA", { "First Name": "Ada", "Last Name": "L", Email: "ada@example.com" })], {
+      truncated: false,
+      identities: [{ userId: "u-other", email: "ada@example.com" }],
+    });
+    const local = rosterDiagnosticReport({ kind: "sync", plan: owned, pages: 1 });
+    expect(local.rows.some((row) => row.reason === "Email belongs to a different Overwatch account")).toBe(true);
+    expect(local.localConflict).toBe(1);
+    expect(local.duplicateEmail).toBe(0);
   });
 });
 
