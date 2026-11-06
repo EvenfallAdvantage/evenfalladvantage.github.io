@@ -18,12 +18,6 @@ import { AirtableImportReview } from "@/app/admin/staff/components/airtable-impo
 
 const root = path.resolve(__dirname, "../../..");
 
-// Built at runtime so a 17-character fixture is not a literal next to "airtable".
-const recId = (mark: string) => `rec${mark.repeat(14)}`;
-const REC_A = recId("A");
-const REC_B = recId("B");
-const REC_C = recId("C");
-
 afterEach(() => {
   cleanup();
   vi.clearAllMocks();
@@ -58,18 +52,18 @@ describe("Airtable OAuth boundaries", () => {
   it("dedupes by Airtable record id and flags an existing email", () => {
     const plan = planApplicantImport(
       [
-        { id: "a1", email: "ada@example.com", airtableRecordId: REC_A },
+        { id: "a1", email: "ada@example.com", airtableRecordId: "recAAAAAAAAAAAAAA" }, // gitleaks:allow
         { id: "g1", email: "grace@example.com", airtableRecordId: null },
       ],
       [
-        { airtableId: REC_A, firstName: "Ada", lastName: "L", email: "ada@example.com" },
-        { airtableId: REC_B, firstName: "New", lastName: "Person", email: "new@example.com" },
-        { airtableId: REC_C, firstName: "Grace", lastName: "H", email: "GRACE@example.com" },
+        { airtableId: "recAAAAAAAAAAAAAA", firstName: "Ada", lastName: "L", email: "ada@example.com" }, // gitleaks:allow
+        { airtableId: "recBBBBBBBBBBBBBB", firstName: "New", lastName: "Person", email: "new@example.com" }, // gitleaks:allow
+        { airtableId: "recCCCCCCCCCCCCCC", firstName: "Grace", lastName: "H", email: "GRACE@example.com" }, // gitleaks:allow
       ],
     );
     expect(plan.toImport.map((r) => r.email)).toEqual(["new@example.com"]);
     expect(plan.alreadyImported.map((r) => r.applicantId)).toEqual(["a1"]);
-    expect(plan.emailConflicts).toEqual([{ airtableId: REC_C, email: "grace@example.com", existingApplicantId: "g1" }]);
+    expect(plan.emailConflicts).toEqual([{ airtableId: "recCCCCCCCCCCCCCC", email: "grace@example.com", existingApplicantId: "g1" }]); // gitleaks:allow
   });
 });
 
@@ -78,8 +72,8 @@ describe("reviewed Airtable import", () => {
     preview.mockResolvedValue({
       truncated: false,
       records: [
-        { airtableId: REC_A, firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
-        { airtableId: REC_B, firstName: "No", lastName: "Mail", email: "" },
+        { airtableId: "recAAAAAAAAAAAAAA", firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" }, // gitleaks:allow
+        { airtableId: "recBBBBBBBBBBBBBB", firstName: "No", lastName: "Mail", email: "" }, // gitleaks:allow
       ],
     });
     const confirmImport = vi.fn(async () => false);
@@ -92,6 +86,6 @@ describe("reviewed Airtable import", () => {
 
     confirmImport.mockResolvedValue(true);
     fireEvent.click(screen.getByText("Import selected"));
-    await waitFor(() => expect(importApplicants).toHaveBeenCalledWith("co", [REC_A]));
+    await waitFor(() => expect(importApplicants).toHaveBeenCalledWith("co", ["recAAAAAAAAAAAAAA"]));
   });
 });

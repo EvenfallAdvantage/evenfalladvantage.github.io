@@ -30,14 +30,8 @@ function ctxWith(handler: (url: string, init?: RequestInit) => Response, calls: 
 
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
 
-// Fixture record ids are built at runtime. A literal 17-character id next to the
-// word "airtable" matches gitleaks' airtable-api-key rule; these are not credentials.
-const recId = (mark: string) => `rec${mark.repeat(14)}`;
-const REC_A = recId("A");
-const REC_B = recId("B");
-const REC_C = recId("C");
-const REC_D = recId("D");
-const REC_E = recId("E");
+// Repeated-character record ids are fixtures. gitleaks:allow is on each use
+// beside the word "airtable" because that rule treats any 17-character token there as a key.
 
 function conn(over: Partial<LiveConnection> = {}): LiveConnection {
   return {
@@ -140,7 +134,7 @@ Deno.test("list bases, list tables, and preview are read-only and capped", async
     if (url.endsWith("/meta/bases")) return json({ bases: [{ id: "appABCDEFGHIJKLMN", name: "Hiring" }, { id: "not-a-base", name: "skip" }] });
     if (url.endsWith("/tables")) return json({ tables: [{ id: "tblABCDEFGHIJKLMN", name: "Applicants", fields: [{ name: "SSN" }] }] });
     return json({
-      records: [{ id: REC_E, fields: { "First Name": "Ada", "Last Name": "Lovelace", Email: "ada@example.com", Phone: "555", SSN: "should-not-leak" } }],
+      records: [{ id: "recEEEEEEEEEEEEEE", fields: { "First Name": "Ada", "Last Name": "Lovelace", Email: "ada@example.com", Phone: "555", SSN: "should-not-leak" } }],
       offset: "next-page",
     });
   }, calls);
@@ -151,7 +145,7 @@ Deno.test("list bases, list tables, and preview are read-only and capped", async
   assertEquals(tables.tables, [{ id: "tblABCDEFGHIJKLMN", name: "Applicants" }]);
   assertEquals("fields" in tables.tables[0], false);
   assertEquals(preview.truncated, true);
-  assertEquals(preview.records, [{ airtableId: REC_E, firstName: "Ada", lastName: "Lovelace", email: "ada@example.com", phone: "555" }]);
+  assertEquals(preview.records, [{ airtableId: "recEEEEEEEEEEEEEE", firstName: "Ada", lastName: "Lovelace", email: "ada@example.com", phone: "555" }]); // gitleaks:allow
   assert(calls.every((c) => c.method === "GET"));
   assert(calls.every((c) => !c.url.includes("offset=")));
   assertStringIncludes(calls[2].url, `maxRecords=${AIRTABLE_PREVIEW_LIMIT}`);
@@ -163,7 +157,7 @@ Deno.test("import re-reads records with GET, dedupes, and flags email conflicts"
   const calls: { method: string; url: string }[] = [];
   const inserted: string[] = [];
   const existing: ExistingApplicant[] = [
-    { id: "already", email: "ada@example.com", airtableRecordId: REC_A },
+    { id: "already", email: "ada@example.com", airtableRecordId: "recAAAAAAAAAAAAAA" }, // gitleaks:allow
     { id: "mail", email: "grace@example.com", airtableRecordId: null },
   ];
   const store: ApplicantStore = {
@@ -180,13 +174,13 @@ Deno.test("import re-reads records with GET, dedupes, and flags email conflicts"
   };
   const local = createAirtableAdapter(store);
   const ctx = ctxWith((url) => {
-    if (url.endsWith(`/${REC_B}`)) return json({ id: REC_B, fields: { Email: "new@example.com", Name: "New Person" } });
-    if (url.endsWith(`/${REC_A}`)) return json({ id: REC_A, fields: { Email: "ada@example.com", "First Name": "Ada" } });
-    if (url.endsWith(`/${REC_C}`)) return json({ id: REC_C, fields: { Email: "Grace@example.com", "First Name": "Grace" } });
+    if (url.endsWith("/recBBBBBBBBBBBBBB")) return json({ id: "recBBBBBBBBBBBBBB", fields: { Email: "new@example.com", Name: "New Person" } });
+    if (url.endsWith("/recAAAAAAAAAAAAAA")) return json({ id: "recAAAAAAAAAAAAAA", fields: { Email: "ada@example.com", "First Name": "Ada" } });
+    if (url.endsWith("/recCCCCCCCCCCCCCC")) return json({ id: "recCCCCCCCCCCCCCC", fields: { Email: "Grace@example.com", "First Name": "Grace" } });
     return json({ error: "missing" }, 404);
   }, calls);
   const result = await local.actions.import_applicants.run(conn(), {
-    record_ids: [REC_B, REC_A, REC_C, REC_D],
+    record_ids: ["recBBBBBBBBBBBBBB", "recAAAAAAAAAAAAAA", "recCCCCCCCCCCCCCC", "recDDDDDDDDDDDDDD"],
   }, ctx) as {
     ok: boolean;
     imported: { email: string }[];
@@ -197,9 +191,9 @@ Deno.test("import re-reads records with GET, dedupes, and flags email conflicts"
   assertEquals(result.ok, true);
   assertEquals(inserted, ["new@example.com"]);
   assertEquals(result.imported.map((r) => r.email), ["new@example.com"]);
-  assertEquals(result.alreadyImported.map((r) => r.airtableId), [REC_A]);
-  assertEquals(result.emailConflicts, [{ airtableId: REC_C, email: "grace@example.com", existingApplicantId: "mail" }]);
-  assertEquals(result.skipped, [{ airtableId: REC_D, reason: "not_in_airtable" }]);
+  assertEquals(result.alreadyImported.map((r) => r.airtableId), ["recAAAAAAAAAAAAAA"]); // gitleaks:allow
+  assertEquals(result.emailConflicts, [{ airtableId: "recCCCCCCCCCCCCCC", email: "grace@example.com", existingApplicantId: "mail" }]); // gitleaks:allow
+  assertEquals(result.skipped, [{ airtableId: "recDDDDDDDDDDDDDD", reason: "not_in_airtable" }]); // gitleaks:allow
   assert(calls.every((c) => c.method === "GET"));
   assert(calls.every((c) => c.url.startsWith("https://api.airtable.com/v0/appABCDEFGHIJKLMN/tblABCDEFGHIJKLMN/rec")));
 });
@@ -216,7 +210,7 @@ Deno.test("import refuses when the connection has not passed test", async () => 
     fetched++;
     return json({});
   });
-  const result = await local.actions.import_applicants.run(conn(), { record_ids: [REC_A] }, ctx) as { ok: boolean; error?: string };
+  const result = await local.actions.import_applicants.run(conn(), { record_ids: ["recAAAAAAAAAAAAAA"] }, ctx) as { ok: boolean; error?: string };
   assertEquals(result.ok, false);
   assertStringIncludes(result.error ?? "", "Test connection");
   assertEquals(fetched, 0);
@@ -224,11 +218,11 @@ Deno.test("import refuses when the connection has not passed test", async () => 
 
 Deno.test("planApplicantImport does not silently duplicate a batch email", () => {
   const plan = planApplicantImport([], [
-    normalizeAirtableRecord({ id: REC_A, fields: { Email: "a@example.com", Name: "A One" } }),
-    normalizeAirtableRecord({ id: REC_B, fields: { Email: "A@example.com", Name: "A Two" } }),
-    normalizeAirtableRecord({ id: REC_C, fields: { Name: "No Mail" } }),
+    normalizeAirtableRecord({ id: "recAAAAAAAAAAAAAA", fields: { Email: "a@example.com", Name: "A One" } }),
+    normalizeAirtableRecord({ id: "recBBBBBBBBBBBBBB", fields: { Email: "A@example.com", Name: "A Two" } }),
+    normalizeAirtableRecord({ id: "recCCCCCCCCCCCCCC", fields: { Name: "No Mail" } }),
   ]);
-  assertEquals(plan.toImport.map((r) => r.airtableId), [REC_A]);
+  assertEquals(plan.toImport.map((r) => r.airtableId), ["recAAAAAAAAAAAAAA"]); // gitleaks:allow
   assertEquals(plan.emailConflicts[0].existingApplicantId, null);
   assertEquals(plan.skipped[0].reason, "missing_email");
 });
