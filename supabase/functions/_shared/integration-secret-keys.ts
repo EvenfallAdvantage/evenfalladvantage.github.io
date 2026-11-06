@@ -21,7 +21,7 @@ export const isSecretKey = (k: string) => SECRET_SET.has(k);
 
 /** Providers whose credentials can be saved via integration-save-credentials. */
 export const GENERIC_PROVIDERS = new Set([
-  "airtable", "whatsapp", "fillout", "checkr", "docusign", "gusto", "quickbooks", "adp", "paychex", "onesignal",
+  "whatsapp", "fillout", "checkr", "docusign", "gusto", "quickbooks", "adp", "paychex", "onesignal",
 ]);
 
 /** Split a submitted config into public fields and secret fields (empty secrets dropped = keep existing). */

@@ -274,6 +274,7 @@ function AdminStaffPageInner() {
           <ApplicantsTab
             activeCompanyId={activeCompanyId}
             canManage={canManage}
+            canReviewAirtable={myRole === "owner" || myRole === "admin"}
             companyName={companyName}
             joinCode={joinCode}
             members={members}

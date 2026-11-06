@@ -13,10 +13,11 @@ describe("integration tiles", () => {
   it("drops duplicate/dead tiles", () => {
     const ids = INTEGRATION_PROVIDERS.map((p) => p.provider);
     for (const gone of ["twilio", "signal", "email"]) expect(ids).not.toContain(gone);
-    expect(INTEGRATION_PROVIDERS.filter((p) => p.available).map((p) => p.provider).sort()).toEqual(["airtable"]); // WhatsApp hidden in PR E until it is server-side
+    expect(INTEGRATION_PROVIDERS.filter((p) => p.available)).toEqual([]);
+    expect(ids).not.toContain("airtable");
   });
 
-  it("never shows Active for an unavailable vendor, keeps Airtable working", () => {
+  it("never shows Active for an unavailable vendor, and has no Airtable API key tile", () => {
     render(<IntegrationsSection companyId="c" initialIntegrations={[
       { provider: "checkr", config: { api_key: "x" }, is_active: true },
       { provider: "airtable", config: { base_id: "app1" }, is_active: true },
@@ -26,7 +27,8 @@ describe("integration tiles", () => {
     expect(checkr.textContent).toContain("Not available yet");
     expect(checkr.textContent).not.toContain("Active");
     expect(checkr.querySelector("input")).toBeNull();
-    expect(screen.getByTestId("integration-airtable").textContent).toContain("Active");
+    expect(screen.queryByTestId("integration-airtable")).toBeNull();
+    expect(screen.queryByLabelText("API Key")).toBeNull();
     expect(screen.queryByText(/coming soon/i)).toBeNull();
   });
 });

@@ -17,6 +17,7 @@ import {
 import { onApplicantHired, type HireResult } from "@/lib/services/hiring-orchestrator";
 import { FileText } from "lucide-react";
 import { ApplicantDetailModal } from "./applicant-detail-modal";
+import { AirtableImportReview } from "./airtable-import-review";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { useCompanyQuery } from "@/hooks/use-company-query";
 
@@ -39,6 +40,8 @@ type Member = Record<string, unknown>;
 interface ApplicantsTabProps {
   activeCompanyId: string;
   canManage: boolean;
+  /** Owner/admin. Airtable import uses the integration manage action. */
+  canReviewAirtable?: boolean;
   companyName: string;
   joinCode: string;
   members: Member[];
@@ -54,7 +57,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 const DOCUMENT_TYPES = ["Guard Card", "CPR/First Aid", "EMT", "OSHA", "Firearms", "Security License", "Military", "LEO", "Other"] as const;
 
-export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCode, members: _members, onHireResult }: ApplicantsTabProps) {
+export function ApplicantsTab({ activeCompanyId, canManage, canReviewAirtable = false, companyName, joinCode, members: _members, onHireResult }: ApplicantsTabProps) {
   const { confirm, ConfirmDialog } = useConfirmDialog();
   const { data: applicants = [], isLoading: loading, refetch } = useCompanyQuery<Applicant[]>(
     "applicants",
@@ -78,7 +81,6 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
   const [bulkDeleting, setBulkDeleting] = useState(false);
   const [bulkConverting, setBulkConverting] = useState(false);
   const [convertProgress, setConvertProgress] = useState("");
-  const [pullingAirtable, setPullingAirtable] = useState(false);
 
   async function handleAddApplicant() {
     if (!appForm.firstName.trim() || !appForm.email.trim() || !activeCompanyId) return;
@@ -237,28 +239,6 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
                 {bulkConverting ? <><Loader2 className="h-3.5 w-3.5 animate-spin" /> {convertProgress}</> : <><ArrowRight className="h-3.5 w-3.5" /> Convert Hired to Roster ({applicants.filter((a: Applicant) => a.status === "hired" && !a.converted_user_id).length})</>}
               </Button>
             )}
-            <Button size="sm" variant="outline" className="gap-1.5 text-xs" onClick={async () => {
-              if (!activeCompanyId) return;
-              setPullingAirtable(true);
-              try {
-                const { pullNewApplicantsFromAirtable } = await import("@/lib/services/airtable-service");
-                const pulled = await pullNewApplicantsFromAirtable(activeCompanyId);
-                if (pulled.length === 0) { toast.info("No new applicants found in Airtable"); return; }
-                let created = 0;
-                for (const a of pulled) {
-                  try {
-                    await createApplicant(activeCompanyId, { firstName: a.firstName, lastName: a.lastName, email: a.email, phone: a.phone });
-                    created++;
-                  } catch { /* skip duplicates */ }
-                }
-                toast.success(`Imported ${created} applicant${created !== 1 ? "s" : ""} from Airtable`);
-                await refetch();
-              } catch (err) { toast.error("Airtable import failed"); console.error(err); }
-              finally { setPullingAirtable(false); }
-            }} disabled={pullingAirtable}>
-              {pullingAirtable ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-              Import from Airtable
-            </Button>
             <Button size="sm" className="gap-1.5" onClick={() => setShowAddApp(!showAddApp)}>
               {showAddApp ? <X className="h-3.5 w-3.5" /> : <Plus className="h-3.5 w-3.5" />}
               {showAddApp ? "Cancel" : "Add Applicant"}
@@ -266,6 +246,10 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
           </div>
         )}
       </div>
+
+      {canReviewAirtable && (
+        <AirtableImportReview companyId={activeCompanyId} onImported={() => void refetch()} />
+      )}
 
       {/* Selection toolbar */}
       {canManage && filteredApplicants.length > 0 && (
@@ -545,12 +529,12 @@ export function ApplicantsTab({ activeCompanyId, canManage, companyName, joinCod
       <div className="rounded-xl border border-border/50 bg-card p-4 space-y-2 mt-3">
         <p className="font-medium text-sm">External Integrations</p>
         <p className="text-xs text-muted-foreground">
-          Connect Fillout, Airtable, or other tools to auto-import applicants via webhooks.
+          Airtable is a one-way, reviewed import. An owner or admin connects it in HQ Config, picks a base and table, runs Test connection, then confirms the records here. Overwatch does not write back to Airtable. Fillout and onboarding email are not connected.
         </p>
         <div className="grid gap-2 sm:grid-cols-3">
           {[
             { name: "Fillout", desc: "Receive form submissions via webhook", status: "planned" },
-            { name: "Airtable", desc: "Sync applicant records bidirectionally", status: "planned" },
+            { name: "Airtable", desc: "Reviewed one-way applicant import after OAuth", status: "one-way" },
             { name: "Email (Postmark)", desc: "Auto-send onboarding emails on hire", status: "planned" },
           ].map(int => (
             <div key={int.name} className="rounded-lg border border-border/40 p-3">

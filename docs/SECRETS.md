@@ -43,7 +43,8 @@ issues, PR descriptions or commit messages. The repo is **public**.
 | `INTEGRATIONS_PUBLIC_BASE`, `OVERWATCH_APP_URL`, `SITE_URL` | integrations, invites | Not secret (URLs) |
 | `INTAKE_ALLOWED_ORIGINS`, `INTEL_SWEEP_ENABLED`, `CCTV_ENABLE_PENDING_SOURCES`, `INTEGRATIONS_ENABLE_MOCK` | various | Not secret (flags) |
 | `MOCK_CLIENT_ID`, `MOCK_WEBHOOK_SECRET` | `_shared/integrations/mock.ts` | Test adapter only; leave unset in production |
-| Vendor OAuth app creds (`<VENDOR>_CLIENT_ID` / `_CLIENT_SECRET`) | integration adapters | Only when a vendor adapter goes live |
+| `AIRTABLE_CLIENT_ID`, `AIRTABLE_CLIENT_SECRET` | `_shared/integrations/airtable.ts` | Platform OAuth app. Not a personal access token. Set by the owner in Edge Function secrets. Never in the repo or in `integrations_config`. |
+| Vendor OAuth app creds (`<VENDOR>_CLIENT_ID` / `_CLIENT_SECRET`) | integration adapters | Same pattern as Airtable when another vendor adapter goes live |
 | `ONTARIO511_API_KEY`, `ALBERTA511_API_KEY`, `GA511_API_KEY`, `AZ511_API_KEY`, `NVROADS_API_KEY`, `UDOT_API_KEY`, `PA511_API_KEY`, `WI511_API_KEY`, `FL511_API_KEY`, `NY511_API_KEY`, `WSDOT_ACCESS_CODE`, `OHGO_API_KEY`, `COTRIP_API_KEY`, `TFNSW_API_KEY` | CCTV key-gated sources (not implemented) | Optional; none set |
 
 ### OverwatchDB Vault (`vault.secrets`; read only by SECURITY DEFINER functions / service role)
@@ -53,7 +54,8 @@ issues, PR descriptions or commit messages. The repo is **public**.
 | `cctv_ingest_secret` | migration `20261016224117_cctv_ingest_secret_rpc` | pg_cron → `intel-cctv-ingest` (`x-ingest-secret`) |
 | `integrations_cron_secret` | migration `20261018004108_integration_cron_secret_vault` | pg_cron → `integration-token-refresh` / `integration-jobs-worker` |
 | `TOMTOM_API_KEY` | migration `20261028174112_tomtom_api_key_vault` | `intel-traffic` (`get_tomtom_api_key()` service_role RPC) |
-| `integration:<company_id>:<provider>` | `integration-save-credentials` | integration adapters, `airtable-proxy` |
+| `integration:<company_id>:<provider>` | `integration-save-credentials` | legacy generic tiles. Airtable is no longer in that set and `airtable-proxy` does not read it. |
+| `integration-conn:<company_id>:airtable` | `integration-oauth-callback` | Airtable OAuth access and refresh tokens. Not deleted by the OAuth migration. |
 | `overwatch.email.smtp.<company_id>` (and the Resend/SMS equivalents) | `email-save-credentials`, `sms-save-credentials` | `_shared/email`, `_shared/sms` |
 
 ### EADB Edge Function secrets (legacy; retire with EADB)

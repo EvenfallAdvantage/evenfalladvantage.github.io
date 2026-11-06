@@ -49,8 +49,8 @@ describe("connection model", () => {
     for (const c of ["vault_secret_id", "refresh_lock_token", "refresh_lock_until"]) expect(CONNECTION_SELECT).not.toContain(c);
   });
 
-  it("no vendor is live on the framework yet (vendor PRs add them)", () => {
-    expect(FRAMEWORK_PROVIDERS).toEqual([]);
+  it("Airtable is the OAuth provider on the framework", () => {
+    expect(FRAMEWORK_PROVIDERS.map((p) => `${p.provider}:${p.connect}`)).toEqual(["airtable:oauth"]);
   });
 
   it("health: failing, refresh failures, untested, webhook silence; disconnected ignored", () => {

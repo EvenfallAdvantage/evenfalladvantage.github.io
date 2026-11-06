@@ -10,19 +10,14 @@ import IntegrationsSection from "@/app/admin/settings/components/integrations-se
 afterEach(cleanup);
 
 describe("write-only integration secrets", () => {
-  it("never prefills a secret and shows it is saved", async () => {
+  it("does not offer an Airtable API key form", () => {
     render(<IntegrationsSection companyId="c" initialIntegrations={[
       { provider: "airtable", config: { base_id: "appX", table_name: "Staff", secret_keys_set: ["api_key"] } as unknown as Record<string, string>, is_active: true },
     ]} />);
     fireEvent.click(screen.getByText("Hiring & Onboarding"));
-    const key = screen.getByLabelText("API Key") as HTMLInputElement;
-    expect(key.value).toBe("");
-    expect(key.placeholder).toMatch(/Saved/);
-    expect((screen.getByLabelText("Base ID") as HTMLInputElement).value).toBe("appX");
-    fireEvent.click(screen.getByTestId("integration-airtable").querySelector("button[type=submit]")!);
-    await vi.waitFor(() => expect(save).toHaveBeenCalled());
-    expect(save.mock.calls[0][2]).not.toHaveProperty("api_key");
-    expect(save.mock.calls[0][2]).not.toHaveProperty("secret_keys_set");
+    expect(screen.queryByLabelText("API Key")).toBeNull();
+    expect(screen.queryByTestId("integration-airtable")).toBeNull();
+    expect(save).not.toHaveBeenCalled();
   });
   it("WhatsApp is not available until it is server-side", () => {
     render(<IntegrationsSection companyId="c" initialIntegrations={[]} />);

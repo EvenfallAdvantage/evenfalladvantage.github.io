@@ -36,6 +36,10 @@ Set to `https://api.evenfalladvantage.com/integrations` → `…/oauth/callback/
 | `INTEGRATIONS_ENABLE_MOCK` | leave unset in production |
 | per-vendor client ids/secrets | added by each vendor PR (plan §1.5) |
 
+Airtable is the first real adapter (`_shared/integrations/airtable.ts`). Its redirect is pinned to
+`https://nneueuvyeohwnspbwfub.supabase.co/functions/v1/integration-oauth-callback/airtable`
+and does not follow `INTEGRATIONS_PUBLIC_BASE`. Scopes are `schema.bases:read`, `data.records:read`, and `user.email:read`.
+
 ## Adding a vendor (V1–V9)
 
 1. `_shared/integrations/<provider>.ts` implementing `VendorAdapter`, plus `<provider>_test.ts` replaying recorded fixtures.

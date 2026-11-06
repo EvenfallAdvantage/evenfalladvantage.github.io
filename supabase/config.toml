@@ -320,6 +320,7 @@ entrypoint = "./functions/data-delete/index.ts"
 enabled = true
 verify_jwt = true
 
+# Retired PAT proxy. Returns 410 and does not read credentials. Airtable is OAuth.
 [functions.airtable-proxy]
 enabled = true
 verify_jwt = true
