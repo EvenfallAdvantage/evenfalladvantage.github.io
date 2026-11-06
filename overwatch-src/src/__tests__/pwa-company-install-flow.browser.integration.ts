@@ -41,23 +41,52 @@ let origin = "";
 let server: http.Server | null = null;
 let swBody = Buffer.alloc(0);
 
+/** Open once, then fstat and read that descriptor. A path stat followed by a path read can observe two different files. */
+function readJsChunk(full: string): { directory: boolean; text: string | null } {
+  let fd: number | undefined;
+  try {
+    fd = fs.openSync(full, "r");
+    const stat = fs.fstatSync(fd);
+    if (stat.isDirectory()) return { directory: true, text: null };
+    if (!stat.isFile() || stat.size === 0 || stat.size > 8_000_000) return { directory: false, text: null };
+    const buf = Buffer.alloc(stat.size);
+    let offset = 0;
+    while (offset < buf.length) {
+      const count = fs.readSync(fd, buf, offset, buf.length - offset, offset);
+      if (count === 0) break;
+      offset += count;
+    }
+    return { directory: false, text: buf.toString("utf8", 0, offset) };
+  } catch {
+    return { directory: false, text: null };
+  } finally {
+    if (fd !== undefined) fs.closeSync(fd);
+  }
+}
+
 function findSupabaseHost(dir: string): string {
   const chunks = path.join(dir, "_next/static/chunks");
   const pending = [chunks];
   const pattern = /https:\/\/[a-z0-9-]+\.supabase\.co/;
   while (pending.length > 0) {
     const current = pending.pop();
-    if (!current || !fs.existsSync(current)) continue;
-    for (const name of fs.readdirSync(current)) {
+    if (!current) continue;
+    let names: string[];
+    try {
+      names = fs.readdirSync(current);
+    } catch {
+      continue;
+    }
+    for (const name of names) {
       if (name.endsWith(".map")) continue;
       const full = path.join(current, name);
-      const stat = fs.statSync(full);
-      if (stat.isDirectory()) {
+      const chunk = readJsChunk(full);
+      if (chunk.directory) {
         pending.push(full);
         continue;
       }
-      if (!name.endsWith(".js") || stat.size > 8_000_000) continue;
-      const match = pattern.exec(fs.readFileSync(full, "utf8"));
+      if (!name.endsWith(".js") || !chunk.text) continue;
+      const match = pattern.exec(chunk.text);
       if (match) return match[0];
     }
   }
