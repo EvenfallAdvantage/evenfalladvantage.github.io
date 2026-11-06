@@ -40,6 +40,8 @@ import {
   mergeReleases,
   readLastSeenReleaseId,
   shouldAutoOpenWhatsNew,
+  visibleHighlightSummary,
+  visibleHighlightTitle,
   type ReleaseHighlight,
   type ReleaseNote,
 } from "@/lib/releases";
@@ -112,6 +114,53 @@ export function renderHighlightIcon(iconName?: string) {
     default:
       return <Sparkles className="h-4 w-4 text-primary shrink-0" />;
   }
+}
+
+/**
+ * One full-changelog row. The bold title stays; subtext is omitted when it
+ * only repeats that title, and a repeated title prefix is trimmed so a real
+ * tail (and any Try-it link) still show. A title cut inside brackets is shown
+ * as the summary's complete sentence instead of an orphan tail.
+ */
+export function ChangelogHighlightLine({
+  highlight: h,
+  onTry,
+}: {
+  highlight: ReleaseHighlight;
+  onTry?: (highlight: ReleaseHighlight) => void;
+}) {
+  const shownTitle = visibleHighlightTitle(h.title, h.summary);
+  const detail = visibleHighlightSummary(h.title, h.summary);
+  return (
+    <div
+      data-testid={`whats-new-changelog-item-${h.id}`}
+      className="flex items-start gap-2.5 text-xs"
+    >
+      <div className="mt-0.5 shrink-0">{renderHighlightIcon(h.icon)}</div>
+      <div className="min-w-0 flex-1">
+        <span className="font-semibold text-foreground">
+          {detail ? `${shownTitle}: ` : shownTitle}
+        </span>
+        {detail ? (
+          <span
+            className="text-muted-foreground"
+            data-testid={`whats-new-changelog-detail-${h.id}`}
+          >
+            {detail}
+          </span>
+        ) : null}
+        {h.tryHref ? (
+          <button
+            type="button"
+            onClick={() => onTry?.(h)}
+            className="ml-2 inline-flex items-center gap-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 underline hover:opacity-80"
+          >
+            {h.tryLabel ?? "Try it"} →
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
 interface WhatsNewTriggerPillProps {
@@ -375,45 +424,51 @@ export function WhatsNewModal() {
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
           {view === "rollup" ? (
             <div data-testid="whats-new-rollup-list" className="space-y-2.5">
-              {rollUp.highlights.map((h) => (
-                <div
-                  key={`${h.releaseId}-${h.id}`}
-                  data-testid={`whats-new-highlight-${h.id}`}
-                  className="rounded-xl border border-border/60 bg-muted/25 p-3.5 transition-colors hover:border-border"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background border border-border/60">
-                      {renderHighlightIcon(h.icon)}
-                    </div>
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <div className="flex items-center justify-between gap-2 flex-wrap">
-                        <h3 className="text-sm font-semibold leading-snug">
-                          {h.title}
-                        </h3>
-                        <span className="text-[10px] font-mono text-muted-foreground">
-                          {h.releaseVersion}
-                        </span>
+              {rollUp.highlights.map((h) => {
+                const shownTitle = visibleHighlightTitle(h.title, h.summary);
+                const detail = visibleHighlightSummary(h.title, h.summary);
+                return (
+                  <div
+                    key={`${h.releaseId}-${h.id}`}
+                    data-testid={`whats-new-highlight-${h.id}`}
+                    className="rounded-xl border border-border/60 bg-muted/25 p-3.5 transition-colors hover:border-border"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background border border-border/60">
+                        {renderHighlightIcon(h.icon)}
                       </div>
-                      <p className="text-xs text-muted-foreground leading-relaxed">
-                        {h.summary}
-                      </p>
-                      {h.tryHref && (
-                        <div className="pt-1">
-                          <button
-                            type="button"
-                            onClick={() => handleTryIt(h)}
-                            data-testid={`whats-new-try-${h.id}`}
-                            className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 transition-colors"
-                          >
-                            {h.tryLabel ?? "Try it"}
-                            <ArrowRight className="h-3 w-3" />
-                          </button>
+                      <div className="min-w-0 flex-1 space-y-1">
+                        <div className="flex items-center justify-between gap-2 flex-wrap">
+                          <h3 className="text-sm font-semibold leading-snug">
+                            {shownTitle}
+                          </h3>
+                          <span className="text-[10px] font-mono text-muted-foreground">
+                            {h.releaseVersion}
+                          </span>
                         </div>
-                      )}
+                        {detail ? (
+                          <p className="text-xs text-muted-foreground leading-relaxed">
+                            {detail}
+                          </p>
+                        ) : null}
+                        {h.tryHref && (
+                          <div className="pt-1">
+                            <button
+                              type="button"
+                              onClick={() => handleTryIt(h)}
+                              data-testid={`whats-new-try-${h.id}`}
+                              className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 hover:bg-amber-500/20 px-2.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 transition-colors"
+                            >
+                              {h.tryLabel ?? "Try it"}
+                              <ArrowRight className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div data-testid="whats-new-changelog-list" className="space-y-4">
@@ -450,28 +505,7 @@ export function WhatsNewModal() {
                     </div>
                     <div className="space-y-2">
                       {items.map((h) => (
-                        <div key={h.id} className="flex items-start gap-2.5 text-xs">
-                          <div className="mt-0.5 shrink-0">
-                            {renderHighlightIcon(h.icon)}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <span className="font-semibold text-foreground">
-                              {h.title}:{" "}
-                            </span>
-                            <span className="text-muted-foreground">
-                              {h.summary}
-                            </span>
-                            {h.tryHref && (
-                              <button
-                                type="button"
-                                onClick={() => handleTryIt(h)}
-                                className="ml-2 inline-flex items-center gap-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 underline hover:opacity-80"
-                              >
-                                {h.tryLabel ?? "Try it"} →
-                              </button>
-                            )}
-                          </div>
-                        </div>
+                        <ChangelogHighlightLine key={h.id} highlight={h} onTry={handleTryIt} />
                       ))}
                     </div>
                   </div>

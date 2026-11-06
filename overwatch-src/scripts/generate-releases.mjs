@@ -120,6 +120,26 @@ export function inferHighlightMeta(scope, description) {
 }
 
 /**
+ * First clause of a commit subject. A semicolon inside (), [], or {} is part
+ * of that group — "(Incidents-style tabs; Scanner stays)" stays one clause.
+ * Keep in sync with firstTopLevelClause in src/lib/releases.ts.
+ * @param {string} text
+ */
+export function firstTopLevelClause(text) {
+  /** @type {string[]} */
+  const stack = [];
+  const opener = { "(": ")", "[": "]", "{": "}" };
+  const closer = { ")": "(", "]": "[", "}": "{" };
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (opener[ch]) stack.push(ch);
+    else if (closer[ch] && stack[stack.length - 1] === closer[ch]) stack.pop();
+    else if (ch === ";" && stack.length === 0) return text.slice(0, i).trim();
+  }
+  return text.trim();
+}
+
+/**
  * Clean a commit description into a user-friendly title + summary.
  * @param {string} type
  * @param {string} scope
@@ -138,8 +158,10 @@ export function formatCommitTitleAndSummary(type, scope, rawDesc) {
         ? "Performance Upgrade"
         : "Reliability Fix";
 
-  const firstClause = capitalized.split(/[;]/)[0].trim();
+  const firstClause = firstTopLevelClause(capitalized);
   const title = scope ? `${scopeLabel}: ${firstClause}` : firstClause;
+  // Full subject. The changelog hides this when it only repeats `title`
+  // (see visibleHighlightSummary in src/lib/releases.ts).
   const summary = capitalized.endsWith(".") ? capitalized : `${capitalized}.`;
   return { title, summary };
 }
