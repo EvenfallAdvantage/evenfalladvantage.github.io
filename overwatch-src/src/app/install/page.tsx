@@ -15,7 +15,7 @@ import {
   companyManifestPath,
   installCompanyIdFromSearch,
   installableCompanies,
-  shouldReplaceForControl,
+  shouldNavigateToPublishManifest,
   type InstallMembership,
 } from "@/lib/pwa-company-install";
 import { companySurfaceHex, DEFAULT_BRAND } from "@/lib/brand-utils";
@@ -58,30 +58,35 @@ function InstallScreen() {
     void (async () => {
       await Promise.resolve();
       if (cancelled) return;
-      const controlled = Boolean(navigator.serviceWorker?.controller);
-      if (controlled) {
+      const manifestHref = () => document.querySelector('link[rel="manifest"]')?.getAttribute("href") ?? null;
+      if (manifestHref() === companyManifestPath(companyId)) {
         try { sessionStorage.removeItem(INSTALL_CONTROL_ONCE_KEY); } catch { /* private mode */ }
         setReadyToInstall(true);
         return;
       }
       setReadyToInstall(false);
       const cacheReady = await companyManifestIsCached(companyId);
-      let alreadyReplaced = false;
-      try { alreadyReplaced = sessionStorage.getItem(INSTALL_CONTROL_ONCE_KEY) === companyId; } catch { alreadyReplaced = true; }
-      if (!shouldReplaceForControl({
+      if (cancelled) return;
+      let alreadyNavigated = false;
+      try { alreadyNavigated = sessionStorage.getItem(INSTALL_CONTROL_ONCE_KEY) === companyId; } catch { alreadyNavigated = true; }
+      if (!shouldNavigateToPublishManifest({
         pathname: window.location.pathname,
         companyId,
-        hasController: false,
+        manifestHref: manifestHref(),
         cacheReady,
-        alreadyReplaced,
+        alreadyNavigated,
       })) {
-        if (!cacheReady && !cancelled) {
+        if (!cacheReady) {
           setNote("This company app is not stored in this browser yet. Press Install, then use the browser menu on the page that opens.");
         }
         return;
       }
       const active = await waitForActiveServiceWorker();
       if (cancelled) return;
+      if (manifestHref() === companyManifestPath(companyId)) {
+        setReadyToInstall(true);
+        return;
+      }
       if (!active) {
         setNote(INSTALL_WORKER_MESSAGE);
         return;
@@ -149,14 +154,23 @@ function InstallScreen() {
       setNote(INSTALL_WORKER_MESSAGE);
       return;
     }
-    // The next document is controlled by the active worker, so its parser can
-    // request the company manifest. This page does not fetch that URL first.
-    const next = companyInstallPath(built.companyId);
-    if (navigator.serviceWorker.controller && window.location.pathname.endsWith("/install/") && installCompanyIdFromSearch(window.location.search) === built.companyId) {
+    const manifestHref = document.querySelector('link[rel="manifest"]')?.getAttribute("href") ?? null;
+    // clients.claim() can set the controller while this wait is in progress.
+    // The boot observer is still removing links on this document, so a
+    // controller alone is not a parsed company manifest. Navigate unless
+    // this document already has that company's link.
+    if (!shouldNavigateToPublishManifest({
+      pathname: window.location.pathname,
+      companyId: built.companyId,
+      manifestHref,
+      cacheReady: true,
+      alreadyNavigated: false,
+    })) {
       setBusy(null);
       setReadyToInstall(true);
       return;
     }
+    const next = companyInstallPath(built.companyId);
     window.location.assign(new URL(next, window.location.origin).toString());
   }
 

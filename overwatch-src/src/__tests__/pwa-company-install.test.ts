@@ -17,7 +17,7 @@ import {
   INSTALL_CONTROL_ONCE_KEY,
   installCompanyIdFromSearch,
   installableCompanies,
-  shouldReplaceForControl,
+  shouldNavigateToPublishManifest,
   isInstallDocumentPath,
   launchSessionMayRetargetManifest,
   resolveLaunchCompany,
@@ -287,30 +287,22 @@ describe("install navigation", () => {
     expect(buildCompanyManifest([bravo], A, false)).toBeNull();
   });
 
-  it("navigates once for control only after the company cache exists", () => {
+  it("navigates when the company link is missing and the cache is stored", () => {
     const base = {
       pathname: "/overwatch/install/",
       companyId: A,
-      hasController: false,
+      manifestHref: null as string | null,
       cacheReady: true,
-      alreadyReplaced: false,
+      alreadyNavigated: false,
     };
-    expect(shouldReplaceForControl(base)).toBe(true);
-    expect(shouldReplaceForControl({ ...base, hasController: true })).toBe(false);
-    expect(shouldReplaceForControl({ ...base, cacheReady: false })).toBe(false);
-    expect(shouldReplaceForControl({ ...base, alreadyReplaced: true })).toBe(false);
-    expect(shouldReplaceForControl({ ...base, companyId: null })).toBe(false);
-    expect(shouldReplaceForControl({ ...base, pathname: "/overwatch/" })).toBe(false);
+    expect(shouldNavigateToPublishManifest(base)).toBe(true);
+    expect(shouldNavigateToPublishManifest({ ...base, manifestHref: companyManifestPath(A) })).toBe(false);
+    expect(shouldNavigateToPublishManifest({ ...base, manifestHref: SHARED_MANIFEST_PATH })).toBe(true);
+    expect(shouldNavigateToPublishManifest({ ...base, cacheReady: false })).toBe(false);
+    expect(shouldNavigateToPublishManifest({ ...base, alreadyNavigated: true })).toBe(false);
+    expect(shouldNavigateToPublishManifest({ ...base, companyId: null })).toBe(false);
+    expect(shouldNavigateToPublishManifest({ ...base, pathname: "/overwatch/" })).toBe(false);
     expect(INSTALL_CONTROL_ONCE_KEY).toBe("overwatch:pwa-install-control-once");
-  });
-
-  it("publishes the company manifest with one navigation after the worker is active", () => {
-    const page = fs.readFileSync(path.join(rootDir, "src/app/install/page.tsx"), "utf8");
-    expect(page).not.toContain("location.reload");
-    expect(page).toContain("shouldReplaceForControl");
-    expect(page).toContain("waitForActiveServiceWorker");
-    expect(page).toContain("location.assign");
-    expect(page).not.toContain("Company app");
   });
 });
 

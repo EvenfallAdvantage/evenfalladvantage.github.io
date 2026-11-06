@@ -217,23 +217,26 @@ export function launchSessionMayRetargetManifest(pathname: string): boolean {
 export const INSTALL_CONTROL_ONCE_KEY = "overwatch:pwa-install-control-once";
 
 /**
- * An uncontrolled install document must not publish the company manifest URL:
- * the browser would request it from the network and keep the Overwatch fallback.
- * One navigation after the cache is stored and a worker is active is controlled.
- * An empty cache does not navigate. A second attempt does not loop.
+ * Publish the company manifest with one navigation when this document does not
+ * already have that company's manifest link. A controlling worker is not
+ * enough: the install document's boot script removes manifest links until
+ * parse time, and clients.claim() can set the controller on that same
+ * document without removing the observer. An empty cache does not navigate.
+ * A second automatic attempt does not loop. A link that already points at
+ * this company is left in place.
  */
-export function shouldReplaceForControl(input: {
+export function shouldNavigateToPublishManifest(input: {
   pathname: string;
   companyId: string | null;
-  hasController: boolean;
+  manifestHref: string | null;
   cacheReady: boolean;
-  alreadyReplaced: boolean;
+  alreadyNavigated: boolean;
 }): boolean {
   if (!isInstallDocumentPath(input.pathname)) return false;
   if (!isUuid(input.companyId)) return false;
-  if (input.hasController) return false;
+  if (input.manifestHref === companyManifestPath(input.companyId)) return false;
   if (!input.cacheReady) return false;
-  if (input.alreadyReplaced) return false;
+  if (input.alreadyNavigated) return false;
   return true;
 }
 
