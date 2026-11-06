@@ -59,6 +59,8 @@ const PRECACHE_PAGES = [
   `${BASE_PATH}/incidents/`,
   `${BASE_PATH}/tasks/`,
   `${BASE_PATH}/notifications/`,
+  // Install shell only. Company manifests stay in overwatch-company-* caches.
+  `${BASE_PATH}/install/`,
 ];
 
 const PRECACHE_ASSETS = [
@@ -170,15 +172,31 @@ self.addEventListener("fetch", (event) => {
   if (url.origin !== self.location.origin) return; // Supabase, CDNs, etc.
   if (!url.pathname.startsWith(BASE_PATH)) return;
 
-  // Company install manifests and icons. Never the shared runtime cache,
-  // and never /overwatch/manifest.json.
+  // Company install manifests and icons. Cache only: a miss is 404.
+  // Do not fetch the network and do not substitute /overwatch/manifest.json.
+  // An uncontrolled document would otherwise store that response and the
+  // install dialog would keep the default name.
   const companyPwa = owCompanyPwa.matchCompanyPwaPath(url.pathname);
   if (companyPwa) {
     event.respondWith((async () => {
       const cache = await caches.open(owCompanyPwa.companyCacheName(companyPwa.companyId));
       const hit = (await cache.match(req)) || (await cache.match(url.pathname));
+      if (hit && companyPwa.file === "manifest.webmanifest") {
+        const text = await hit.clone().text();
+        // The URL company id is the only identity. A cached body for a different
+        // company, or one company's icon path, is a miss. Do not serve the shared manifest.
+        if (!owCompanyPwa.manifestBodyMatchesCompany(text, companyPwa.companyId)) {
+          return new Response("Not found", {
+            status: 404,
+            headers: { "Content-Type": "text/plain", "Cache-Control": "no-store" },
+          });
+        }
+      }
       if (hit) return hit;
-      return new Response("Not found", { status: 404, headers: { "Content-Type": "text/plain" } });
+      return new Response("Not found", {
+        status: 404,
+        headers: { "Content-Type": "text/plain", "Cache-Control": "no-store" },
+      });
     })());
     return;
   }

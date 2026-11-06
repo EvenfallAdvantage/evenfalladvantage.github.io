@@ -12,8 +12,12 @@ import {
   approvedLogoUrl,
   buildCompanyManifest,
   companyCacheName,
+  companyInstallPath,
   companyManifestPath,
+  installCompanyIdFromSearch,
   installableCompanies,
+  isInstallDocumentPath,
+  launchSessionMayRetargetManifest,
   resolveLaunchCompany,
   storeCompanyManifest,
   type InstallMembership,
@@ -57,6 +61,8 @@ function loadSwHelpers() {
     companyCacheName: (id: string) => string;
     matchCompanyPwaPath: (pathname: string) => { companyId: string; file: string } | null;
     shouldPreserveCompanyCache: (name: string) => boolean;
+    iconSrcAllowedForCompany: (src: string, companyId: string) => boolean;
+    manifestBodyMatchesCompany: (text: string, companyId: string) => boolean;
   };
 }
 
@@ -127,48 +133,156 @@ describe("two company manifests stay distinct", () => {
 });
 
 describe("launch boot script", () => {
-  function run(href: string, session: Record<string, string> = {}) {
+  type LinkEl = {
+    parentNode: { children: LinkEl[]; insertBefore: (node: LinkEl, before: LinkEl | null) => void; removeChild: (node: LinkEl) => void } | null;
+    attrs: Record<string, string>;
+    getAttribute: (name: string) => string | null;
+    setAttribute: (name: string, value: string) => void;
+  };
+
+  function run(href: string, session: Record<string, string> = {}, options?: { links?: { rel: string; href: string }[]; observe?: boolean }) {
     const store = new Map(Object.entries(session));
-    const link = {
-      href: SHARED_MANIFEST_PATH,
-      setAttribute: (name: string, value: string) => {
-        if (name === "href") link.href = value;
+    const observers: Array<() => void> = [];
+    const head: { children: LinkEl[]; insertBefore: (node: LinkEl, before: LinkEl | null) => void; removeChild: (node: LinkEl) => void } = {
+      children: [],
+      insertBefore(node, before) {
+        if (node.parentNode) node.parentNode.removeChild(node);
+        const at = before ? head.children.indexOf(before) : -1;
+        if (at >= 0) head.children.splice(at, 0, node);
+        else head.children.unshift(node);
+        node.parentNode = head;
+        queueMicrotask(() => { for (const cb of observers) cb(); });
+      },
+      removeChild(node) {
+        const at = head.children.indexOf(node);
+        if (at >= 0) head.children.splice(at, 1);
+        node.parentNode = null;
+        queueMicrotask(() => { for (const cb of observers) cb(); });
       },
     };
+    function makeLink(rel: string, hrefValue: string): LinkEl {
+      const el: LinkEl = {
+        parentNode: null,
+        attrs: { rel, href: hrefValue },
+        getAttribute(name) { return el.attrs[name] ?? null; },
+        setAttribute(name, value) { el.attrs[name] = value; },
+      };
+      head.insertBefore(el, null);
+      return el;
+    }
+    for (const item of options?.links ?? [{ rel: "manifest", href: SHARED_MANIFEST_PATH }]) makeLink(item.rel, item.href);
     const location = new URL(href);
-    const sandbox = {
+    const sandbox: Record<string, unknown> = {
       location,
       sessionStorage: {
         getItem: (key: string) => store.get(key) ?? null,
         setItem: (key: string, value: string) => { store.set(key, value); },
       },
       document: {
-        querySelector: (sel: string) => (sel === 'link[rel="manifest"]' ? link : null),
+        head,
+        documentElement: head,
+        getElementsByTagName: (name: string) => (name === "link" ? head.children.slice() : []),
+        createElement: (name: string) => {
+          if (name !== "link") throw new Error(name);
+          const el: LinkEl = {
+            parentNode: null,
+            attrs: {},
+            getAttribute(attr) { return el.attrs[attr] ?? null; },
+            setAttribute(attr, value) { el.attrs[attr] = value; },
+          };
+          return el;
+        },
       },
       decodeURIComponent,
+      queueMicrotask,
     };
+    if (options?.observe !== false) {
+      sandbox.MutationObserver = class {
+        cb: () => void;
+        constructor(cb: () => void) { this.cb = cb; }
+        observe() { observers.push(() => this.cb()); }
+      };
+    }
     vm.runInNewContext(PWA_LAUNCH_BOOT, sandbox);
-    return { manifest: link.href, session: Object.fromEntries(store) };
+    const manifests = () => head.children.filter((el) => (el.getAttribute("rel") || "").split(/\s+/).includes("manifest")).map((el) => el.getAttribute("href"));
+    return {
+      manifests,
+      session: Object.fromEntries(store),
+      addManifest(hrefValue: string) { makeLink("manifest", hrefValue); },
+      flush: () => new Promise((resolve) => setTimeout(resolve, 0)),
+    };
   }
 
   it("pins the launched company manifest and does not retarget it from the install page", () => {
     const launched = run(`https://www.evenfalladvantage.com/overwatch/?${LAUNCH_QUERY}=${A}`);
-    expect(launched.manifest).toBe(companyManifestPath(A));
+    expect(launched.manifests()).toEqual([companyManifestPath(A)]);
     expect(launched.session[LAUNCH_SESSION_KEY]).toBe(A);
 
     const stayed = run("https://www.evenfalladvantage.com/overwatch/feed/", { [LAUNCH_SESSION_KEY]: A });
-    expect(stayed.manifest).toBe(companyManifestPath(A));
+    expect(stayed.manifests()).toEqual([companyManifestPath(A)]);
     expect(stayed.session[LAUNCH_SESSION_KEY]).toBe(A);
 
     const installing = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${B}`, { [LAUNCH_SESSION_KEY]: A });
-    expect(installing.manifest).toBe(companyManifestPath(B));
+    expect(installing.manifests()).toEqual([companyManifestPath(B)]);
     expect(installing.session[LAUNCH_SESSION_KEY]).toBe(A);
+    expect(installing.manifests().some((href) => href === SHARED_MANIFEST_PATH)).toBe(false);
+  });
+
+  it("inserts the company manifest when the install document has no link yet", () => {
+    const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [] });
+    expect(result.manifests()).toEqual([companyManifestPath(A)]);
+  });
+
+  it("restores the shared manifest on the install chooser and leaves other pages alone", () => {
+    const chooser = run("https://www.evenfalladvantage.com/overwatch/install/", {}, { links: [] });
+    expect(chooser.manifests()).toEqual([SHARED_MANIFEST_PATH]);
+
+    const home = run("https://www.evenfalladvantage.com/overwatch/feed/");
+    expect(home.manifests()).toEqual([SHARED_MANIFEST_PATH]);
+    expect(home.session[LAUNCH_SESSION_KEY]).toBeUndefined();
+  });
+
+  it("drops a shared link added after the company install link", async () => {
+    const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [] });
+    expect(result.manifests()).toEqual([companyManifestPath(A)]);
+    result.addManifest(SHARED_MANIFEST_PATH);
+    await result.flush();
+    expect(result.manifests()).toEqual([companyManifestPath(A)]);
   });
 
   it("ignores a company id that is not a uuid", () => {
     const result = run("https://www.evenfalladvantage.com/overwatch/?ow_company=../manifest.json");
-    expect(result.manifest).toBe(SHARED_MANIFEST_PATH);
+    expect(result.manifests()).toEqual([SHARED_MANIFEST_PATH]);
     expect(result.session[LAUNCH_SESSION_KEY]).toBeUndefined();
+    const install = run("https://www.evenfalladvantage.com/overwatch/install/?company=../manifest.json", {}, { links: [] });
+    expect(install.manifests()).toEqual([SHARED_MANIFEST_PATH]);
+  });
+});
+
+describe("install navigation", () => {
+  it("uses the chosen company, not another active membership", () => {
+    expect(companyInstallPath(A)).toBe(`/overwatch/install/?${INSTALL_QUERY}=${A}`);
+    expect(companyInstallPath(B.toUpperCase())).toBe(`/overwatch/install/?${INSTALL_QUERY}=${B}`);
+    expect(installCompanyIdFromSearch(`?${INSTALL_QUERY}=${A}`)).toBe(A);
+    expect(installCompanyIdFromSearch(`?${INSTALL_QUERY}=${A.toUpperCase()}&extra=1`)).toBe(A);
+    expect(installCompanyIdFromSearch(`?${INSTALL_QUERY}=not-a-uuid`)).toBeNull();
+    expect(installCompanyIdFromSearch(`?${LAUNCH_QUERY}=${A}`)).toBeNull();
+    expect(installCompanyIdFromSearch(`?foo=1&${INSTALL_QUERY}=${B}`)).toBe(B);
+    expect(isInstallDocumentPath("/overwatch/install/")).toBe(true);
+    expect(isInstallDocumentPath("/overwatch/feed/")).toBe(false);
+    expect(launchSessionMayRetargetManifest("/overwatch/install/")).toBe(false);
+    expect(launchSessionMayRetargetManifest("/overwatch/feed/")).toBe(true);
+    expect(buildCompanyManifest([alpha, bravo], A, false)!.companyId).toBe(A);
+    expect(buildCompanyManifest([alpha, bravo], B, false)!.name).toBe("Bravo Patrol");
+    expect(buildCompanyManifest([bravo], A, false)).toBeNull();
+  });
+
+  it("does not reload the install page while waiting for a worker", () => {
+    const page = fs.readFileSync(path.join(rootDir, "src/app/install/page.tsx"), "utf8");
+    expect(page).not.toContain("location.reload");
+    expect(page).not.toContain("location.replace");
+    expect(page).toContain("finalizeCompanyInstallInBrowser");
+    expect(page).toContain("location.assign");
   });
 });
 
@@ -182,10 +296,32 @@ describe("service worker company cache separation", () => {
     expect(api.matchCompanyPwaPath("/overwatch/manifest.json")).toBeNull();
     expect(api.matchCompanyPwaPath("/overwatch/pwa/not-a-uuid/manifest.webmanifest")).toBeNull();
     expect(api.matchCompanyPwaPath(`/overwatch/pwa/${B}/icon-512.png`)).toEqual({ companyId: B, file: "icon-512.png" });
+    expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${A}/icon-192.png`, A)).toBe(true);
+    expect(api.iconSrcAllowedForCompany("/overwatch/images/icon-512.png", A)).toBe(true);
+    expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${B}/icon-512.png`, A)).toBe(false);
+    const branded = buildCompanyManifest([alpha], A, true)!;
+    expect(api.manifestBodyMatchesCompany(JSON.stringify(branded.body), A)).toBe(true);
+    expect(api.manifestBodyMatchesCompany(JSON.stringify({ ...branded.body, id: `/overwatch/pwa/${B}/` }), A)).toBe(false);
+    expect(api.manifestBodyMatchesCompany(JSON.stringify({
+      ...branded.body,
+      icons: [{ src: `/overwatch/pwa/${B}/icon-192.png`, sizes: "192x192", type: "image/png", purpose: "any" }],
+    }), A)).toBe(false);
     expect(api.shouldPreserveCompanyCache(companyCacheName(A))).toBe(true);
     expect(api.shouldPreserveCompanyCache(companyCacheName(B))).toBe(true);
     expect(api.shouldPreserveCompanyCache("overwatch-pages-abc12345")).toBe(false);
     expect(api.shouldPreserveCompanyCache("overwatch-runtime-dev")).toBe(false);
+  });
+
+  it("does not fall back to the network for a company manifest", () => {
+    const start = sw.indexOf("const companyPwa = owCompanyPwa.matchCompanyPwaPath");
+    const end = sw.indexOf("if (url.pathname.startsWith(`${BASE_PATH}/api/`))");
+    const block = sw.slice(start, end);
+    expect(block).toContain("Not found");
+    expect(block).toContain("no-store");
+    expect(block).not.toContain("fetch(");
+    expect(block).not.toContain("manifest.json");
+    expect(block).toContain("owCompanyPwa.manifestBodyMatchesCompany");
+    expect(sw).toContain("`${BASE_PATH}/install/`");
   });
 
   it("serves company urls outside the versioned caches and keeps them across activate", () => {
