@@ -52,7 +52,7 @@ export const FRAMEWORK_PROVIDERS: ConnectionProviderDef[] = [
     provider: "airtable",
     label: "Airtable",
     logo: "/images/integrations/airtable.jpeg",
-    desc: "OAuth read of one base. Applicant import is reviewed and does not write back to Airtable.",
+    desc: "One OAuth read grant. Applicants, Roster, and Ops Planning each save their own table and field mapping. Nothing is written back to Airtable.",
     connect: "oauth",
   },
 ];

@@ -11,7 +11,6 @@ import {
   AIRTABLE_BASE_ID,
   AIRTABLE_PREVIEW_LIMIT,
   AIRTABLE_RECORD_ID,
-  AIRTABLE_TABLE_ID,
   normalizeAirtableRecord,
   planApplicantImport,
   readAirtableSettings,
@@ -19,6 +18,8 @@ import {
   type NormalizedApplicant,
 } from "./airtable-import.ts";
 import { VendorError, type AdapterCtx, type TokenSet, type VendorAdapter } from "./types.ts";
+import { defaultOpsDeps, opsActions, fetchBases, fetchSchema, type OpsDeps } from "./airtable-ops.ts";
+import { schemaTableChoices } from "../../../../overwatch-src/src/lib/integrations/airtable-sync.ts";
 
 export const AIRTABLE_REDIRECT_URI =
   "https://nneueuvyeohwnspbwfub.supabase.co/functions/v1/integration-oauth-callback/airtable";
@@ -150,8 +151,19 @@ async function defaultStore(): Promise<ApplicantStore> {
   };
 }
 
-export function createAirtableAdapter(store?: ApplicantStore): VendorAdapter {
+export function createAirtableAdapter(store?: ApplicantStore, ops?: Partial<OpsDeps>): VendorAdapter {
   const applicants = () => store ? Promise.resolve(store) : defaultStore();
+  const resolveOps = async (ctx: AdapterCtx): Promise<OpsDeps> => {
+    if (ops?.roster && ops.events && ops.mappings && ops.settings && ops.lastTestOk) return ops as OpsDeps;
+    const base = await defaultOpsDeps((companyId) => applicants().then((row) => row.lastTestOk(companyId)))(ctx);
+    return {
+      roster: ops?.roster ?? base.roster,
+      events: ops?.events ?? base.events,
+      mappings: ops?.mappings ?? base.mappings,
+      settings: ops?.settings ?? base.settings,
+      lastTestOk: ops?.lastTestOk ?? base.lastTestOk,
+    };
+  };
 
   return {
     provider: "airtable",
@@ -211,13 +223,7 @@ export function createAirtableAdapter(store?: ApplicantStore): VendorAdapter {
         access: "manage",
         async run(conn, _input, ctx) {
           try {
-            const data = await vendorJson<{ bases?: { id?: string; name?: string }[] }>(`${API}/meta/bases`, {
-              fetchImpl: ctx.fetch,
-              headers: bearer(conn.secrets.access_token),
-            });
-            const bases = (data.bases ?? [])
-              .filter((b) => typeof b.id === "string" && AIRTABLE_BASE_ID.test(b.id))
-              .map((b) => ({ id: b.id as string, name: typeof b.name === "string" ? b.name.slice(0, 200) : b.id as string }));
+            const bases = await fetchBases(conn.secrets.access_token, ctx);
             return { ok: true, bases };
           } catch (e) {
             if (e instanceof VendorError && (e.status === 401 || e.status === 403)) return actionError("Airtable rejected this connection");
@@ -231,14 +237,9 @@ export function createAirtableAdapter(store?: ApplicantStore): VendorAdapter {
           const requested = typeof input.base_id === "string" ? input.base_id : readAirtableSettings(conn.settings).baseId;
           if (!AIRTABLE_BASE_ID.test(requested)) return actionError("Choose an Airtable base");
           try {
-            const data = await vendorJson<{ tables?: { id?: string; name?: string }[] }>(`${API}/meta/bases/${requested}/tables`, {
-              fetchImpl: ctx.fetch,
-              headers: bearer(conn.secrets.access_token),
-            });
-            const tables = (data.tables ?? [])
-              .filter((t) => typeof t.id === "string" && AIRTABLE_TABLE_ID.test(t.id))
-              .map((t) => ({ id: t.id as string, name: typeof t.name === "string" ? t.name.slice(0, 200) : t.id as string }));
-            return { ok: true, tables };
+            const data = await fetchSchema(requested, conn.secrets.access_token, ctx);
+            const savedTableId = readAirtableSettings(conn.settings).tableId;
+            return { ok: true, tables: schemaTableChoices(data.tables, savedTableId) };
           } catch (e) {
             if (e instanceof VendorError && (e.status === 401 || e.status === 403 || e.status === 404)) {
               return actionError("That base is not available to this Airtable connection");
@@ -331,6 +332,7 @@ export function createAirtableAdapter(store?: ApplicantStore): VendorAdapter {
           };
         },
       },
+      ...opsActions(resolveOps),
     },
   };
 }

@@ -52,6 +52,8 @@ Deno.serve(async (req) => {
     const row = await getConnection(admin, companyId, provider);
     if (!row) return json(404, { error: "Not connected" });
     const ctx = adapterCtx("integration-action");
+    const authorization = req.headers.get("authorization");
+    if (authorization?.toLowerCase().startsWith("bearer ")) ctx.callerAuthorization = authorization;
 
     if (action === "disconnect") {
       if (adapter.revoke && row.vault_secret_id) {

@@ -4,10 +4,16 @@ import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { saveIntegrationConnectionSettings } from "@/lib/supabase/db";
-import { listAirtableBases, listAirtableTables, previewAirtableApplicants, type AirtablePreviewRecord } from "@/lib/services/airtable-service";
-import { readSavedAirtableSettings, sanitizeAirtableSettings, type AirtableChoice } from "@/lib/integrations/airtable";
+import { describeAirtableTable, listAirtableBases, listAirtableTables, previewAirtableApplicants, saveAirtableTable, type AirtablePreviewRecord, type AirtableSchemaField } from "@/lib/services/airtable-service";
+import { readSavedAirtableSettings, type AirtableChoice } from "@/lib/integrations/airtable";
+import {
+  authorizedChoices,
+  readPurposeSelection,
+  suggestedTableId,
+  type AirtablePurpose,
+} from "@/lib/integrations/airtable-sync";
 import type { IntegrationConnection } from "@/lib/integrations/connections";
+import { AirtableFieldMap } from "./airtable-field-map";
 
 interface Props {
   companyId: string;
@@ -16,20 +22,63 @@ interface Props {
   onSaved: () => void;
 }
 
+const PURPOSES: { id: AirtablePurpose; title: string; preferredTable: string; copy: string }[] = [
+  {
+    id: "applicants",
+    title: "Applicants",
+    preferredTable: "",
+    copy: "Reviewed applicant import still reads this saved table with the original name and email handling. Saving it does not change Roster or Events.",
+  },
+  {
+    id: "roster",
+    title: "Roster",
+    preferredTable: "Employees",
+    copy: "Choose the Employees table, then map its columns. Sync adds and updates roster people. It does not remove anyone or change owner and admin roles.",
+  },
+  {
+    id: "events",
+    title: "Ops Planning",
+    preferredTable: "Events",
+    copy: "Choose the Events table and map its columns. Sync creates draft operations only. Manually owned operations are not overwritten or deleted.",
+  },
+];
+
 export default function AirtableConnectionPanel({ companyId, canManage, connection, onSaved }: Props) {
-  const saved = readSavedAirtableSettings(connection?.settings);
-  const [baseId, setBaseId] = useState(saved.baseId);
-  const [tableId, setTableId] = useState(saved.tableId);
+  const settings = connection?.settings;
+  const applicantSaved = readSavedAirtableSettings(settings);
+  const rosterSaved = readPurposeSelection(settings, "roster");
+  const eventsSaved = readPurposeSelection(settings, "events");
+  const savedByPurpose = { applicants: applicantSaved, roster: rosterSaved.baseId ? rosterSaved : { ...rosterSaved, baseId: applicantSaved.baseId, baseName: applicantSaved.baseName }, events: eventsSaved.baseId ? eventsSaved : { ...eventsSaved, baseId: applicantSaved.baseId, baseName: applicantSaved.baseName } };
   const [bases, setBases] = useState<AirtableChoice[]>([]);
-  const [tables, setTables] = useState<AirtableChoice[]>([]);
+  const [tablesByBase, setTablesByBase] = useState<Record<string, AirtableChoice[]>>({});
+  const [loadedBases, setLoadedBases] = useState<Record<string, boolean>>({});
+  const [baseIds, setBaseIds] = useState<Record<AirtablePurpose, string>>({
+    applicants: applicantSaved.baseId,
+    roster: savedByPurpose.roster.baseId,
+    events: savedByPurpose.events.baseId,
+  });
+  const [tableIds, setTableIds] = useState<Record<AirtablePurpose, string>>({
+    applicants: applicantSaved.tableId,
+    roster: rosterSaved.tableId,
+    events: eventsSaved.tableId,
+  });
+  const [schemas, setSchemas] = useState<Record<string, AirtableSchemaField[]>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [preview, setPreview] = useState<AirtablePreviewRecord[] | null>(null);
   const [truncated, setTruncated] = useState(false);
 
   useEffect(() => {
-    setBaseId(saved.baseId);
-    setTableId(saved.tableId);
-  }, [saved.baseId, saved.tableId]);
+    setBaseIds({
+      applicants: applicantSaved.baseId,
+      roster: rosterSaved.baseId || applicantSaved.baseId,
+      events: eventsSaved.baseId || applicantSaved.baseId,
+    });
+    setTableIds({
+      applicants: applicantSaved.tableId,
+      roster: rosterSaved.tableId,
+      events: eventsSaved.tableId,
+    });
+  }, [applicantSaved.baseId, applicantSaved.tableId, rosterSaved.baseId, rosterSaved.tableId, eventsSaved.baseId, eventsSaved.tableId]);
 
   const live = connection && connection.status !== "disconnected" && connection.status !== "revoked";
   if (!live) {
@@ -40,10 +89,28 @@ export default function AirtableConnectionPanel({ companyId, canManage, connecti
     );
   }
 
+  async function refreshTables(baseId: string) {
+    const tables = authorizedChoices(await listAirtableTables(companyId, baseId));
+    setTablesByBase((prev) => ({ ...prev, [baseId]: tables }));
+    setLoadedBases((prev) => ({ ...prev, [baseId]: true }));
+    setTableIds((prev) => {
+      const next = { ...prev };
+      for (const purpose of PURPOSES) {
+        if (baseIds[purpose.id] !== baseId) continue;
+        const saved = purpose.id === "applicants" ? applicantSaved.tableId : purpose.id === "roster" ? rosterSaved.tableId : eventsSaved.tableId;
+        next[purpose.id] = suggestedTableId(tables, purpose.preferredTable, prev[purpose.id] || saved);
+      }
+      return next;
+    });
+  }
+
   async function loadBases() {
     setBusy("bases");
     try {
-      setBases(await listAirtableBases(companyId));
+      const nextBases = authorizedChoices(await listAirtableBases(companyId));
+      setBases(nextBases);
+      const ids = [...new Set(Object.values(baseIds).filter(Boolean))];
+      await Promise.all(ids.map((id) => refreshTables(id)));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not list bases");
     } finally {
@@ -51,31 +118,23 @@ export default function AirtableConnectionPanel({ companyId, canManage, connecti
     }
   }
 
-  async function loadTables(nextBase: string) {
-    setBusy("tables");
+  async function save(purpose: AirtablePurpose) {
+    const baseId = baseIds[purpose];
+    const tableId = tableIds[purpose];
+    const base = bases.find((item) => item.id === baseId);
+    const tables = tablesByBase[baseId] ?? [];
+    const table = tables.find((item) => item.id === tableId);
+    const saved = purpose === "applicants" ? applicantSaved : purpose === "roster" ? rosterSaved : eventsSaved;
+    if (!baseId || !tableId) { toast.error("Choose a base and table"); return; }
+    setBusy(`save-${purpose}`);
     try {
-      setTables(await listAirtableTables(companyId, nextBase));
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Could not list tables");
-    } finally {
-      setBusy(null);
-    }
-  }
-
-  async function save() {
-    const base = bases.find((b) => b.id === baseId);
-    const table = tables.find((t) => t.id === tableId);
-    const cleaned = sanitizeAirtableSettings({
-      baseId,
-      baseName: base?.name ?? saved.baseName,
-      tableId,
-      tableName: table?.name ?? (tableId === saved.tableId ? saved.tableName : ""),
-    });
-    if (!cleaned.ok) { toast.error(cleaned.error); return; }
-    setBusy("save");
-    try {
-      await saveIntegrationConnectionSettings(companyId, "airtable", cleaned.settings);
-      toast.success("Airtable base saved");
+      await saveAirtableTable(companyId, purpose, {
+        baseId,
+        baseName: base?.name ?? saved.baseName,
+        tableId,
+        tableName: table?.name ?? (tableId === saved.tableId ? saved.tableName : ""),
+      });
+      toast.success(`${purpose === "events" ? "Ops Planning" : purpose === "roster" ? "Roster" : "Applicants"} table saved`);
       onSaved();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Could not save");
@@ -98,61 +157,125 @@ export default function AirtableConnectionPanel({ companyId, canManage, connecti
     }
   }
 
+  async function loadSchema(purpose: "roster" | "events") {
+    const baseId = baseIds[purpose];
+    const tableId = tableIds[purpose];
+    if (!baseId || !tableId) return;
+    setBusy(`schema-${purpose}`);
+    try {
+      const fields = await describeAirtableTable(companyId, baseId, tableId);
+      setSchemas((prev) => ({ ...prev, [`${purpose}:${tableId}`]: fields }));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Could not load fields");
+    } finally {
+      setBusy(null);
+    }
+  }
+
   return (
-    <div className="rounded-lg border border-border/40 p-4 space-y-3" data-testid="airtable-settings">
+    <div className="rounded-lg border border-border/40 p-4 space-y-4" data-testid="airtable-settings">
       <div>
-        <p className="text-sm font-semibold">Airtable base</p>
+        <p className="text-sm font-semibold">Airtable tables</p>
         <p className="text-[10px] text-muted-foreground">
-          Pick the base and table to read. Test connection above checks Airtable before the card shows Connected.
-          This preview does not create applicants and does not change Airtable.
+          One OAuth connection feeds Applicants, Roster, and Ops Planning. Load bases shows every base this account can read.
+          Choosing a base lists every table in that base. A saved table stays selected and does not hide the others.
+          Airtable is read-only.
         </p>
         {connection.last_test_ok !== true && (
-          <p className="text-[10px] text-amber-500 mt-1">Run Test connection before importing applicants.</p>
+          <p className="text-[10px] text-amber-500 mt-1">Run Test connection before importing or syncing.</p>
         )}
       </div>
       {canManage ? (
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="outline" className="h-8 text-xs" disabled={!!busy} onClick={() => void loadBases()}>
-            {busy === "bases" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Load bases"}
-          </Button>
-          <select
-            aria-label="Airtable base"
-            className="h-8 rounded border border-border/40 bg-background px-2 text-xs"
-            value={baseId}
-            onChange={(e) => {
-              setBaseId(e.target.value);
-              setTableId("");
-              setTables([]);
-              setPreview(null);
-              if (e.target.value) void loadTables(e.target.value);
-            }}
-          >
-            <option value="">Select a base</option>
-            {baseId && !bases.some((b) => b.id === baseId) && <option value={baseId}>{saved.baseName || baseId}</option>}
-            {bases.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
-          </select>
-          <select
-            aria-label="Airtable table"
-            className="h-8 rounded border border-border/40 bg-background px-2 text-xs"
-            value={tableId}
-            onChange={(e) => { setTableId(e.target.value); setPreview(null); }}
-          >
-            <option value="">Select a table</option>
-            {tableId && !tables.some((t) => t.id === tableId) && <option value={tableId}>{saved.tableName || tableId}</option>}
-            {tables.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
-          </select>
-          <Button type="button" size="sm" className="h-8 text-xs" disabled={!!busy || !baseId} onClick={() => void save()}>Save base</Button>
-          <Button type="button" size="sm" variant="outline" className="h-8 text-xs" disabled={!!busy || connection.last_test_ok !== true} onClick={() => void loadPreview()}>
-            {busy === "preview" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Preview records"}
-          </Button>
-        </div>
+        <Button type="button" size="sm" variant="outline" className="h-8 text-xs" disabled={!!busy} onClick={() => void loadBases()}>
+          {busy === "bases" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Load bases"}
+        </Button>
       ) : (
-        <p className="text-[10px] text-muted-foreground">Only owners and admins can change the Airtable base.</p>
+        <p className="text-[10px] text-muted-foreground">Only owners and admins can change Airtable tables.</p>
       )}
+      {PURPOSES.map((purpose) => {
+        const baseId = baseIds[purpose.id];
+        const tableId = tableIds[purpose.id];
+        const loaded = Boolean(baseId && loadedBases[baseId]);
+        const tables = tablesByBase[baseId] ?? [];
+        const saved = purpose.id === "applicants" ? applicantSaved : purpose.id === "roster" ? rosterSaved : eventsSaved;
+        const savedHere = saved.baseId === baseId && saved.tableId && saved.tableId === tableId;
+        return (
+          <div key={purpose.id} className="rounded-lg border border-border/40 p-3 space-y-2" data-testid={`airtable-purpose-${purpose.id}`}>
+            <div>
+              <p className="text-sm font-semibold">{purpose.title}</p>
+              <p className="text-[10px] text-muted-foreground">{purpose.copy}</p>
+              {saved.tableName && (
+                <p className="text-[10px] text-muted-foreground mt-1">Saved {purpose.title.toLowerCase()} table: {saved.baseName || saved.baseId} / {saved.tableName}</p>
+              )}
+            </div>
+            {canManage && (
+              <div className="flex flex-wrap gap-2">
+                <select
+                  aria-label={`${purpose.title} base`}
+                  className="h-8 rounded border border-border/40 bg-background px-2 text-xs"
+                  value={baseId}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    setBaseIds((prev) => ({ ...prev, [purpose.id]: next }));
+                    setTableIds((prev) => ({ ...prev, [purpose.id]: "" }));
+                    if (!next) return;
+                    void listAirtableTables(companyId, next).then((rows) => {
+                      const tables = authorizedChoices(rows);
+                      setTablesByBase((prev) => ({ ...prev, [next]: tables }));
+                      setLoadedBases((prev) => ({ ...prev, [next]: true }));
+                      const savedId = purpose.id === "applicants" ? applicantSaved.tableId : purpose.id === "roster" ? rosterSaved.tableId : eventsSaved.tableId;
+                      setTableIds((prev) => ({ ...prev, [purpose.id]: suggestedTableId(tables, purpose.preferredTable, prev[purpose.id] || savedId) }));
+                    }).catch((err) => toast.error(err instanceof Error ? err.message : "Could not list tables"));
+                  }}
+                >
+                  <option value="">Select a base</option>
+                  {baseId && !bases.some((item) => item.id === baseId) && <option value={baseId}>{saved.baseName || baseId}</option>}
+                  {bases.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                </select>
+                <select
+                  aria-label={`${purpose.title} table`}
+                  data-testid={`airtable-table-${purpose.id}`}
+                  className="h-8 rounded border border-border/40 bg-background px-2 text-xs"
+                  value={loaded ? tableId : (tableId || "")}
+                  disabled={!loaded || !!busy}
+                  onFocus={() => { if (baseId && !loaded) void refreshTables(baseId); }}
+                  onChange={(e) => setTableIds((prev) => ({ ...prev, [purpose.id]: e.target.value }))}
+                >
+                  {!loaded && <option value={tableId || ""}>Load bases to see every table</option>}
+                  {loaded && <option value="">Select a table</option>}
+                  {loaded && tables.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+                  {loaded && tableId && !tables.some((item) => item.id === tableId) && <option value={tableId}>{saved.tableName || tableId} (saved)</option>}
+                </select>
+                <Button type="button" size="sm" className="h-8 text-xs" disabled={!!busy || !baseId || !tableId} onClick={() => void save(purpose.id)}>
+                  {busy === `save-${purpose.id}` ? <Loader2 className="h-3 w-3 animate-spin" /> : `Save ${purpose.title}`}
+                </Button>
+                {purpose.id === "applicants" && (
+                  <Button type="button" size="sm" variant="outline" className="h-8 text-xs" disabled={!!busy || connection.last_test_ok !== true} onClick={() => void loadPreview()}>
+                    {busy === "preview" ? <Loader2 className="h-3 w-3 animate-spin" /> : "Preview records"}
+                  </Button>
+                )}
+              </div>
+            )}
+            {purpose.id !== "applicants" && canManage && savedHere && (
+              <AirtableFieldMap
+                companyId={companyId}
+                purpose={purpose.id}
+                baseId={baseId}
+                tableId={tableId}
+                fields={schemas[`${purpose.id}:${tableId}`] ?? null}
+                loading={busy === `schema-${purpose.id}`}
+                tested={connection.last_test_ok === true}
+                onLoadFields={() => void loadSchema(purpose.id)}
+                onSynced={onSaved}
+              />
+            )}
+          </div>
+        );
+      })}
       {preview && (
         <div data-testid="airtable-preview">
           <p className="text-[10px] text-muted-foreground mb-1">
-            First {preview.length} record{preview.length === 1 ? "" : "s"}{truncated ? " (later pages are not loaded)" : ""}. Import them from Staff → Applicants after you review the list there.
+            First {preview.length} applicant record{preview.length === 1 ? "" : "s"}{truncated ? " (later pages are not loaded)" : ""}. Import them from Staff → Applicants after you review the list there.
           </p>
           <ul className="space-y-1">
             {preview.map((row) => (

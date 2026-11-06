@@ -31,6 +31,7 @@ import { ReadinessModal } from "./readiness-modal";
 import { formatMemberName, memberInitials } from "@/lib/format-names";
 import { BadgePreviewModal } from "./badge-preview-modal";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
+import { AirtableExplicitSync } from "@/components/integrations/airtable-explicit-sync";
 import { logger } from "@/lib/logger";
 
 
@@ -635,6 +636,10 @@ export function RosterTab({ activeCompanyId, canManage, canManageRoles, members,
           <span>{error}</span>
           <button onClick={() => setError(null)} className="ml-2 font-bold hover:text-red-400">&times;</button>
         </div>
+      )}
+
+      {(myRole === "owner" || myRole === "admin") && (
+        <AirtableExplicitSync companyId={activeCompanyId} purpose="roster" onSynced={onReload} />
       )}
 
       <div className="flex flex-wrap items-center gap-2">

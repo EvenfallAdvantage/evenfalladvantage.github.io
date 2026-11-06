@@ -24,6 +24,7 @@ import { OperationDetail } from "./components/operation-detail";
 import { getAssessment, type SiteAssessment } from "@/lib/supabase/db-assessments";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { ClientIntakeShareModal } from "@/components/ops/client-intake-share-modal";
+import { AirtableExplicitSync } from "@/components/integrations/airtable-explicit-sync";
 
 /* ── Component ─────────────────────────────────────────── */
 
@@ -160,6 +161,9 @@ export default function AdminEventsPage() {
   return (
     <>
       <div className="space-y-6">
+        {activeCompanyId && (activeCompany?.role === "owner" || activeCompany?.role === "admin") && (
+          <AirtableExplicitSync companyId={activeCompanyId} purpose="events" onSynced={() => { void refetchEvents(); }} />
+        )}
         {/* ── CREATE WIZARD ── */}
         {showCreate && activeCompanyId && (
           <CreateWizard
