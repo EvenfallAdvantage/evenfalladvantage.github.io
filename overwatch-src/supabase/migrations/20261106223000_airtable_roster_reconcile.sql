@@ -24,17 +24,25 @@
 --   leave the Airtable id behind and block that record. This function deletes
 --   only provider = 'airtable' for this company and user, in the same
 --   transaction, and does not touch other providers.
---   If a RESTRICT / NO ACTION foreign key that is not in this repo blocks the
---   membership delete, the function raises 23503 and the whole sync rolls
---   back. The error is not swallowed and no earlier create in the plan is kept.
+--   Each create, attach, link, update, and removal runs in its own
+--   subtransaction (EXCEPTION WHEN OTHERS). A foreign-key violation on one
+--   removal is caught there. That row is not removed, the failure is returned,
+--   and rows that already succeeded in this call stay. They commit when the
+--   function returns. A later removal failure does not undo an earlier one.
+--   If any earlier row failed, the removal loop does not run.
+--   There is no outer handler that rolls those successes back.
 --
 -- Identity
---   Email match is lower(trim(email)). A unique violation on users.email or
---   users_lower_email_uidx re-reads that account and links it. It does not
---   insert a second user. Two accounts with the same email abort the sync.
+--   Email match is lower(trim(email)), the same normalization as the inbound
+--   value. A unique violation on users.email or users_lower_email_uidx
+--   re-reads that account and links it. It does not insert a second user.
+--   Two accounts with the same email fail that row only. The other rows in
+--   the plan still commit, and removals are skipped.
 --   An account that already exists, including in another company, gets a staff
 --   membership here instead of a new identity. Role and status of a membership
 --   that already exists are not written. New memberships are staff / active.
+--   A protected owner, admin, or manager hit by a create or attach fails that
+--   row and does not abort the rest of the plan.
 -- =============================================================================
 
 BEGIN;
@@ -530,15 +538,11 @@ BEGIN
     ),
     'failures', v_failures
   );
-EXCEPTION
-  WHEN foreign_key_violation THEN
-    RAISE EXCEPTION 'Membership removal was blocked by a related row. No roster changes were saved and the login was not deleted. %', SQLERRM
-      USING ERRCODE = '23503';
 END
 $fn$;
 
 COMMENT ON FUNCTION public.apply_airtable_roster_sync(uuid, text, text, jsonb) IS
-  'Applies one confirmed Airtable roster plan in a single transaction. Caller must be an active owner, admin, or manager of that company. Deletes company memberships only; never public.users or auth.users. Does not change role, status, or a linked email.';
+  'Applies one confirmed Airtable roster plan. A failed row rolls back only that row; successful rows commit when the function returns. Removals are skipped after an earlier failure. A later removal failure does not undo earlier rows. Caller must be an active owner, admin, or manager. Deletes company memberships only; never public.users or auth.users. Does not change role, status, or a linked email.';
 
 REVOKE ALL ON FUNCTION public.apply_airtable_roster_sync(uuid, text, text, jsonb) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.apply_airtable_roster_sync(uuid, text, text, jsonb) TO authenticated;

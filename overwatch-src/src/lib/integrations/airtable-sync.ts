@@ -743,8 +743,12 @@ export function planRosterSync(
       }
       continue;
     }
+    if (!emailOk) {
+      plan.skipped.push({ airtableId: row.airtableId, reason: "missing_email" });
+      continue;
+    }
     const requiredProblem = row.problems.find((problem) => problem.destination === "first_name" || problem.destination === "email");
-    if (requiredProblem || !emailOk || !cleanOptional(row.values.first_name)) {
+    if (requiredProblem || !cleanOptional(row.values.first_name)) {
       plan.skipped.push({ airtableId: row.airtableId, reason: requiredProblem?.code ?? "missing_required_value" });
       continue;
     }
@@ -840,6 +844,9 @@ export function planRosterSync(
         airtableId: linkedId || null,
       });
     }
+    // A duplicate email, or any other identity conflict, holds every removal.
+    // A membership whose Airtable record id was in this read is already
+    // covered above, including when that row's email is blank or a field is invalid.
     if (plan.conflicts.length > 0) {
       plan.removalHold = "conflicts";
       plan.held = candidates;
@@ -1150,12 +1157,13 @@ export function rosterConfirmDescription(
       : remove > 0
         ? `${remove} company memberships will be removed. Their logins stay.`
         : "Nobody is removed.";
+  const blanks = " Rows without a valid email are not added. An already linked Airtable record stays even when its email is blank. Invalid optional values are left unchanged.";
   const link = (counts.link ?? 0) + (counts.attach ?? 0);
   const read = opts.read;
   const accounting = read
     ? `Read ${read.rawRead} (cap ${read.cap}). Seen ${read.seen}, valid ${read.valid}, duplicate/conflict ${read.duplicateRecord + read.conflict}, missing required ${read.missingRequired}, updated ${read.update}, unchanged ${read.unchanged}, removals ${read.remove}. `
     : "";
-  return `${accounting}Create ${counts.create ?? 0}, link ${link}, update ${counts.update ?? 0}. ${hold} Conflicts ${counts.conflict ?? 0}, skipped ${counts.skipped ?? 0}. Owners, admins, and managers stay. Airtable is not written.`;
+  return `${accounting}Create ${counts.create ?? 0}, link ${link}, update ${counts.update ?? 0}. ${hold} Conflicts ${counts.conflict ?? 0}, skipped ${counts.skipped ?? 0}. Owners, admins, and managers stay. Airtable is not written.${blanks}`;
 }
 
 export function eventCounts(plan: EventPlan): Record<string, number> {

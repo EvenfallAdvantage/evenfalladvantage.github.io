@@ -386,6 +386,7 @@ function previewAction(purpose: MappedPurpose, resolve: (ctx: AdapterCtx) => Pro
             ? `Only the first ${AIRTABLE_SYNC_MAX_RECORDS} Airtable records were read, or the company roster was too large to compare. Nobody is removed from a partial read.`
             : "People in this company who are not in Airtable are removed from the roster, except owners, admins, and managers. Logins are not deleted.",
           "Airtable is not changed. Role and status are not changed.",
+          "Rows without a valid email are not added. An already linked Airtable record stays even when its email is blank. Invalid optional values are left unchanged.",
           clientMatches ? "Sync uses the confirmed mapping only." : "The mapping on screen is not the saved mapping. These counts use the saved mapping.",
         ],
       };

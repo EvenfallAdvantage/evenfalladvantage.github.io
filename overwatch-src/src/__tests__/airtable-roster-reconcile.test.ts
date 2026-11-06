@@ -41,8 +41,14 @@ describe("Airtable roster reconciliation migration", () => {
     expect(apply).not.toMatch(/upsert/i);
     expect(mig).toMatch(/cardinality\(p_emails\) > 1000/);
     expect(mig).toMatch(/jsonb_array_length\(p_plan->'creates'\), 0\) > 1000/);
-    expect(apply).toMatch(/foreign_key_violation/);
-    expect(apply).toMatch(/No roster changes were saved/);
+    expect(apply).toMatch(/IF v_fail_create = 0 AND v_fail_attach = 0 AND v_fail_link = 0 AND v_fail_update = 0 THEN/);
+    expect(apply).toMatch(/successful rows commit when the function returns/);
+    expect(apply).not.toMatch(/the whole sync rolls back/);
+    expect(apply).not.toMatch(/No roster changes were saved/);
+    const protectedRaise = apply.indexOf("Airtable cannot change an owner, admin, or manager");
+    const rowHandler = apply.indexOf("EXCEPTION WHEN OTHERS THEN");
+    expect(protectedRaise).toBeGreaterThan(0);
+    expect(rowHandler).toBeGreaterThan(protectedRaise);
     expect(apply).not.toMatch(/SET status = 'active'/);
     expect(apply).not.toMatch(/SET role =/);
     expect(apply).not.toMatch(/SET email =/);

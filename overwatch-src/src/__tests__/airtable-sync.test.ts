@@ -221,6 +221,38 @@ describe("roster sync plan", () => {
     expect(forward.read.remove).toBe(0);
   });
 
+  it("keeps a linked record with a blank email and holds removals when a duplicate email conflicts", () => {
+    const linked = planRosterSync([
+      person({ membershipId: "m-linked", userId: "u-linked", email: null, phone: "555", airtableRecordId: "recAAAAAAAAAAAAAA" }), // gitleaks:allow
+      person({ membershipId: "m-none", userId: "u-none", email: null, airtableRecordId: null, role: "staff" }),
+    ], [
+      incoming("recAAAAAAAAAAAAAA", { "First Name": "Ada", "Last Name": "L", Email: "", Phone: "no-digits", Title: "Captain" }),
+      incoming("recBBBBBBBBBBBBBB", { "First Name": "Blank", Email: " " }),
+    ], { truncated: false });
+    expect(linked.creates).toEqual([]);
+    expect(linked.attaches).toEqual([]);
+    expect(linked.skipped.map((row) => row.reason)).toEqual(["missing_email"]);
+    expect(linked.updates.map((row) => row.membershipId)).toEqual(["m-linked"]);
+    expect(linked.updates[0]?.title).toBe("Captain");
+    expect(linked.updates[0]?.phone).toBeUndefined();
+    expect(Object.keys(linked.updates[0] ?? {})).not.toContain("email");
+    expect(linked.removals.map((row) => row.membershipId)).toEqual(["m-none"]);
+
+    const duplicated = planRosterSync([
+      person({ membershipId: "m1", userId: "u1", email: "ada@example.com" }),
+      person({ membershipId: "m-other", userId: "u-other", email: "other@example.com", role: "staff" }),
+    ], [
+      incoming("recBBBBBBBBBBBBBB", { "First Name": "Ada", "Last Name": "L", Email: "Ada@Example.com" }),
+      incoming("recAAAAAAAAAAAAAA", { "First Name": "Ada", "Last Name": "L", Email: "ada@example.com" }),
+    ], { truncated: false });
+    expect(duplicated.links.map((row) => row.membershipId)).toEqual(["m1"]);
+    expect(duplicated.conflicts.map((row) => row.reason)).toEqual(["duplicate_email_in_airtable"]);
+    expect(duplicated.removals).toEqual([]);
+    expect(duplicated.held.map((row) => row.membershipId)).toEqual(["m-other"]);
+    expect(duplicated.removalHold).toBe("conflicts");
+    expect(rosterConfirmDescription(rosterCounts(linked), { truncated: false, removalHold: linked.removalHold })).toMatch(/not added/);
+  });
+
   it("keeps a linked person with the same email and attaches someone from another company", () => {
     const linked = planRosterSync([
       person({ airtableRecordId: "recAAAAAAAAAAAAAA", email: "ada@example.com" }), // gitleaks:allow
