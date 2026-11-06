@@ -4,10 +4,12 @@ import { useEffect, useState, useCallback } from "react";
 import { AlertTriangle, Building2, Loader2, RefreshCw, Settings } from "lucide-react";
 import { PageShell } from "@/components/layout/page-shell";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { useAuthStore } from "@/stores/auth-store";
 import { getCompanyDetails, getCompanyJoinCode, getTimeOffPolicies, getIntegrationsConfig, getIntegrationConnections } from "@/lib/supabase/db";
 import { FRAMEWORK_PROVIDERS, type IntegrationConnection } from "@/lib/integrations/connections";
-import { HQ_SECTIONS, type HqSectionId } from "@/lib/hq-config";
+import { HQ_BLOCK_ORDER, HQ_SECTIONS, type HqBlockId, type HqSectionId } from "@/lib/hq-config";
+import "./hq-config.css";
 
 import CompanyProfileSection from "./components/company-profile-section";
 import LeavePoliciesSection from "./components/leave-policies-section";
@@ -54,7 +56,8 @@ export default function AdminSettingsPage() {
   const activeCompanyId = useAuthStore((s) => s.activeCompanyId);
   const activeCompany = useAuthStore((s) => s.getActiveCompany());
   const internalUserId = useAuthStore((s) => s.user?.id ?? null);
-  const isAdminPlus = ["owner", "admin"].includes(activeCompany?.role ?? "");
+  const role = activeCompany?.role ?? "";
+  const isAdminPlus = ["owner", "admin"].includes(role);
 
   // Loaded data
   const [loaded, setLoaded] = useState(false);
@@ -73,7 +76,7 @@ export default function AdminSettingsPage() {
   const [connections, setConnections] = useState<IntegrationConnection[]>([]);
 
   const load = useCallback(async () => {
-    if (!activeCompanyId) return;
+    if (!activeCompanyId || (role && !isAdminPlus)) return;
     setLoadError(null);
     setLoaded(false);
     try {
@@ -113,7 +116,7 @@ export default function AdminSettingsPage() {
       logger.swallow("admin-settings:load", e, "warn");
       setLoadError(e instanceof Error ? e.message : "Unknown error");
     }
-  }, [activeCompanyId]);
+  }, [activeCompanyId, role, isAdminPlus]);
 
   useEffect(() => { void load(); }, [load]);  
 
@@ -154,6 +157,77 @@ export default function AdminSettingsPage() {
     );
   }
 
+  const blocks: Record<HqBlockId, React.ReactNode> = {
+    "company-profile": (
+      <CompanyProfileSection
+        companyId={activeCompanyId!}
+        initialName={name}
+        initialTimezone={timezone}
+        initialBrandColor={brandColor}
+        initialAccentColor={accentColor}
+        initialLogoUrl={logoUrl}
+        initialWebsiteUrl={websiteUrl}
+        joinCode={joinCode}
+        canRotateJoinCode={isAdminPlus}
+      />
+    ),
+    // Owners and admins: companies_update RLS allows both (is_company_owner_admin).
+    "feature-visibility": (
+      <>
+        {isAdminPlus && (
+          <FeatureVisibilitySection companyId={activeCompanyId!} initialHiddenTabs={hiddenTabs} />
+        )}
+      </>
+    ),
+    "leave-policies": (
+      <LeavePoliciesSection companyId={activeCompanyId!} initialPolicies={policies} />
+    ),
+    "pay-overtime": <PayOvertimeSection companyId={activeCompanyId!} />,
+    "client-portal": <ClientPortalSection companyId={activeCompanyId!} />,
+    "incident-config": <IncidentConfigSection companyId={activeCompanyId!} />,
+    "radio-state": <RadioStateSection companyId={activeCompanyId!} />,
+    "delivery-channels": <DeliveryChannelsSection integrations={integrations} />,
+    // Hidden on load failure so a blank form cannot overwrite saved credentials.
+    "vendor-connections": integrationsError ? (
+      <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-xs">
+        <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
+        <span className="flex-1">Integrations couldn&apos;t be loaded, so they&apos;re hidden to avoid overwriting saved settings.</span>
+        <Button size="sm" variant="outline" className="h-11 sm:h-8" onClick={() => void load()}>Retry</Button>
+      </div>
+    ) : (
+      <Card>
+        <CardContent className="space-y-4 pt-6">
+          <div>
+            <h3 className="text-sm font-semibold">Vendor connections</h3>
+            <p className="text-xs text-muted-foreground">Connect a vendor, then set the options for that connection. Airtable is a reviewed one-way import.</p>
+          </div>
+          <ConnectionCards
+            companyId={activeCompanyId!}
+            canManage={isAdminPlus}
+            providers={FRAMEWORK_PROVIDERS}
+            initialConnections={connections}
+          />
+          <AirtableConnectionPanel
+            companyId={activeCompanyId!}
+            canManage={isAdminPlus}
+            connection={connections.find((c) => c.provider === "airtable") ?? null}
+            onSaved={() => void load()}
+          />
+        </CardContent>
+      </Card>
+    ),
+    "external-integrations": integrationsError ? null : (
+      <IntegrationsSection companyId={activeCompanyId!} initialIntegrations={integrations} />
+    ),
+    "api-sources": internalUserId ? (
+      <ApiSourcesSection companyId={activeCompanyId!} userId={internalUserId} />
+    ) : null,
+    "integration-health": (
+      <IntegrationHealthStrip connections={connections} providers={FRAMEWORK_PROVIDERS} />
+    ),
+    "error-log": <ErrorLogViewer companyId={activeCompanyId!} />,
+  };
+
   return (
     <PageShell title={TITLE} subtitle={SUBTITLE} icon={<Settings className="h-5 w-5" />}>
       <div className="hq-config space-y-8">
@@ -170,81 +244,22 @@ export default function AdminSettingsPage() {
           </ul>
         </nav>
 
-        <Section id="organization" title="Organization">
-          <CompanyProfileSection
-            companyId={activeCompanyId!}
-            initialName={name}
-            initialTimezone={timezone}
-            initialBrandColor={brandColor}
-            initialAccentColor={accentColor}
-            initialLogoUrl={logoUrl}
-            initialWebsiteUrl={websiteUrl}
-            joinCode={joinCode}
-            canRotateJoinCode={isAdminPlus}
-          />
-          {/* Owners and admins: companies_update RLS allows both (is_company_owner_admin). */}
-          {isAdminPlus && (
-            <FeatureVisibilitySection
-              companyId={activeCompanyId!}
-              initialHiddenTabs={hiddenTabs}
-            />
-          )}
-        </Section>
-
-        <Section id="people" title="People & Time">
-          <PayOvertimeSection companyId={activeCompanyId!} />
-          <LeavePoliciesSection
-            companyId={activeCompanyId!}
-            initialPolicies={policies}
-          />
-          <ClientPortalSection companyId={activeCompanyId!} />
-        </Section>
-
-        <Section id="operations" title="Operations">
-          <IncidentConfigSection companyId={activeCompanyId!} />
-          <RadioStateSection companyId={activeCompanyId!} />
-        </Section>
-
-        <Section id="integrations" title="Integrations">
-          <DeliveryChannelsSection integrations={integrations} />
-          {integrationsError ? (
-            <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4 text-xs">
-              <AlertTriangle className="h-4 w-4 shrink-0 text-amber-500" />
-              <span className="flex-1">Integrations couldn&apos;t be loaded, so they&apos;re hidden to avoid overwriting saved settings.</span>
-              <Button size="sm" variant="outline" className="h-11 sm:h-7" onClick={() => void load()}>Retry</Button>
-            </div>
-          ) : (
-            <>
-            <ConnectionCards
-              companyId={activeCompanyId!}
-              canManage={isAdminPlus}
-              providers={FRAMEWORK_PROVIDERS}
-              initialConnections={connections}
-            />
-            <AirtableConnectionPanel
-              companyId={activeCompanyId!}
-              canManage={isAdminPlus}
-              connection={connections.find((c) => c.provider === "airtable") ?? null}
-              onSaved={() => void load()}
-            />
-            <IntegrationsSection
-              companyId={activeCompanyId!}
-              initialIntegrations={integrations}
-            />
-            </>
-          )}
-        </Section>
-
-        <Section id="developer" title="API & Leads">
-          {internalUserId && (
-            <ApiSourcesSection companyId={activeCompanyId!} userId={internalUserId} />
-          )}
-        </Section>
-
-        <Section id="diagnostics" title="Diagnostics">
-          <IntegrationHealthStrip connections={connections} providers={FRAMEWORK_PROVIDERS} />
-          <ErrorLogViewer companyId={activeCompanyId!} />
-        </Section>
+        {HQ_BLOCK_ORDER.map((group) => {
+          const label = HQ_SECTIONS.find((s) => s.id === group.section)?.label ?? group.section;
+          return (
+            <Section key={group.section} id={group.section} title={label}>
+              {group.blocks.map((id) => {
+                const node = blocks[id];
+                if (node == null) return null;
+                return (
+                  <div key={id} data-hq-block={id} className="space-y-4">
+                    {node}
+                  </div>
+                );
+              })}
+            </Section>
+          );
+        })}
       </div>
     </PageShell>
   );

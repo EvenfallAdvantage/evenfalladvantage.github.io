@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getCompanyRadioState, setCompanyRadioState } from "@/lib/supabase/db";
 import { STATE_LAWS } from "@/lib/state-laws-data";
+import { HQ_ACTION_CLASS, HQ_LABEL_CLASS } from "@/lib/hq-config";
 import { toast } from "sonner";
 import { logger } from "@/lib/logger";
 
@@ -57,7 +58,7 @@ export default function RadioStateSection({ companyId }: RadioStateSectionProps)
             <h3 className="text-sm font-semibold flex items-center gap-2"><Radio className="h-4 w-4" /> Radio State Default</h3>
             <p className="text-xs text-muted-foreground">Default frequency region for the radio scanner</p>
           </div>
-          <Button size="sm" className="h-11 gap-1.5 text-xs sm:h-7" onClick={handleSave} disabled={saving || loading || selectedState === currentState}>
+          <Button size="sm" className={`${HQ_ACTION_CLASS} text-xs`} onClick={handleSave} disabled={saving || loading || selectedState === currentState}>
             {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : saved ? <Check className="h-3 w-3 text-green-500" /> : <Save className="h-3 w-3" />}
             {saved ? "Saved!" : "Save"}
           </Button>
@@ -65,18 +66,22 @@ export default function RadioStateSection({ companyId }: RadioStateSectionProps)
         {loading ? (
           <div className="flex items-center gap-2 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" /> Loading...</div>
         ) : (
-          <select
-            value={selectedState ?? ""}
-            onChange={(e) => setSelectedState(e.target.value || null)}
-            className="w-full rounded-lg border border-border/50 bg-background px-3 py-2 text-sm"
-          >
-            <option value="">None (no default)</option>
-            {STATE_LAWS.map((s) => (
-              <option key={s.code} value={s.code}>{s.name}</option>
-            ))}
-          </select>
+          <div>
+            <label htmlFor="radio-default-state" className={HQ_LABEL_CLASS}>Default region</label>
+            <select
+              id="radio-default-state"
+              value={selectedState ?? ""}
+              onChange={(e) => setSelectedState(e.target.value || null)}
+              className="mt-1 h-11 w-full rounded-lg border border-border/50 bg-background px-3 text-sm sm:h-8"
+            >
+              <option value="">None (no default)</option>
+              {STATE_LAWS.map((s) => (
+                <option key={s.code} value={s.code}>{s.name}</option>
+              ))}
+            </select>
+          </div>
         )}
-        <p className="text-[10px] text-muted-foreground">Users can override this in their profile. The scanner will use the user&apos;s selection if set.</p>
+        <p className="text-xs text-muted-foreground">Users can override this in their profile. The scanner will use the user&apos;s selection if set.</p>
       </CardContent>
     </Card>
   );

@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plug, Plus, Trash2, Loader2, Copy, Eye, EyeOff, KeyRound,
-  AlertTriangle, BookOpen, Beaker, Check, X, ChevronDown, ChevronRight,
+  AlertTriangle, BookOpen, Beaker, Check, X,
 } from "lucide-react";
+import { HQ_ACTION_CLASS, HQ_LABEL_CLASS } from "@/lib/hq-config";
+import { HqDisclosure } from "./hq-disclosure";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +32,12 @@ interface ApiSourcesSectionProps {
 }
 
 const INGEST_PATH = "/functions/v1/intake-ingest";
+
+const SAMPLE_TEST_PAYLOAD = JSON.stringify(
+  { name: "Jane Doe", email: "jane@example.com", phone: "(555) 555-5555", service: "Event Security", message: "Need security for a 200-person gala" },
+  null,
+  2,
+);
 
 function getSupabaseFunctionsBaseUrl(): string {
   // Convert the NEXT_PUBLIC_SUPABASE_URL into the functions base URL.
@@ -88,10 +96,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
   const [savingMapping, setSavingMapping] = useState(false);
 
   // Test payload
-  const [testPayload, setTestPayload] = useState<string>(
-    JSON.stringify({ name: "Jane Doe", email: "jane@example.com", phone: "(555) 555-5555", service: "Event Security", message: "Need security for a 200-person gala" }, null, 2),
-  );
-  const [showDocs, setShowDocs] = useState(false);
+  const [testPayload, setTestPayload] = useState<string>(SAMPLE_TEST_PAYLOAD);
 
   /* ── Load ── */
   const load = useCallback(async () => {
@@ -331,7 +336,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
 
           {/* Endpoint URL */}
           <div>
-            <Label className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">Endpoint</Label>
+            <Label className={HQ_LABEL_CLASS}>Endpoint</Label>
             <div className="mt-1 flex items-center gap-2 rounded-lg border border-border/40 bg-muted/30 p-2.5">
               <code className="text-[11px] font-mono text-muted-foreground flex-1 truncate">
                 POST {ingestUrl || `<SUPABASE_URL>${INGEST_PATH}`}
@@ -346,7 +351,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
 
           {/* Create key */}
           <div>
-            <Label htmlFor="new-api-key-name" className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+            <Label htmlFor="new-api-key-name" className={HQ_LABEL_CLASS}>
               Create API Key
             </Label>
             <div className="mt-1 flex flex-col gap-2 sm:flex-row">
@@ -358,7 +363,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                 onKeyDown={(e) => e.key === "Enter" && void handleCreateKey()}
                 className="text-xs"
               />
-              <Button onClick={handleCreateKey} disabled={creatingKey || !newKeyName.trim()} className="h-11 gap-1.5 shrink-0 sm:h-8">
+              <Button onClick={handleCreateKey} disabled={creatingKey || !newKeyName.trim()} className={`${HQ_ACTION_CLASS} shrink-0`}>
                 {creatingKey ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <KeyRound className="h-3.5 w-3.5" />}
                 Generate
               </Button>
@@ -421,22 +426,16 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
             </div>
           )}
 
-          {/* Field Mappings */}
-          <div className="pt-4 border-t border-border/30 space-y-3">
-            <div>
-              <h4 className="text-xs font-semibold flex items-center gap-2">
-                <ChevronRight className="h-3.5 w-3.5" /> Field Mappings
-              </h4>
-              <p className="text-[11px] text-muted-foreground">
-                Tell us how to translate your form&apos;s field names into Overwatch&apos;s canonical fields.
-                Anything you don&apos;t map is preserved in <code className="font-mono">extra</code> on the submission.
-              </p>
-            </div>
-
-            {/* Add mapping */}
+          <HqDisclosure
+            title="Field mappings"
+            description="Translate your form's field names into Overwatch fields. Anything you don't map is kept on the submission as extra."
+            openWhen={mappings.length > 0}
+            forceOpen={newSourceField.trim().length > 0 || savingMapping}
+            testId="hq-field-mappings"
+          >
             <div className="grid gap-2 sm:grid-cols-[1fr,1fr,auto]">
               <div>
-                <Label htmlFor="mapping-source" className="text-[10px] text-muted-foreground">Your form field</Label>
+                <Label htmlFor="mapping-source" className={HQ_LABEL_CLASS}>Your form field</Label>
                 <Input
                   id="mapping-source"
                   placeholder='e.g. "name" or "fullName"'
@@ -447,12 +446,12 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                 />
               </div>
               <div>
-                <Label htmlFor="mapping-canonical" className="text-[10px] text-muted-foreground">Maps to</Label>
+                <Label htmlFor="mapping-canonical" className={HQ_LABEL_CLASS}>Maps to</Label>
                 <select
                   id="mapping-canonical"
                   value={newCanonicalField}
                   onChange={(e) => setNewCanonicalField(e.target.value as CanonicalIntakeField)}
-                  className="mt-1 h-9 w-full rounded-md border border-input bg-background px-2 text-xs"
+                  className="mt-1 h-11 w-full rounded-md border border-input bg-background px-2 text-sm sm:h-8"
                 >
                   {CANONICAL_FIELD_META.map(f => (
                     <option key={f.key} value={f.key}>{f.label}</option>
@@ -460,7 +459,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                 </select>
               </div>
               <div className="flex items-end">
-                <Button onClick={handleSaveMapping} disabled={savingMapping || !newSourceField.trim()} className="h-11 w-full gap-1.5 sm:h-8 sm:w-auto">
+                <Button onClick={handleSaveMapping} disabled={savingMapping || !newSourceField.trim()} className={`${HQ_ACTION_CLASS} w-full sm:w-auto`}>
                   {savingMapping ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Plus className="h-3.5 w-3.5" />}
                   Save
                 </Button>
@@ -469,7 +468,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
 
             {/* Mapping list */}
             {mappings.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground/60 italic text-center py-2">
+              <p className="text-xs text-muted-foreground text-center py-2">
                 No mappings yet. Without mappings, all fields go to the <code className="font-mono">extra</code> bucket.
               </p>
             ) : (
@@ -489,31 +488,27 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                 })}
               </div>
             )}
-          </div>
+          </HqDisclosure>
 
-          {/* Test payload */}
-          <div className="pt-4 border-t border-border/30 space-y-3">
-            <div>
-              <h4 className="text-xs font-semibold flex items-center gap-2">
-                <Beaker className="h-3.5 w-3.5" /> Test a Payload
-              </h4>
-              <p className="text-[11px] text-muted-foreground">
-                Paste a sample submission and we&apos;ll show how your mappings will transform it.
-              </p>
-            </div>
+          <HqDisclosure
+            icon={<Beaker className="h-4 w-4" />}
+            title="Test a payload"
+            description="Paste a sample submission to see how your mappings transform it. This does not save anything."
+            testId="hq-test-payload"
+          >
             <div className="grid gap-2 lg:grid-cols-2">
               <div>
-                <Label htmlFor="test-payload" className="text-[10px] text-muted-foreground">Sample JSON</Label>
+                <Label htmlFor="test-payload" className={HQ_LABEL_CLASS}>Sample JSON</Label>
                 <textarea
                   id="test-payload"
                   value={testPayload}
                   onChange={(e) => setTestPayload(e.target.value)}
-                  className="mt-1 w-full h-48 rounded-md border border-input bg-background px-3 py-2 text-[11px] font-mono resize-y"
+                  className="mt-1 w-full h-48 rounded-md border border-input bg-background px-3 py-2 font-mono resize-y"
                   spellCheck={false}
                 />
               </div>
               <div>
-                <Label className="text-[10px] text-muted-foreground">Mapped result</Label>
+                <Label className={HQ_LABEL_CLASS}>Mapped result</Label>
                 <div className="mt-1 h-48 overflow-y-auto rounded-md border border-input bg-background/40 px-3 py-2 text-[11px] font-mono">
                   {"error" in testResult ? (
                     <p className="text-red-400">{testResult.error}</p>
@@ -529,20 +524,15 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
                 )}
               </div>
             </div>
-          </div>
+          </HqDisclosure>
 
-          {/* Docs / snippet */}
-          <div className="pt-4 border-t border-border/30">
-            <button
-              onClick={() => setShowDocs(v => !v)}
-              className="text-xs font-semibold flex items-center gap-2 hover:text-primary transition-colors"
-            >
-              {showDocs ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
-              <BookOpen className="h-3.5 w-3.5" /> Integration Guide & Code Snippets
-            </button>
-
-            {showDocs && (
-              <div className="mt-3 space-y-3">
+          <HqDisclosure
+            icon={<BookOpen className="h-4 w-4" />}
+            title="Integration guide and code snippets"
+            description="Example requests. Nothing here is saved to the company."
+            testId="hq-api-docs"
+          >
+              <div className="space-y-3">
                 <div>
                   <p className="text-[10px] font-semibold text-muted-foreground uppercase mb-1">JavaScript (browser)</p>
                   <pre className="rounded-md bg-muted/40 border border-border/30 p-3 text-[10px] font-mono overflow-x-auto whitespace-pre">{`// In your existing form submit handler:
@@ -578,8 +568,7 @@ await fetch("${ingestUrl || "<INGEST_URL>"}", {
                   <p><strong className="text-foreground">Security:</strong> Keys are SHA-256 hashed at rest. Plaintext is shown only once at creation. Revoke any time without breaking other keys.</p>
                 </div>
               </div>
-            )}
-          </div>
+          </HqDisclosure>
         </CardContent>
       </Card>
       {!migrationMissing && <LeadNotifySettings companyId={companyId} />}

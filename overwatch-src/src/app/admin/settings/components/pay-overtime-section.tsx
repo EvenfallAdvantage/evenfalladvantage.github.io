@@ -19,6 +19,7 @@ import {
   OT_PRESETS, detectOtPreset, validateOvertimeConfig, parseRate, type OtPresetId,
   BREAK_PRESETS, detectBreakPreset, validateBreakPolicy, type BreakPresetId,
 } from "@/lib/policy-presets";
+import { HqDisclosure } from "./hq-disclosure";
 
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const tap = "h-11 sm:h-8";
@@ -270,7 +271,12 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
                 ))}
               </div>
 
-              {/* Meal / Lunch Break Rules */}
+              <HqDisclosure
+                title="Meal and rest details"
+                description="Durations and thresholds. A named preset fills these in. Custom rules open so you can edit them."
+                openWhen={breakPreset === "custom"}
+                testId="hq-break-details"
+              >
               <div className="rounded-lg border border-border/40 bg-muted/10 p-3.5 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
@@ -440,6 +446,7 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
                   California IWC Wage Orders authorize one paid 10-minute rest period per 4 hours worked (or major fraction thereof): 1st after 3.5h, 2nd after 6h, 3rd after 10h.
                 </p>
               </div>
+              </HqDisclosure>
 
               <Button onClick={handleSaveBreaks} disabled={savingBreaks} className={`gap-1.5 ${tap}`}>
                 {savingBreaks ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save break policy

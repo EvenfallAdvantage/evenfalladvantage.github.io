@@ -1,0 +1,16 @@
+/* Tap size for HQ controls this pass does not restyle in place
+   (Airtable base row is edited by the integrations work).
+   Colours are untouched. 44px on phones, 32px from sm up. */
+.hq-config [data-testid="airtable-settings"] button,
+.hq-config [data-testid="airtable-settings"] select,
+.hq-config [data-testid="connection-cards"] button {
+  min-height: 2.75rem;
+}
+
+@media (min-width: 640px) {
+  .hq-config [data-testid="airtable-settings"] button,
+  .hq-config [data-testid="airtable-settings"] select,
+  .hq-config [data-testid="connection-cards"] button {
+    min-height: 2rem;
+  }
+}
