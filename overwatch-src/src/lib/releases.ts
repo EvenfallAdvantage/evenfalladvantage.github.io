@@ -29,6 +29,236 @@ export function highlightDedupeKey(h: ReleaseHighlight): string {
   return `title:${h.title.toLowerCase()}`;
 }
 
+/**
+ * Separators that introduce real detail after a repeated title.
+ * A period/exclamation/question counts only when whitespace follows, so
+ * "v2.14" is not treated as a sentence break.
+ */
+const LEADING_DETAIL_SEPARATOR =
+  /^(?:\s*[;:|•·]|\s*[–—]|\s+-\s+|\s*[.!?](?=\s))\s*/;
+
+function isSignificantChar(s: string, i: number): boolean {
+  const ch = s[i];
+  if (/[\p{L}\p{N}]/u.test(ch)) return true;
+  if (
+    (ch === "." || ch === ",") &&
+    i > 0 &&
+    i + 1 < s.length &&
+    /\d/.test(s[i - 1]) &&
+    /\d/.test(s[i + 1])
+  ) {
+    return true;
+  }
+  // "$" and "-" distinguish "Price $5" from "Price5" and "Re-sign" from "Resign".
+  return ch === "#" || ch === "/" || ch === "&" || ch === "+" || ch === "%" || ch === "$" || ch === "-";
+}
+
+function hasSignificantText(s: string): boolean {
+  for (let i = 0; i < s.length; i++) if (isSignificantChar(s, i)) return true;
+  return false;
+}
+
+function nextSignificant(s: string, i: number): number {
+  while (i < s.length && !isSignificantChar(s, i)) i++;
+  return i;
+}
+
+/**
+ * Index in `summary` just after `title`. Whitespace and case are ignored.
+ * Punctuation is ignored except decimals, # / & + % $ and hyphen-minus.
+ * Returns -1 when `title` is not a prefix.
+ */
+function matchTitlePrefix(title: string, summary: string): number {
+  let i = nextSignificant(title, 0);
+  if (i >= title.length) return -1;
+  let j = 0;
+  while (i < title.length) {
+    j = nextSignificant(summary, j);
+    if (j >= summary.length || title[i].toLowerCase() !== summary[j].toLowerCase()) return -1;
+    i = nextSignificant(title, i + 1);
+    j += 1;
+  }
+  // Closing brackets after the title's last word are not "significant", but they
+  // belong to the title. Consume them so a later top-level ";" stays a separator.
+  let trail = title.length;
+  while (trail > 0 && !isSignificantChar(title, trail - 1)) trail--;
+  while (trail < title.length && j < summary.length) {
+    const tch = title[trail];
+    const sch = summary[j];
+    if (/\s/.test(tch)) {
+      trail++;
+      continue;
+    }
+    if (/\s/.test(sch)) {
+      j++;
+      continue;
+    }
+    if ((tch === ")" || tch === "]" || tch === "}") && tch === sch) {
+      trail++;
+      j++;
+      continue;
+    }
+    break;
+  }
+  return j;
+}
+
+/** Text after a leading separator, or null when the remainder is fused to the title. */
+function splitLeadingSeparator(rest: string): string | null {
+  let remaining = rest;
+  let matched = false;
+  while (remaining.length > 0) {
+    const m = LEADING_DETAIL_SEPARATOR.exec(remaining);
+    if (!m || m[0].length === 0) break;
+    remaining = remaining.slice(m[0].length);
+    matched = true;
+  }
+  return matched ? remaining.trim() : null;
+}
+
+const BRACKET_OPENER: Record<string, string> = { "(": ")", "[": "]", "{": "}" };
+const BRACKET_CLOSER: Record<string, string> = { ")": "(", "]": "[", "}": "{" };
+
+/** Unclosed (), [], or {} still open at the end of `text`. Mismatched closers do not pop a different opener. */
+function openBrackets(text: string): string[] {
+  const stack: string[] = [];
+  for (const ch of text) {
+    if (BRACKET_OPENER[ch]) stack.push(ch);
+    else if (BRACKET_CLOSER[ch] && stack[stack.length - 1] === BRACKET_CLOSER[ch]) stack.pop();
+  }
+  return stack;
+}
+
+/**
+ * True when `rest` has a clause separator before the title's open brackets close.
+ * That is a cut such as "(Incidents-style tabs" + "; Scanner stays)." — the tail
+ * is the rest of the group, not its own sentence.
+ */
+function separatorInsideOpenGroup(title: string, rest: string): boolean {
+  const stack = openBrackets(title);
+  if (stack.length === 0) return false;
+  for (const ch of rest) {
+    if (BRACKET_OPENER[ch]) stack.push(ch);
+    else if (BRACKET_CLOSER[ch] && stack[stack.length - 1] === BRACKET_CLOSER[ch]) {
+      stack.pop();
+      if (stack.length === 0) return false;
+    } else if ((ch === ";" || ch === ":" || ch === "|" || ch === "•" || ch === "·") && stack.length > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Stored titles cut on a semicolon inside brackets. The summary still has the
+ * whole sentence. Return that sentence (without a generator-added final period)
+ * so the row can show it once. Null when the title is already balanced.
+ */
+function repairedBracketCut(title: string, summary: string): string | null {
+  const raw = summary.trim();
+  const trimmedTitle = title.trim();
+  if (!raw || openBrackets(trimmedTitle).length === 0) return null;
+  const end = matchTitlePrefix(trimmedTitle, raw);
+  if (end < 0) return null;
+  const rest = raw.slice(end);
+  if (!separatorInsideOpenGroup(trimmedTitle, rest)) return null;
+  let repaired = raw;
+  if (repaired.endsWith(".") && !trimmedTitle.endsWith(".")) repaired = repaired.slice(0, -1).trim();
+  if (!hasSignificantText(repaired) || repaired === trimmedTitle) return null;
+  return repaired;
+}
+
+/**
+ * "" when `summary` only repeats `title`. The tail when `summary` repeats
+ * `title` plus a separator and further detail. Undefined when `title` is not
+ * a prefix. Null when it is a prefix but the extra words are not separated.
+ * A separator still inside the title's brackets is not a tail.
+ */
+function peelRepeatedTitle(title: string, summary: string): string | null | undefined {
+  const end = matchTitlePrefix(title, summary);
+  if (end < 0) return undefined;
+  const rest = summary.slice(end);
+  if (!hasSignificantText(rest)) return "";
+  if (separatorInsideOpenGroup(title, rest)) return "";
+  const tail = splitLeadingSeparator(rest);
+  if (tail === null) return null;
+  if (!hasSignificantText(tail)) return "";
+  return tail;
+}
+
+/**
+ * Title strings to compare against a summary. The full title is first.
+ * A short "Label: …" prefix (conventional scope or area label added in front
+ * of the commit subject) is tried only when the full title is not a prefix.
+ */
+function titleMatchCandidates(title: string): string[] {
+  const trimmed = title.trim();
+  if (!trimmed) return [];
+  const candidates = [trimmed];
+  const m = /^([^:]{1,60}):\s+(\S[\s\S]+)$/.exec(trimmed);
+  if (!m) return candidates;
+  const label = m[1].trim();
+  const rest = m[2].trim();
+  const words = label.split(/\s+/).filter(Boolean);
+  if (words.length > 0 && words.length <= 4 && hasSignificantText(rest)) candidates.push(rest);
+  return candidates;
+}
+
+/**
+ * First clause of a commit subject. A semicolon inside (), [], or {} stays in
+ * the clause. Keep in sync with scripts/generate-releases.mjs.
+ */
+export function firstTopLevelClause(text: string): string {
+  const stack: string[] = [];
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (BRACKET_OPENER[ch]) stack.push(ch);
+    else if (BRACKET_CLOSER[ch] && stack[stack.length - 1] === BRACKET_CLOSER[ch]) stack.pop();
+    else if (ch === ";" && stack.length === 0) return text.slice(0, i).trim();
+  }
+  return text.trim();
+}
+
+/**
+ * Title to show. A stored title that was cut inside brackets is replaced, for
+ * display only, by the summary's complete sentence. Stored ids are untouched.
+ */
+export function visibleHighlightTitle(title: string, summary: string): string {
+  return repairedBracketCut(title, summary) ?? title;
+}
+
+/**
+ * Changelog subtext for a highlight.
+ *
+ * GitHub-generated rows store the commit subject as `summary` and the same
+ * subject (or its first top-level `;` clause, plus a scope label) as `title`.
+ * The changelog prints "title: summary", so that pair repeats itself.
+ *
+ * Returns "" when the summary adds nothing beyond the title (whitespace, case,
+ * and punctuation-only differences — "$" and hyphens still count). When the
+ * summary repeats the title, then a top-level separator, then real detail,
+ * returns only that detail. A semicolon inside brackets is not that separator.
+ * Any other summary is returned unchanged.
+ */
+export function visibleHighlightSummary(title: string, summary: string): string {
+  const raw = summary.trim();
+  if (!raw || !hasSignificantText(raw)) return "";
+  if (repairedBracketCut(title, summary)) return "";
+  const candidates = titleMatchCandidates(title);
+  if (candidates.length === 0) return summary;
+  const full = peelRepeatedTitle(candidates[0], raw);
+  if (full === "") return "";
+  if (typeof full === "string") return full;
+  if (full === null) return summary;
+  if (candidates[1]) {
+    const body = peelRepeatedTitle(candidates[1], raw);
+    if (body === "") return "";
+    if (typeof body === "string") return body;
+    if (body === null) return summary;
+  }
+  return summary;
+}
+
 export interface ReleaseNote {
   id: string;
   date: string;
@@ -296,8 +526,10 @@ export function parseGitHubCommitsToReleases(
     const scopeLabel = scope
       ? scope.replace(/[-_,]/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
       : "";
-    const firstClause = capitalized.split(";")[0].trim();
+    const firstClause = firstTopLevelClause(capitalized);
     const title = scopeLabel ? `${scopeLabel}: ${firstClause}` : firstClause;
+    // Full subject. visibleHighlightSummary hides it when the changelog's
+    // "title: summary" line would only repeat the title.
     const summary = capitalized.endsWith(".") ? capitalized : `${capitalized}.`;
     const meta = inferCommitMeta(scope, desc);
 
