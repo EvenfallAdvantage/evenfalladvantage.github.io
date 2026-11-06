@@ -140,6 +140,8 @@ export function formatCommitTitleAndSummary(type, scope, rawDesc) {
 
   const firstClause = capitalized.split(/[;]/)[0].trim();
   const title = scope ? `${scopeLabel}: ${firstClause}` : firstClause;
+  // Full subject. The changelog hides this when it only repeats `title`
+  // (see visibleHighlightSummary in src/lib/releases.ts).
   const summary = capitalized.endsWith(".") ? capitalized : `${capitalized}.`;
   return { title, summary };
 }
