@@ -7,8 +7,9 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { getIntegrationConnections } from "@/lib/supabase/db-integrations";
-import { getAirtableFieldMapping, previewAirtableSync, syncAirtablePurpose } from "@/lib/services/airtable-service";
-import { readPurposeSelection, rosterConfirmDescription, type MappedPurpose } from "@/lib/integrations/airtable-sync";
+import { getAirtableFieldMapping, getAirtableRosterReport, previewAirtableSync, syncAirtablePurpose } from "@/lib/services/airtable-service";
+import { readPurposeSelection, rosterConfirmDescription, type MappedPurpose, type RosterDiagnosticReport } from "@/lib/integrations/airtable-sync";
+import { RosterSyncReport } from "@/components/integrations/roster-sync-report";
 
 interface Props {
   companyId: string;
@@ -21,6 +22,7 @@ export function AirtableExplicitSync({ companyId, purpose, onSynced }: Props) {
   const [label, setLabel] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [report, setReport] = useState<RosterDiagnosticReport | null>(null);
 
   useEffect(() => {
     let cancel = false;
@@ -41,6 +43,13 @@ export function AirtableExplicitSync({ companyId, purpose, onSynced }: Props) {
     }).catch(() => {
       if (!cancel) setLabel(null);
     });
+    if (purpose === "roster") {
+      void getAirtableRosterReport(companyId).then((stored) => {
+        if (!cancel) setReport(stored);
+      }).catch(() => {
+        if (!cancel) setReport(null);
+      });
+    }
     return () => { cancel = true; };
   }, [companyId, purpose]);
 
@@ -48,6 +57,7 @@ export function AirtableExplicitSync({ companyId, purpose, onSynced }: Props) {
     setBusy(true);
     try {
       const look = await previewAirtableSync(companyId, purpose);
+      if (purpose === "roster" && look.report) setReport(look.report);
       const counts = look.counts ?? {};
       const ok = await confirm({
         title: purpose === "roster" ? "Sync roster from Airtable?" : "Sync operations from Airtable?",
@@ -58,6 +68,7 @@ export function AirtableExplicitSync({ companyId, purpose, onSynced }: Props) {
       });
       if (!ok) return;
       const result = await syncAirtablePurpose(companyId, purpose, purpose === "roster" ? look.planToken : undefined);
+      if (purpose === "roster" && result.report) setReport(result.report);
       const failed = result.failed ? result.failed.create + result.failed.attach + result.failed.link + result.failed.update + result.failed.remove : result.errors.length;
       toast.success(purpose === "roster"
         ? `Read ${result.read?.rawRead ?? "?"} records. Created ${result.created}, linked ${result.linked ?? 0}, updated ${result.updated}, removed ${result.removed ?? 0}, write failures ${failed}.`
@@ -85,6 +96,11 @@ export function AirtableExplicitSync({ companyId, purpose, onSynced }: Props) {
         <Link href="/admin/settings#hq-integrations" className="text-[10px] underline">Open Airtable settings</Link>
       )}
       <ConfirmDialog />
+      {purpose === "roster" && (
+        <div className="basis-full">
+          <RosterSyncReport report={report} />
+        </div>
+      )}
     </div>
   );
 }

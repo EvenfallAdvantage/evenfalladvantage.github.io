@@ -85,7 +85,12 @@ export default function RootLayout({
       <head>
         {/* Field mode (large text) before first paint; see lib/field-mode.ts */}
         <script dangerouslySetInnerHTML={{ __html: FIELD_MODE_BOOT }} />
-        {/* Points an installed company app at its own manifest. Does not run a company switch. */}
+        {/*
+          Runs during head parse, before installability. On the install
+          document the shared manifest link has been removed from the static
+          HTML; this script inserts the company or default link. See
+          scripts/strip-install-manifest.mjs.
+        */}
         <script dangerouslySetInnerHTML={{ __html: PWA_LAUNCH_BOOT }} />
         {/*
           NIST 800-171 §3.13 — Content Security Policy

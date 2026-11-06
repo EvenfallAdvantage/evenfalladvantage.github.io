@@ -161,6 +161,7 @@ export function createAirtableAdapter(store?: ApplicantStore, ops?: Partial<OpsD
       events: ops?.events ?? base.events,
       mappings: ops?.mappings ?? base.mappings,
       settings: ops?.settings ?? base.settings,
+      reports: ops?.reports ?? base.reports,
       lastTestOk: ops?.lastTestOk ?? base.lastTestOk,
     };
   };

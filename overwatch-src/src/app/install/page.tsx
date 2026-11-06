@@ -10,12 +10,14 @@ import {
   activeMembership,
   approvedLogoUrl,
   buildCompanyManifest,
+  companyManifestPath,
   installableCompanies,
   type InstallMembership,
 } from "@/lib/pwa-company-install";
 import { companySurfaceHex, DEFAULT_BRAND } from "@/lib/brand-utils";
 import { rasterizeCompanyIcons } from "@/lib/pwa-company-raster";
-import { writeCompanyCacheInBrowser } from "@/lib/pwa-company-browser";
+import { finalizeCompanyInstallInBrowser, writeCompanyCacheInBrowser } from "@/lib/pwa-company-browser";
+import { companyInstallUrlIfVerified, INSTALL_TIMEOUT_MESSAGE } from "@/lib/pwa-company-finalize";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -39,22 +41,34 @@ function InstallScreen() {
   const listed = installableCompanies(memberships);
   const requested = params.get(INSTALL_QUERY);
   const chosen = activeMembership(memberships, requested);
+  const chosenId = chosen?.companyId ?? null;
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
     const onPrompt = (event: Event) => {
+      const href = document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "";
+      if (!chosenId || href !== companyManifestPath(chosenId)) return;
       event.preventDefault();
       setPrompt(event as BeforeInstallPromptEvent);
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
-  }, []);
+  }, [chosenId]);
 
   async function prepare(company: InstallMembership) {
     setBusy(company.companyId);
     setNote(null);
+    try {
+      await prepareCompany(company);
+    } catch {
+      setBusy(null);
+      setNote(INSTALL_TIMEOUT_MESSAGE);
+    }
+  }
+
+  async function prepareCompany(company: InstallMembership) {
     let useLogo = false;
     let icons: { path: string; blob: Blob }[] = [];
     const logo = approvedLogoUrl(company.companyId, company.companyLogo);
@@ -83,9 +97,16 @@ function InstallScreen() {
       return;
     }
     await writeCompanyCacheInBrowser(built, useLogo ? icons : []);
-    const next = new URL("/overwatch/install/", window.location.origin);
-    next.searchParams.set(INSTALL_QUERY, built.companyId);
-    window.location.assign(next.toString());
+    const verified = await finalizeCompanyInstallInBrowser(built, useLogo ? icons : []);
+    const next = companyInstallUrlIfVerified(verified, built.companyId);
+    if (!verified.ok || !next) {
+      setBusy(null);
+      setNote(verified.ok ? "The company manifest could not be confirmed. Stay on this page and press Install again." : verified.message);
+      return;
+    }
+    // One same-tab navigation, and only after the worker served this company's
+    // cached manifest and icons. No reload loop and no shared-manifest fallback.
+    window.location.assign(new URL(next, window.location.origin).toString());
   }
 
   return (
@@ -107,7 +128,7 @@ function InstallScreen() {
         <section className="rounded-xl border border-border bg-card p-4">
           <h2 className="text-sm font-semibold">Ready for {chosen.companyName}</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            The saved name, icon, and start link stay on this company. Android may still keep only one home-screen icon for this site. If a second install replaces the first, that is the phone, not a company switch.
+            The saved name, icon, and start link stay on this company. The browser menu on this page reads that saved manifest. An Android home-screen app keeps its current name and icon until Chrome refreshes that install, or you remove the icon and install again from this page.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             {prompt && (
@@ -121,7 +142,7 @@ function InstallScreen() {
             </Button>
           </div>
           <ol className="mt-3 list-decimal space-y-1 pl-4 text-xs text-muted-foreground">
-            <li>Android Chrome: use Add above. If it is missing, open the browser menu and choose Install app or Add to Home screen.</li>
+            <li>Android Chrome or Brave: use Add above, or the browser menu (Install app / Add to Home screen) while this page is open.</li>
             <li>iPhone: tap Share, then Add to Home Screen, while this page is open. iOS may still show the Overwatch icon.</li>
             <li>Open the home-screen icon, then switch company inside Overwatch. The home-screen icon should stay the one you just saved.</li>
           </ol>
