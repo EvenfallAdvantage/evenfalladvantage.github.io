@@ -4,7 +4,8 @@
  * file; it keeps the reviewed name/email reader in airtable-import.ts.
  *
  * Field mapping is explicit. Same-name suggestions are returned for the UI
- * and are not a saved mapping. Sync refuses owner/admin role changes.
+ * and are not a saved mapping. Sync refuses owner, admin, and manager role
+ * or status changes, and it does not delete those memberships or any login.
  */
 
 export const AIRTABLE_BASE_ID = /^app[A-Za-z0-9]{14}$/;
@@ -12,7 +13,12 @@ export const AIRTABLE_TABLE_ID = /^tbl[A-Za-z0-9]{14}$/;
 export const AIRTABLE_RECORD_ID = /^rec[A-Za-z0-9]{14}$/;
 export const AIRTABLE_FIELD_ID = /^fld[A-Za-z0-9]{14}$/;
 
-export const AIRTABLE_SYNC_MAX_RECORDS = 300;
+/**
+ * Airtable pages are 100 records. A company Employees table of about 600
+ * needs six pages. 1000 is the hard stop: enough for that roster plus growth,
+ * and a partial read at the cap never removes memberships.
+ */
+export const AIRTABLE_SYNC_MAX_RECORDS = 1000;
 
 export type AirtablePurpose = "applicants" | "roster" | "events";
 export type MappedPurpose = "roster" | "events";
@@ -93,7 +99,11 @@ export const FORBIDDEN_DESTINATIONS = [
   "role", "status", "pay", "pay_rate", "owner", "admin", "permission", "approved", "approval",
 ] as const;
 
-export const PROTECTED_ROLES = new Set(["owner", "admin"]);
+export const PROTECTED_ROLES = new Set(["owner", "admin", "manager"]);
+
+export function isProtectedRosterRole(role: string | null | undefined): boolean {
+  return PROTECTED_ROLES.has((role ?? "").trim().toLowerCase());
+}
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const NAME_LIMIT = 200;
@@ -326,6 +336,17 @@ export function assessFieldMapping(
   return { ok: problems.length === 0, mapping, problems, unmappedFields };
 }
 
+/** Field ids the user saved. A stale on-screen suggestion does not count as the same map. */
+export function sameFieldMap(left: FieldMap | null | undefined, right: FieldMap | null | undefined): boolean {
+  const a = left ?? {};
+  const b = right ?? {};
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if ((a[key]?.field_id ?? "") !== (b[key]?.field_id ?? "")) return false;
+  }
+  return true;
+}
+
 export interface ValueProblem {
   airtableId: string;
   destination: string;
@@ -456,21 +477,66 @@ export interface RosterWriteBase {
 
 export type RosterWrite =
   | (RosterWriteBase & { kind: "create"; email: string; role: "staff" })
+  | (RosterWriteBase & { kind: "attach"; email: string; userId: string; role: "staff" })
   | (RosterWriteBase & { kind: "link"; membershipId: string; userId: string })
   | (RosterWriteBase & { kind: "update"; membershipId: string; userId: string; protectedRole: boolean });
+
+/** A company membership Airtable reconciliation may remove. Never a login. */
+export interface RosterMembershipRef {
+  membershipId: string;
+  userId: string;
+  role: string;
+  email: string | null;
+  airtableId: string | null;
+}
+
+export interface RosterIdentity {
+  userId: string;
+  email: string;
+}
+
+export type RosterRemovalHold = "truncated" | "roster_truncated" | "conflicts" | null;
+
+/** How the Airtable page was classified. These counts are what a 597-row table must add up to. */
+export interface RosterReadReport {
+  rawRead: number;
+  seen: number;
+  valid: number;
+  invalidId: number;
+  duplicateRecord: number;
+  duplicateEmail: number;
+  conflict: number;
+  missingRequired: number;
+  create: number;
+  attach: number;
+  link: number;
+  update: number;
+  unchanged: number;
+  remove: number;
+  held: number;
+  protected: number;
+  cap: number;
+}
 
 export interface RosterPlan {
   blocked: boolean;
   blockReason?: string;
   creates: Extract<RosterWrite, { kind: "create" }>[];
+  attaches: Extract<RosterWrite, { kind: "attach" }>[];
   links: Extract<RosterWrite, { kind: "link" }>[];
   updates: Extract<RosterWrite, { kind: "update" }>[];
   unchanged: string[];
   conflicts: { airtableId: string; email: string; reason: string; membershipId?: string }[];
   skipped: { airtableId: string; reason: string }[];
+  /** Memberships this confirmed plan will remove. Empty while the read is partial or conflicted. */
+  removals: RosterMembershipRef[];
+  /** Absent non-protected memberships that stay because removals are held. */
+  held: RosterMembershipRef[];
+  removalHold: RosterRemovalHold;
   missingFromAirtable: { membershipId: string; userId: string; airtableId: string; role: string }[];
-  protected: { membershipId: string; role: string; reason: string }[];
+  protected: { membershipId: string; role: string; reason: string; airtableId: string | null }[];
   valueProblems: ValueProblem[];
+  read: RosterReadReport;
 }
 
 export function assertAirtableCannotGrantRole(role: string): "staff" {
@@ -479,13 +545,16 @@ export function assertAirtableCannotGrantRole(role: string): "staff" {
 }
 
 export function assertRosterWrite(write: RosterWrite): void {
-  if (write.kind === "create") assertAirtableCannotGrantRole(write.role);
+  if (write.kind === "create" || write.kind === "attach") assertAirtableCannotGrantRole(write.role);
   const keys = Object.keys(write);
   if (keys.includes("status") || keys.includes("pay") || keys.includes("pay_rate")) {
     throw new Error("Airtable cannot change membership status or pay");
   }
-  if (write.kind !== "create" && keys.includes("role")) {
+  if (write.kind !== "create" && write.kind !== "attach" && keys.includes("role")) {
     throw new Error("Airtable cannot change membership role");
+  }
+  if (write.kind !== "create" && write.kind !== "attach" && keys.includes("email")) {
+    throw new Error("Airtable cannot change a linked email");
   }
 }
 
@@ -494,38 +563,97 @@ function cleanOptional(value: string | undefined): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function normalizeRosterEmail(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function rosterRole(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+/**
+ * Pages of an Airtable list, in order. Stops at the record cap. A leftover
+ * offset, or a caller that stopped while an offset remained, is truncated so
+ * reconciliation will not remove anyone from a partial read.
+ */
+export function takeAirtableRecords<T>(
+  pages: readonly { records: readonly T[]; offset?: string | null }[],
+  cap = AIRTABLE_SYNC_MAX_RECORDS,
+): { records: T[]; truncated: boolean } {
+  if (pages.length === 0) return { records: [], truncated: false };
+  const records: T[] = [];
+  for (const page of pages) {
+    records.push(...page.records);
+    const more = typeof page.offset === "string" && page.offset.length > 0;
+    if (!more) return { records: records.slice(0, cap), truncated: records.length > cap };
+    if (records.length >= cap) return { records: records.slice(0, cap), truncated: true };
+  }
+  return { records: records.slice(0, cap), truncated: true };
+}
+
 export function planRosterSync(
   locals: readonly RosterPerson[],
   incoming: readonly InterpretedRecord[],
-  opts: { truncated: boolean },
+  opts: { truncated: boolean; rosterTruncated?: boolean; identities?: readonly RosterIdentity[] },
 ): RosterPlan {
   const plan: RosterPlan = {
     blocked: false,
     creates: [],
+    attaches: [],
     links: [],
     updates: [],
     unchanged: [],
     conflicts: [],
     skipped: [],
+    removals: [],
+    held: [],
+    removalHold: null,
     missingFromAirtable: [],
     protected: [],
     valueProblems: [],
+    read: emptyRosterRead(),
   };
   const byRecord = new Map<string, RosterPerson>();
   const byEmail = new Map<string, RosterPerson[]>();
   for (const row of locals) {
     const recordId = row.airtableRecordId?.trim() ?? "";
-    if (AIRTABLE_RECORD_ID.test(recordId) && !byRecord.has(recordId)) byRecord.set(recordId, row);
-    const email = (row.email ?? "").trim().toLowerCase();
+    if (AIRTABLE_RECORD_ID.test(recordId)) {
+      const prior = byRecord.get(recordId);
+      if (prior && prior.membershipId !== row.membershipId) {
+        plan.conflicts.push({
+          airtableId: recordId,
+          email: normalizeRosterEmail(row.email),
+          reason: "record_matches_multiple_people",
+          membershipId: row.membershipId,
+        });
+      } else if (!prior) byRecord.set(recordId, row);
+    }
+    const email = normalizeRosterEmail(row.email);
     if (email) {
       const list = byEmail.get(email) ?? [];
       list.push(row);
       byEmail.set(email, list);
     }
   }
+  const identityByEmail = new Map<string, Set<string>>();
+  for (const identity of opts.identities ?? []) {
+    const email = normalizeRosterEmail(identity.email);
+    const userId = identity.userId.trim();
+    if (!email || !userId) continue;
+    const ids = identityByEmail.get(email) ?? new Set<string>();
+    ids.add(userId);
+    identityByEmail.set(email, ids);
+  }
+  const distinctOwners = (email: string) => {
+    const ids = new Set<string>(identityByEmail.get(email) ?? []);
+    for (const local of byEmail.get(email) ?? []) ids.add(local.userId);
+    return ids;
+  };
 
   const seenIds = new Set<string>();
-  const seenEmails = new Map<string, string>();
+  const presentIds = new Set<string>();
+  const presentEmails = new Set<string>();
+  const usable: InterpretedRecord[] = [];
   for (const row of incoming) {
     if (!AIRTABLE_RECORD_ID.test(row.airtableId)) {
       plan.skipped.push({ airtableId: row.airtableId, reason: "invalid_id" });
@@ -536,12 +664,67 @@ export function planRosterSync(
       continue;
     }
     seenIds.add(row.airtableId);
-    const requiredProblem = row.problems.find((p) => p.destination === "first_name" || p.destination === "email");
+    presentIds.add(row.airtableId);
     plan.valueProblems.push(...row.problems);
-    const email = (row.values.email ?? "").trim().toLowerCase();
+    const email = normalizeRosterEmail(row.values.email);
+    if (email && EMAIL_RE.test(email)) presentEmails.add(email);
+    usable.push(row);
+  }
+
+  const suppressed = new Set<string>();
+  const grouped = new Map<string, InterpretedRecord[]>();
+  for (const row of usable) {
+    const email = normalizeRosterEmail(row.values.email);
+    if (!email || !EMAIL_RE.test(email)) continue;
+    const list = grouped.get(email) ?? [];
+    list.push(row);
+    grouped.set(email, list);
+  }
+  for (const [email, rows] of grouped) {
+    if (rows.length < 2) continue;
+    const linked = rows.filter((row) => byRecord.has(row.airtableId));
+    const winner = linked.length === 1
+      ? linked[0]
+      : linked.length > 1
+        ? null
+        : [...rows].sort((a, b) => (a.airtableId < b.airtableId ? -1 : 1))[0];
+    for (const row of rows) {
+      if (winner && row.airtableId === winner.airtableId) continue;
+      suppressed.add(row.airtableId);
+      plan.conflicts.push({ airtableId: row.airtableId, email, reason: "duplicate_email_in_airtable" });
+    }
+  }
+
+  const logProtected = (row: RosterPerson, airtableId: string | null, reason: string) => {
+    plan.protected.push({
+      membershipId: row.membershipId,
+      role: rosterRole(row.role),
+      reason,
+      airtableId,
+    });
+  };
+
+  for (const row of usable) {
+    if (suppressed.has(row.airtableId)) continue;
+    const email = normalizeRosterEmail(row.values.email);
+    const emailOk = Boolean(email && EMAIL_RE.test(email));
     const linked = byRecord.get(row.airtableId);
     if (linked) {
-      if (email) seenEmails.set(email, row.airtableId);
+      const protectedRole = isProtectedRosterRole(linked.role);
+      if (emailOk) {
+        const others = distinctOwners(email);
+        others.delete(linked.userId);
+        if (others.size > 0) {
+          plan.conflicts.push({
+            airtableId: row.airtableId,
+            email,
+            reason: "email_owned_by_other_user",
+            membershipId: linked.membershipId,
+          });
+          if (protectedRole) logProtected(linked, row.airtableId, "email_unchanged");
+          continue;
+        }
+      }
       const set = profileSet(row.values, linked, false);
       if (!set.firstName && !set.lastName && !set.phone && !set.title) plan.unchanged.push(row.airtableId);
       else {
@@ -550,58 +733,57 @@ export function planRosterSync(
           airtableId: row.airtableId,
           membershipId: linked.membershipId,
           userId: linked.userId,
-          protectedRole: PROTECTED_ROLES.has(linked.role),
+          protectedRole,
           ...set,
         });
       }
-      if (PROTECTED_ROLES.has(linked.role)) {
-        plan.protected.push({ membershipId: linked.membershipId, role: linked.role, reason: "role_unchanged" });
+      if (protectedRole) {
+        const localEmail = normalizeRosterEmail(linked.email);
+        logProtected(linked, row.airtableId, emailOk && localEmail !== email ? "email_unchanged" : "role_unchanged");
       }
       continue;
     }
-    if (requiredProblem || !email || !EMAIL_RE.test(email) || !cleanOptional(row.values.first_name)) {
+    if (!emailOk) {
+      plan.skipped.push({ airtableId: row.airtableId, reason: "missing_email" });
+      continue;
+    }
+    const requiredProblem = row.problems.find((problem) => problem.destination === "first_name" || problem.destination === "email");
+    if (requiredProblem || !cleanOptional(row.values.first_name)) {
       plan.skipped.push({ airtableId: row.airtableId, reason: requiredProblem?.code ?? "missing_required_value" });
       continue;
     }
-    const priorEmail = seenEmails.get(email);
-    if (priorEmail) {
-      plan.conflicts.push({ airtableId: row.airtableId, email, reason: "duplicate_email_in_airtable" });
-      const drop = (list: { airtableId: string }[]) => {
-        const index = list.findIndex((item) => item.airtableId === priorEmail);
-        if (index >= 0) {
-          list.splice(index, 1);
-          plan.conflicts.push({ airtableId: priorEmail, email, reason: "duplicate_email_in_airtable" });
-        }
-      };
-      drop(plan.creates);
-      drop(plan.links);
-      continue;
-    }
-    seenEmails.set(email, row.airtableId);
-    const emailOwners = byEmail.get(email) ?? [];
-    if (emailOwners.length > 1) {
+    const localOwners = byEmail.get(email) ?? [];
+    const ownerIds = distinctOwners(email);
+    if (localOwners.length > 1) {
       plan.conflicts.push({ airtableId: row.airtableId, email, reason: "email_matches_multiple_people" });
       continue;
     }
-    if (emailOwners.length === 1) {
-      const owner = emailOwners[0];
-      if (owner.airtableRecordId && owner.airtableRecordId !== row.airtableId) {
+    if (localOwners.length === 1) {
+      const owner = localOwners[0];
+      const others = [...ownerIds].filter((id) => id !== owner.userId);
+      if (others.length > 0) {
+        plan.conflicts.push({
+          airtableId: row.airtableId,
+          email,
+          reason: "email_owned_by_other_user",
+          membershipId: owner.membershipId,
+        });
+        if (isProtectedRosterRole(owner.role)) logProtected(owner, row.airtableId, "email_unchanged");
+        continue;
+      }
+      const linkedId = owner.airtableRecordId?.trim() ?? "";
+      if (AIRTABLE_RECORD_ID.test(linkedId) && linkedId !== row.airtableId) {
         plan.conflicts.push({
           airtableId: row.airtableId,
           email,
           reason: "email_already_linked",
           membershipId: owner.membershipId,
         });
+        if (isProtectedRosterRole(owner.role)) logProtected(owner, row.airtableId, "email_unchanged");
         continue;
       }
-      if (PROTECTED_ROLES.has(owner.role)) {
-        plan.protected.push({ membershipId: owner.membershipId, role: owner.role, reason: "email_not_linked" });
-        plan.conflicts.push({
-          airtableId: row.airtableId,
-          email,
-          reason: "protected_role",
-          membershipId: owner.membershipId,
-        });
+      if (isProtectedRosterRole(owner.role)) {
+        logProtected(owner, row.airtableId, "email_not_linked");
         continue;
       }
       plan.links.push({
@@ -610,6 +792,21 @@ export function planRosterSync(
         membershipId: owner.membershipId,
         userId: owner.userId,
         ...profileSet(row.values, owner, true),
+      });
+      continue;
+    }
+    if (ownerIds.size > 1) {
+      plan.conflicts.push({ airtableId: row.airtableId, email, reason: "email_matches_multiple_people" });
+      continue;
+    }
+    if (ownerIds.size === 1) {
+      plan.attaches.push({
+        kind: "attach",
+        airtableId: row.airtableId,
+        email,
+        userId: [...ownerIds][0],
+        role: "staff",
+        title: cleanOptional(row.values.title),
       });
       continue;
     }
@@ -625,20 +822,79 @@ export function planRosterSync(
     });
   }
 
-  if (!opts.truncated) {
+  if (opts.truncated) plan.removalHold = "truncated";
+  else if (opts.rosterTruncated) plan.removalHold = "roster_truncated";
+  else {
+    const candidates: RosterMembershipRef[] = [];
     for (const row of locals) {
       const recordId = row.airtableRecordId?.trim() ?? "";
-      if (!AIRTABLE_RECORD_ID.test(recordId) || seenIds.has(recordId)) continue;
-      plan.missingFromAirtable.push({
+      const linkedId = AIRTABLE_RECORD_ID.test(recordId) ? recordId : "";
+      const email = normalizeRosterEmail(row.email);
+      const covered = Boolean((linkedId && presentIds.has(linkedId)) || (email && presentEmails.has(email)));
+      if (covered) continue;
+      if (isProtectedRosterRole(row.role)) {
+        logProtected(row, linkedId || null, "absent_preserved");
+        continue;
+      }
+      candidates.push({
         membershipId: row.membershipId,
         userId: row.userId,
-        airtableId: recordId,
-        role: row.role,
+        role: rosterRole(row.role),
+        email: email || null,
+        airtableId: linkedId || null,
       });
     }
+    // A duplicate email, or any other identity conflict, holds every removal.
+    // A membership whose Airtable record id was in this read is already
+    // covered above, including when that row's email is blank or a field is invalid.
+    if (plan.conflicts.length > 0) {
+      plan.removalHold = "conflicts";
+      plan.held = candidates;
+    } else {
+      plan.removals = candidates;
+      plan.missingFromAirtable = candidates.map((row) => ({
+        membershipId: row.membershipId,
+        userId: row.userId,
+        airtableId: row.airtableId ?? "",
+        role: row.role,
+      }));
+    }
   }
-  for (const write of [...plan.creates, ...plan.links, ...plan.updates]) assertRosterWrite(write);
+  for (const write of [...plan.creates, ...plan.attaches, ...plan.links, ...plan.updates]) assertRosterWrite(write);
+  for (const removal of plan.removals) {
+    if (isProtectedRosterRole(removal.role)) throw new Error("Airtable cannot remove an owner, admin, or manager");
+  }
+  const invalidId = plan.skipped.filter((row) => row.reason === "invalid_id").length;
+  const duplicateRecord = plan.skipped.filter((row) => row.reason === "duplicate_record").length;
+  const missingRequired = plan.skipped.length - invalidId - duplicateRecord;
+  plan.read = {
+    rawRead: incoming.length,
+    seen: seenIds.size,
+    valid: plan.creates.length + plan.attaches.length + plan.links.length + plan.updates.length + plan.unchanged.length,
+    invalidId,
+    duplicateRecord,
+    duplicateEmail: plan.conflicts.filter((row) => row.reason === "duplicate_email_in_airtable").length,
+    conflict: plan.conflicts.length,
+    missingRequired,
+    create: plan.creates.length,
+    attach: plan.attaches.length,
+    link: plan.links.length,
+    update: plan.updates.length,
+    unchanged: plan.unchanged.length,
+    remove: plan.removals.length,
+    held: plan.held.length,
+    protected: plan.protected.length,
+    cap: AIRTABLE_SYNC_MAX_RECORDS,
+  };
   return plan;
+}
+
+function emptyRosterRead(): RosterReadReport {
+  return {
+    rawRead: 0, seen: 0, valid: 0, invalidId: 0, duplicateRecord: 0, duplicateEmail: 0,
+    conflict: 0, missingRequired: 0, create: 0, attach: 0, link: 0, update: 0, unchanged: 0,
+    remove: 0, held: 0, protected: 0, cap: AIRTABLE_SYNC_MAX_RECORDS,
+  };
 }
 
 function profileSet(values: Record<string, string>, local: RosterPerson, blanksOnly: boolean): Omit<RosterWriteBase, "airtableId"> {
@@ -646,7 +902,9 @@ function profileSet(values: Record<string, string>, local: RosterPerson, blanksO
   const take = (key: "firstName" | "lastName" | "phone" | "title", incoming: string | undefined, current: string | null) => {
     const value = cleanOptional(incoming);
     if (!value) return;
-    if (blanksOnly && cleanOptional(current ?? undefined)) return;
+    const currentValue = cleanOptional(current ?? undefined);
+    if (blanksOnly && currentValue) return;
+    if (value === currentValue) return;
     next[key] = value;
   };
   take("firstName", values.first_name, local.firstName);
@@ -804,15 +1062,108 @@ export function planEventSync(
 export function rosterCounts(plan: RosterPlan): Record<string, number> {
   return {
     create: plan.creates.length,
+    attach: plan.attaches.length,
     link: plan.links.length,
     update: plan.updates.length,
     unchanged: plan.unchanged.length,
     conflict: plan.conflicts.length,
     skipped: plan.skipped.length,
-    missing: plan.missingFromAirtable.length,
+    remove: plan.removals.length,
+    held: plan.held.length,
+    missing: plan.removals.length,
     protected: plan.protected.length,
     valueProblems: plan.valueProblems.length,
   };
+}
+
+export interface RosterSyncPayload {
+  creates: { airtable_id: string; email: string; first_name?: string; last_name?: string; phone?: string; title?: string }[];
+  attaches: { airtable_id: string; user_id: string; email: string; title?: string }[];
+  links: { airtable_id: string; membership_id: string; user_id: string; first_name?: string; last_name?: string; phone?: string; title?: string }[];
+  updates: { airtable_id: string; membership_id: string; user_id: string; first_name?: string; last_name?: string; phone?: string; title?: string }[];
+  removals: { membership_id: string; user_id: string }[];
+}
+
+function payloadProfile(row: { firstName?: string; lastName?: string; phone?: string; title?: string }) {
+  return {
+    ...(row.firstName ? { first_name: row.firstName } : {}),
+    ...(row.lastName ? { last_name: row.lastName } : {}),
+    ...(row.phone ? { phone: row.phone } : {}),
+    ...(row.title ? { title: row.title } : {}),
+  };
+}
+
+/** Fields the database function is allowed to receive. Role, status, and email changes are absent. */
+export function rosterSyncPayload(plan: RosterPlan): RosterSyncPayload {
+  for (const write of [...plan.creates, ...plan.attaches, ...plan.links, ...plan.updates]) assertRosterWrite(write);
+  for (const removal of plan.removals) {
+    if (isProtectedRosterRole(removal.role)) throw new Error("Airtable cannot remove an owner, admin, or manager");
+  }
+  return {
+    creates: plan.creates.map((row) => ({
+      airtable_id: row.airtableId,
+      email: row.email,
+      ...payloadProfile(row),
+    })),
+    attaches: plan.attaches.map((row) => ({
+      airtable_id: row.airtableId,
+      user_id: row.userId,
+      email: row.email,
+      ...(row.title ? { title: row.title } : {}),
+    })),
+    links: plan.links.map((row) => ({
+      airtable_id: row.airtableId,
+      membership_id: row.membershipId,
+      user_id: row.userId,
+      ...payloadProfile(row),
+    })),
+    updates: plan.updates.map((row) => ({
+      airtable_id: row.airtableId,
+      membership_id: row.membershipId,
+      user_id: row.userId,
+      ...payloadProfile(row),
+    })),
+    removals: plan.removals.map((row) => ({ membership_id: row.membershipId, user_id: row.userId })),
+  };
+}
+
+/** Stable id of the plan the user is confirming. Field values are included so a local edit is not overwritten. */
+export function rosterPlanToken(plan: RosterPlan): string {
+  const payload = rosterSyncPayload(plan);
+  const sort = <T>(rows: T[], key: (row: T) => string) => [...rows].sort((a, b) => (key(a) < key(b) ? -1 : key(a) > key(b) ? 1 : 0));
+  return JSON.stringify({
+    creates: sort(payload.creates, (row) => `${row.airtable_id}\u001f${row.email}`),
+    attaches: sort(payload.attaches, (row) => `${row.airtable_id}\u001f${row.user_id}`),
+    links: sort(payload.links, (row) => `${row.airtable_id}\u001f${row.membership_id}`),
+    updates: sort(payload.updates, (row) => `${row.airtable_id}\u001f${row.membership_id}`),
+    removals: sort(payload.removals, (row) => `${row.membership_id}\u001f${row.user_id}`),
+    conflicts: sort(plan.conflicts, (row) => `${row.airtableId}\u001f${row.reason}\u001f${row.email}`),
+    removalHold: plan.removalHold,
+    rawRead: plan.read.rawRead,
+    seen: plan.read.seen,
+  });
+}
+
+export function rosterConfirmDescription(
+  counts: Record<string, number>,
+  opts: { truncated: boolean; removalHold?: string | null; read?: RosterReadReport },
+): string {
+  const remove = counts.remove ?? counts.missing ?? 0;
+  const held = counts.held ?? 0;
+  const hold = opts.truncated || opts.removalHold === "truncated" || opts.removalHold === "roster_truncated"
+    ? "The Airtable read was incomplete, so nobody is removed."
+    : opts.removalHold === "conflicts" || held > 0
+      ? `${held} people are not in Airtable and will stay until conflicts are resolved.`
+      : remove > 0
+        ? `${remove} company memberships will be removed. Their logins stay.`
+        : "Nobody is removed.";
+  const blanks = " Rows without a valid email are not added. An already linked Airtable record stays even when its email is blank. Invalid optional values are left unchanged.";
+  const link = (counts.link ?? 0) + (counts.attach ?? 0);
+  const read = opts.read;
+  const accounting = read
+    ? `Read ${read.rawRead} (cap ${read.cap}). Seen ${read.seen}, valid ${read.valid}, duplicate/conflict ${read.duplicateRecord + read.conflict}, missing required ${read.missingRequired}, updated ${read.update}, unchanged ${read.unchanged}, removals ${read.remove}. `
+    : "";
+  return `${accounting}Create ${counts.create ?? 0}, link ${link}, update ${counts.update ?? 0}. ${hold} Conflicts ${counts.conflict ?? 0}, skipped ${counts.skipped ?? 0}. Owners, admins, and managers stay. Airtable is not written.${blanks}`;
 }
 
 export function eventCounts(plan: EventPlan): Record<string, number> {
