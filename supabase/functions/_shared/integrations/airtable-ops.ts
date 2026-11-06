@@ -545,6 +545,13 @@ async function applyRoster(
       ...rosterNames(interpreted, people),
       failures,
       writeFailures: failed,
+      applied: {
+        created: applied.created,
+        attached: applied.attached,
+        linked: applied.linked,
+        updated: applied.updated,
+        removed: applied.removed,
+      },
     });
     return {
       ok: true,
@@ -557,7 +564,8 @@ async function applyRoster(
       conflicts: plan.conflicts.length,
       skipped: plan.skipped.length,
       missing: applied.removed,
-      held: plan.held.length,
+      held: report.held,
+      removalHold: report.removalHold,
       protected: plan.protected.length,
       truncated: plan.removalHold === "truncated" || plan.removalHold === "roster_truncated",
       read: plan.read,

@@ -18,8 +18,9 @@ describe("Airtable roster phone conflict migration", () => {
     expect(mig).not.toMatch(/DELETE FROM auth\.users/);
     expect(mig).not.toMatch(/DROP INDEX[\s\S]*users_phone_key/);
     expect(mig).not.toMatch(/DROP CONSTRAINT[\s\S]*users_phone_key/);
-    expect(phoneFn).toMatch(/pg_advisory_xact_lock/);
-    const lockAt = phoneFn.indexOf("pg_advisory_xact_lock");
+    expect(phoneFn).toMatch(/pg_try_advisory_xact_lock/);
+    expect(phoneFn).not.toMatch(/(?<!try_)pg_advisory_xact_lock\(/);
+    const lockAt = phoneFn.indexOf("pg_try_advisory_xact_lock");
     const existsAt = phoneFn.indexOf("IF EXISTS");
     expect(lockAt).toBeGreaterThan(0);
     expect(existsAt).toBeGreaterThan(lockAt);
@@ -35,6 +36,12 @@ describe("Airtable roster phone conflict migration", () => {
     expect(apply).not.toMatch(/left\(SQLERRM/);
     expect(apply).toMatch(/EXCEPTION WHEN OTHERS THEN/);
     expect(apply).toMatch(/IF v_fail_create = 0 AND v_fail_attach = 0 AND v_fail_link = 0 AND v_fail_update = 0 THEN/);
+    expect(apply).toMatch(/ORDER BY 1/);
+    expect(apply).toMatch(/pg_try_advisory_xact_lock/);
+    const sortedLock = apply.indexOf("ORDER BY 1");
+    const firstRowLock = apply.indexOf("FOR UPDATE;");
+    expect(sortedLock).toBeGreaterThan(0);
+    expect(firstRowLock).toBeGreaterThan(sortedLock);
     expect(apply).toMatch(/Airtable cannot remove an owner, admin, or manager/);
     expect(apply).toMatch(/role::text NOT IN \('owner', 'admin', 'manager'\)/);
   });

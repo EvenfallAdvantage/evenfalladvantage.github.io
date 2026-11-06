@@ -495,7 +495,16 @@ export interface RosterIdentity {
   email: string;
 }
 
-export type RosterRemovalHold = "truncated" | "roster_truncated" | "conflicts" | null;
+export type RosterRemovalHold = "truncated" | "roster_truncated" | "conflicts" | "write_failure" | null;
+
+/** Counts returned by apply_airtable_roster_sync. These are rows that committed. */
+export interface RosterApplyCounts {
+  created: number;
+  attached: number;
+  linked: number;
+  updated: number;
+  removed: number;
+}
 
 /** How the Airtable page was classified. These counts are what a 597-row table must add up to. */
 export interface RosterReadReport {
@@ -1358,11 +1367,13 @@ export function rosterReconcileText(report: Pick<RosterDiagnosticReport, "kind" 
     ? "The read was incomplete, so nobody is removed."
     : report.removalHold === "conflicts"
       ? "Identity conflicts are unresolved, so nobody is removed."
-      : report.remove > 0
-        ? report.kind === "preview"
-          ? `${report.remove} company memberships would be removed on sync. Logins stay.`
-          : `${report.remove} company memberships were removed. Logins stay.`
-        : "Nobody is removed.";
+      : report.removalHold === "write_failure"
+        ? "A database write failed, so planned removals were held. Nobody was removed."
+        : report.remove > 0
+          ? report.kind === "preview"
+            ? `${report.remove} company memberships would be removed on sync. Logins stay.`
+            : `${report.remove} company memberships were removed. Logins stay.`
+          : "Nobody is removed.";
   return [
     `Airtable returned ${report.rawRead} records across ${report.pages} page${report.pages === 1 ? "" : "s"} (cap ${report.cap}).`,
     `${report.invalidId} had an unusable id and ${report.duplicateRecord} repeated an id, leaving ${report.seen} distinct records.`,
@@ -1386,6 +1397,8 @@ export function rosterDiagnosticReport(input: {
   namesByMembership?: ReadonlyMap<string, string>;
   failures?: readonly { op: string; airtableId: string; message: string }[];
   writeFailures?: Partial<RosterWriteFailureCounts>;
+  /** Sync only. Planned counts stay on the plan; this is what the function committed. */
+  applied?: RosterApplyCounts;
 }): RosterDiagnosticReport {
   const names = input.namesByRecord ?? new Map<string, string>();
   const memberNames = input.namesByMembership ?? new Map<string, string>();
@@ -1403,6 +1416,17 @@ export function rosterDiagnosticReport(input: {
     remove: input.writeFailures?.remove ?? 0,
   };
   const writeFailureTotal = writeFailures.create + writeFailures.attach + writeFailures.link + writeFailures.update + writeFailures.remove;
+  const earlierWriteFailures = writeFailures.create + writeFailures.attach + writeFailures.link + writeFailures.update;
+  const useApplied = input.kind === "sync" && input.applied != null;
+  // The SQL function skips the whole removal loop after a create, attach, link, or update failure.
+  const removalsSuppressed = useApplied && earlierWriteFailures > 0 && input.plan.removals.length > 0;
+  const removalHold: RosterRemovalHold = removalsSuppressed ? "write_failure" : input.plan.removalHold;
+  const heldRows = removalsSuppressed
+    ? [
+      ...input.plan.held,
+      ...input.plan.removals.map((row) => ({ ...row, airtableId: row.airtableId })),
+    ]
+    : [...input.plan.held];
   const rows: RosterDiagnosticRow[] = [];
   for (const failure of input.failures ?? []) {
     const airtableId = /^rec[A-Za-z0-9]{14}$/.test(failure.airtableId) ? failure.airtableId : "";
@@ -1438,11 +1462,14 @@ export function rosterDiagnosticReport(input: {
       name: nameFor(problem.airtableId),
     });
   }
-  for (const row of input.plan.held) {
+  for (const row of heldRows) {
+    const suppressed = removalsSuppressed && input.plan.removals.some((planned) => planned.membershipId === row.membershipId);
     rows.push({
       airtableId: row.airtableId ?? "",
       op: "held",
-      reason: "Not in Airtable. Removal is held until the read is complete and unambiguous.",
+      reason: suppressed
+        ? "Not removed because a roster write failed. The login stays."
+        : "Not in Airtable. Removal is held until the read is complete and unambiguous.",
       name: memberNames.get(row.membershipId) ?? "",
     });
   }
@@ -1471,18 +1498,18 @@ export function rosterDiagnosticReport(input: {
     missingEmail,
     missingFirstName,
     missingRequired: input.plan.read.missingRequired,
-    create: input.plan.read.create,
-    attach: input.plan.read.attach,
-    link: input.plan.read.link,
-    update: input.plan.read.update,
+    create: useApplied ? input.applied!.created : input.plan.read.create,
+    attach: useApplied ? input.applied!.attached : input.plan.read.attach,
+    link: useApplied ? input.applied!.linked : input.plan.read.link,
+    update: useApplied ? input.applied!.updated : input.plan.read.update,
     unchanged: input.plan.read.unchanged,
-    remove: input.kind === "sync" ? input.plan.read.remove : input.plan.removals.length,
-    held: input.plan.held.length,
+    remove: useApplied ? input.applied!.removed : input.kind === "sync" ? input.plan.read.remove : input.plan.removals.length,
+    held: heldRows.length,
     protected: input.plan.protected.length,
     pages: input.pages,
     truncated: input.plan.removalHold === "truncated" || input.plan.removalHold === "roster_truncated",
     cap: input.plan.read.cap,
-    removalHold: input.plan.removalHold,
+    removalHold,
     writeFailures,
     writeFailureTotal,
     writeFailuresListed: kept.filter((row) => row.op === "failure").length,

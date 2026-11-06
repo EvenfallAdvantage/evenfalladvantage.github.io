@@ -10,6 +10,16 @@
 -- fails that row only. The rest of the plan still commits, and removals stay
 -- held when any earlier row failed. The returned message does not include the
 -- phone or the other account.
+--
+-- Phone comparison is digits only: every non-digit is removed. It does not
+-- fold a country code, so +1 5551234567 and 5551234567 stay different. It
+-- does not strip extensions, so 5551234567 and 5551234567x12 stay different.
+-- users_phone_key remains an exact btree on the stored text.
+--
+-- Locks: every distinct digit key in the plan is try-locked in sorted order
+-- before any membership row lock. try_lock does not wait. A key held by
+-- another sync fails that row closed. Blocking locks in plan order can
+-- deadlock opposite batches and wait until the other call commits.
 -- =============================================================================
 
 BEGIN;
@@ -25,10 +35,14 @@ END
 $guard$;
 
 -- Read-only phone check. Returns the trimmed phone to store, or NULL when the
--- value is blank or already this account's number (formatting ignored).
--- Raises when any other account has the same digits. Does not write, link, or
--- return that account. The transaction lock makes the check race-safe with the
--- insert or update that follows in the same transaction.
+-- value is blank or already this account's number (same digits, formatting
+-- ignored). Raises when any other account has the same digits, or when the
+-- digit lock is already held by another sync. Does not write, link, or return
+-- that account. Digits are not a canonical phone number: country codes and
+-- extensions are not removed. The existence check repeats regexp_replace on
+-- users.phone and can scan that table once per phone; there is no expression
+-- index. A warm lookup of 4000 users measured about 1 ms. The caller try-locks
+-- distinct digits in sorted order first.
 CREATE OR REPLACE FUNCTION public.airtable_roster_phone_to_store(
   p_user_id uuid,
   p_phone text
@@ -50,7 +64,14 @@ BEGIN
   IF v_digits = '' THEN
     RETURN NULL;
   END IF;
-  PERFORM pg_catalog.pg_advisory_xact_lock(pg_catalog.hashtextextended('airtable-roster-phone:' || v_digits, 0));
+  -- Fail closed. A blocking lock would wait until the other sync commits,
+  -- and locks taken in plan order deadlock when two batches use opposite
+  -- phone order. try_lock returns immediately. The caller also takes these
+  -- locks in sorted digit order before any membership row lock.
+  IF NOT pg_catalog.pg_try_advisory_xact_lock(pg_catalog.hashtextextended('airtable-roster-phone:' || v_digits, 0)) THEN
+    RAISE EXCEPTION 'Another roster sync is updating this phone. This row was not saved. Run the sync again.'
+      USING ERRCODE = 'P0001';
+  END IF;
   SELECT pg_catalog.regexp_replace(coalesce(u.phone, ''), '[^0-9]', '', 'g')
     INTO v_own
   FROM public.users u
@@ -90,7 +111,12 @@ AS $fn$
         OR pg_catalog.strpos(coalesce(p_message, ''), 'users_phone_key') > 0
         OR pg_catalog.strpos(coalesce(p_message, ''), 'users_phone_unique') > 0
         OR coalesce(p_message, '') LIKE 'Phone is already on another Overwatch account%'
-      THEN 'Phone is already on another Overwatch account. That account was not changed, and this row was not saved. Accounts are not matched or merged by phone.'
+        OR coalesce(p_message, '') LIKE 'Another roster sync is updating this phone%'
+      THEN CASE
+        WHEN coalesce(p_message, '') LIKE 'Another roster sync is updating this phone%'
+        THEN 'Another roster sync is updating this phone. This row was not saved. Run the sync again.'
+        ELSE 'Phone is already on another Overwatch account. That account was not changed, and this row was not saved. Accounts are not matched or merged by phone.'
+      END
       ELSE pg_catalog.regexp_replace(coalesce(p_message, 'This row was not saved'), '\+?[0-9][0-9 ().+-]{6,}[0-9]', '[phone]', 'g')
     END,
     180
@@ -136,6 +162,7 @@ DECLARE
   v_new_user boolean;
   v_new_membership boolean;
   v_phone text;
+  v_digits text;
   v_constraint text;
   v_fail_create int := 0;
   v_fail_attach int := 0;
@@ -207,6 +234,34 @@ BEGIN
      OR coalesce(jsonb_array_length(p_plan->'removals'), 0) > 2000 THEN
     RAISE EXCEPTION 'Roster plan is too large' USING ERRCODE = '22023';
   END IF;
+
+  -- Sorted try-locks before any membership FOR UPDATE. False is remembered
+  -- by a second try in airtable_roster_phone_to_store, which fails that row.
+  FOR v_digits IN
+    SELECT DISTINCT pg_catalog.regexp_replace(
+      pg_catalog.left(pg_catalog.btrim(coalesce(phones.phone, '')), 200),
+      '[^0-9]', '', 'g'
+    ) AS digits
+    FROM (
+      SELECT value->>'phone' AS phone
+      FROM jsonb_array_elements(coalesce(p_plan->'creates', '[]'::jsonb))
+      UNION ALL
+      SELECT value->>'phone'
+      FROM jsonb_array_elements(coalesce(p_plan->'links', '[]'::jsonb))
+      UNION ALL
+      SELECT value->>'phone'
+      FROM jsonb_array_elements(coalesce(p_plan->'updates', '[]'::jsonb))
+    ) AS phones(phone)
+    WHERE pg_catalog.regexp_replace(
+      pg_catalog.left(pg_catalog.btrim(coalesce(phones.phone, '')), 200),
+      '[^0-9]', '', 'g'
+    ) <> ''
+    ORDER BY 1
+  LOOP
+    PERFORM pg_catalog.pg_try_advisory_xact_lock(
+      pg_catalog.hashtextextended('airtable-roster-phone:' || v_digits, 0)
+    );
+  END LOOP;
 
   FOR v_item IN SELECT value FROM jsonb_array_elements(coalesce(p_plan->'creates', '[]'::jsonb))
   LOOP

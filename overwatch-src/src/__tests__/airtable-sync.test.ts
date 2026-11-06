@@ -452,6 +452,42 @@ describe("roster phone write errors", () => {
     expect(report.writeFailureTotal).toBe(1);
     expect(JSON.stringify(report)).not.toMatch(/users_phone_key/);
   });
+
+  it("reports a phone write failure as held removals, not as people removed", () => {
+    const mapping = {
+      first_name: { field_id: FIRST, name: "First Name", type: "singleLineText" },
+      last_name: { field_id: "fldLASTNAME123456", name: "Last Name", type: "singleLineText" },
+      email: { field_id: EMAIL, name: "Email", type: "email" },
+      phone: { field_id: "fldPHONEFIELD1234", name: "Phone", type: "phoneNumber" },
+    };
+    const schema: SchemaField[] = Object.values(mapping).map((field) => ({ id: field.field_id, name: field.name, type: field.type }));
+    const incoming = (id: string, fields: Record<string, string>) => interpretRecord("roster", { id, fields }, mapping, schema);
+    const plan = planRosterSync([
+      person({ membershipId: "m-keep", userId: "u-keep", email: "ada@example.com", phone: "111", airtableRecordId: "recAAAAAAAAAAAAAA" }),
+      person({ membershipId: "m-gone", userId: "u-gone", email: "gone@example.com", firstName: "Gone", lastName: "Staff", role: "staff" }),
+    ], [
+      incoming("recAAAAAAAAAAAAAA", { "First Name": "Ada", "Last Name": "Lovelace", Email: "ada@example.com", Phone: "5559990000" }),
+    ], { truncated: false });
+    expect(plan.removals.map((row) => row.membershipId)).toEqual(["m-gone"]);
+    expect(plan.updates).toHaveLength(1);
+    const report = rosterDiagnosticReport({
+      kind: "sync",
+      plan,
+      pages: 1,
+      namesByMembership: new Map([["m-gone", "Gone Staff"]]),
+      failures: [{ op: "update", airtableId: "recAAAAAAAAAAAAAA", message: 'duplicate key value violates unique constraint "users_phone_key"' }],
+      writeFailures: { update: 1 },
+      applied: { created: 0, attached: 0, linked: 0, updated: 0, removed: 0 },
+    });
+    expect(report.remove).toBe(0);
+    expect(report.update).toBe(0);
+    expect(report.held).toBe(1);
+    expect(report.removalHold).toBe("write_failure");
+    expect(report.reconcile).not.toMatch(/were removed/);
+    expect(report.reconcile).toMatch(/planned removals were held/i);
+    expect(report.rows.some((row) => row.op === "held" && row.name === "Gone Staff" && /write failed/i.test(row.reason))).toBe(true);
+    expect(JSON.stringify(report)).not.toMatch(/users_phone_key|5559990000/);
+  });
 });
 
 describe("Airtable record pages", () => {
