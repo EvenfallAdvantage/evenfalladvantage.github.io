@@ -17,8 +17,11 @@ import {
   readSchemaFields,
   rosterCounts,
   rosterPlanToken,
+  rosterDiagnosticReport,
+  rosterDisplayName,
   rosterSyncPayload,
   sameFieldMap,
+  isRosterDiagnosticReport,
   schemaBaseChoices,
   schemaTableChoices,
   takeAirtableRecords,
@@ -98,11 +101,16 @@ export interface SettingsStore {
   save(companyId: string, connectionId: string, settings: Record<string, string>): Promise<Record<string, unknown>>;
 }
 
+export interface ReportStore {
+  latest(companyId: string, connectionId: string): Promise<unknown | null>;
+}
+
 export interface OpsDeps {
   roster: RosterStore;
   events: EventStore;
   mappings: MappingStore;
   settings: SettingsStore;
+  reports?: ReportStore;
   lastTestOk(companyId: string): Promise<boolean>;
 }
 
@@ -318,6 +326,23 @@ export function opsActions(resolve: (ctx: AdapterCtx) => Promise<OpsDeps>): Reco
         return { ok: true, confirmed_at: stored.confirmedAt, mapping: stored.mappings, unmappedFields: assessment.unmappedFields };
       },
     },
+    roster_report: {
+      access: "read",
+      async run(conn, input, ctx) {
+        const deps = await resolve(ctx);
+        const stored = (await deps.reports?.latest(conn.company_id, conn.id)) ?? null;
+        if (!isRosterDiagnosticReport(stored)) return { ok: true, found: false };
+        const limit = Math.min(400, Math.max(1, Number(input.limit) || 400));
+        const offset = Math.max(0, Math.min(stored.rows.length, Number(input.offset) || 0));
+        return {
+          ok: true,
+          found: true,
+          offset,
+          limit,
+          report: { ...stored, rows: stored.rows.slice(offset, offset + limit) },
+        };
+      },
+    },
     preview_roster: previewAction("roster", resolve),
     preview_events: previewAction("events", resolve),
     sync_roster: syncAction("roster", resolve),
@@ -371,7 +396,7 @@ function previewAction(purpose: MappedPurpose, resolve: (ctx: AdapterCtx) => Pro
       }
       const listed = await deps.roster.listPeople(conn.company_id);
       const identities = await deps.roster.listEmailOwners(interpreted.flatMap((record) => record.values.email ? [record.values.email] : []));
-      const body = rosterPreview(interpreted, listed.people, { truncated: fetched.truncated, rosterTruncated: listed.truncated, identities });
+      const body = rosterPreview(interpreted, listed.people, { truncated: fetched.truncated, rosterTruncated: listed.truncated, identities, pages: fetched.pages });
       const partial = fetched.truncated || listed.truncated;
       return {
         ...body,
@@ -394,17 +419,23 @@ function previewAction(purpose: MappedPurpose, resolve: (ctx: AdapterCtx) => Pro
   };
 }
 
+function rosterNames(interpreted: InterpretedRecord[], people: readonly RosterPerson[]) {
+  const namesByRecord = new Map<string, string>();
+  for (const row of interpreted) {
+    const name = rosterDisplayName(row.values.first_name, row.values.last_name);
+    if (name) namesByRecord.set(row.airtableId, name);
+  }
+  const namesByMembership = new Map(people.map((person) => [person.membershipId, rosterDisplayName(person.firstName, person.lastName)]));
+  return { namesByRecord, namesByMembership };
+}
+
 function rosterPreview(
   interpreted: InterpretedRecord[],
   people: RosterPerson[],
-  opts: { truncated: boolean; rosterTruncated: boolean; identities: readonly RosterIdentity[] },
+  opts: { truncated: boolean; rosterTruncated: boolean; identities: readonly RosterIdentity[]; pages: number },
 ) {
   const plan = planRosterSync(people, interpreted, opts);
-  const rows = plan.conflicts.slice(0, 25).map((row) => ({
-    airtableId: row.airtableId,
-    label: row.email ? `${row.reason} (${row.email})` : row.reason,
-    action: "conflict",
-  }));
+  const report = rosterDiagnosticReport({ kind: "preview", plan, pages: opts.pages, ...rosterNames(interpreted, people) });
   return {
     ok: true,
     counts: {
@@ -416,8 +447,13 @@ function rosterPreview(
       duplicate: plan.read.duplicateRecord + plan.read.duplicateEmail,
     },
     read: plan.read,
+    report,
     valueProblems: plan.valueProblems.slice(0, 8).map((problem) => ({ code: problem.code, message: problem.message })),
-    rows,
+    rows: report.rows.filter((row) => row.op === "conflict").slice(0, 25).map((row) => ({
+      airtableId: row.airtableId,
+      label: row.reason,
+      action: "conflict",
+    })),
     planToken: rosterPlanToken(plan),
     removalHold: plan.removalHold,
   };
@@ -472,9 +508,10 @@ function syncAction(purpose: MappedPurpose, resolve: (ctx: AdapterCtx) => Promis
             counts: rosterCounts(plan),
             read: plan.read,
             pages: fetched.pages,
+            report: rosterDiagnosticReport({ kind: "preview", plan, pages: fetched.pages, ...rosterNames(interpreted, listed.people) }),
           };
         }
-        return await applyRoster(deps.roster, conn, savedSelection, plan, fetched.pages);
+        return await applyRoster(deps.roster, conn, savedSelection, plan, fetched.pages, interpreted, listed.people);
       }
       const plan = planEventSync(await deps.events.listEvents(conn.company_id), interpreted, { truncated: fetched.truncated });
       return await applyEvents(deps.events, conn, savedSelection, plan);
@@ -488,6 +525,8 @@ async function applyRoster(
   selection: PurposeSelection,
   plan: RosterPlan,
   pages: number,
+  interpreted: InterpretedRecord[],
+  people: readonly RosterPerson[],
 ) {
   try {
     const applied = await store.applyPlan({
@@ -497,6 +536,15 @@ async function applyRoster(
       plan: rosterSyncPayload(plan),
     });
     const failed = applied.failed ?? { create: 0, attach: 0, link: 0, update: 0, remove: 0 };
+    const failures = applied.failures.map((row) => ({ op: row.op, airtableId: row.airtable_id, message: row.message }));
+    const report = rosterDiagnosticReport({
+      kind: "sync",
+      plan,
+      pages,
+      ...rosterNames(interpreted, people),
+      failures,
+      writeFailures: failed,
+    });
     return {
       ok: true,
       created: applied.created,
@@ -513,10 +561,8 @@ async function applyRoster(
       truncated: plan.removalHold === "truncated" || plan.removalHold === "roster_truncated",
       read: plan.read,
       pages,
-      errors: applied.failures.slice(0, 25).map((row) => ({
-        airtableId: row.airtable_id,
-        message: `${row.op}: ${row.message}`,
-      })),
+      report,
+      errors: failures.map((row) => ({ airtableId: row.airtableId, message: row.message })),
     };
   } catch (error) {
     return fail(error instanceof Error ? error.message.slice(0, 300) : "Roster sync failed");
@@ -754,6 +800,21 @@ export function defaultOpsDeps(fallbackTest: (companyId: string) => Promise<bool
         return ((data as { settings?: Record<string, unknown> } | null)?.settings ?? {}) as Record<string, unknown>;
       },
     };
-    return { roster, events, mappings, settings, lastTestOk: fallbackTest };
+    const reports: ReportStore = {
+      async latest(companyId, connectionId) {
+        const { data, error } = await db.from("audit_logs")
+          .select("metadata")
+          .eq("company_id", companyId)
+          .eq("entity_id", connectionId)
+          .in("event_type", ["integration.airtable.preview_roster", "integration.airtable.sync_roster"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        if (error) return null;
+        const metadata = (data as { metadata?: { report?: unknown } } | null)?.metadata;
+        return metadata?.report ?? null;
+      },
+    };
+    return { roster, events, mappings, settings, reports, lastTestOk: fallbackTest };
   };
 }

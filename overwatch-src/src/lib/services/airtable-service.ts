@@ -4,6 +4,7 @@
  * server dedupes by company + Airtable record id.
  */
 import { runIntegrationAction } from "@/lib/supabase/db-integrations";
+import type { RosterDiagnosticReport } from "@/lib/integrations/airtable-sync";
 
 export interface AirtablePreviewRecord {
   airtableId: string;
@@ -79,6 +80,7 @@ export interface AirtableSyncPreview {
   planToken?: string;
   removalHold?: string | null;
   pages?: number;
+  report?: RosterDiagnosticReport;
   read?: {
     rawRead: number;
     seen: number;
@@ -116,6 +118,7 @@ export interface AirtableSyncResult {
   failed?: { create: number; attach: number; link: number; update: number; remove: number };
   read?: AirtableSyncPreview["read"];
   pages?: number;
+  report?: RosterDiagnosticReport;
 }
 
 export async function saveAirtableTable(
@@ -199,6 +202,7 @@ export async function previewAirtableSync(
     removalHold: result.removalHold ?? null,
     pages: result.pages,
     read: result.read,
+    report: result.report,
   };
 }
 
@@ -230,7 +234,19 @@ export async function syncAirtablePurpose(
     failed: result.failed,
     read: result.read,
     pages: result.pages,
+    report: result.report,
   };
+}
+
+export async function getAirtableRosterReport(companyId: string): Promise<RosterDiagnosticReport | null> {
+  const body = await runIntegrationAction<{ ok: boolean; found?: boolean; report?: RosterDiagnosticReport; error?: string }>(
+    companyId,
+    "airtable",
+    "roster_report",
+    { limit: 400 },
+  );
+  const result = unwrap(body);
+  return result.found && result.report ? result.report : null;
 }
 
 export async function importReviewedAirtableApplicants(companyId: string, recordIds: string[]): Promise<AirtableImportResult> {

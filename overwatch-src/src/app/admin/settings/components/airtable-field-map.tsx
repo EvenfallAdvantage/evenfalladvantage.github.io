@@ -20,7 +20,9 @@ import {
   rosterConfirmDescription,
   suggestFieldMapping,
   type MappedPurpose,
+  type RosterDiagnosticReport,
 } from "@/lib/integrations/airtable-sync";
+import { RosterSyncReport } from "@/components/integrations/roster-sync-report";
 
 interface Props {
   companyId: string;
@@ -43,6 +45,7 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
   const [mappingLoaded, setMappingLoaded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [preview, setPreview] = useState<AirtableSyncPreview | null>(null);
+  const [syncedReport, setSyncedReport] = useState<RosterDiagnosticReport | null>(null);
 
   useEffect(() => {
     let cancel = false;
@@ -113,6 +116,7 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
   async function checkRecords() {
     setBusy("preview");
     setPreview(null);
+    setSyncedReport(null);
     try {
       setPreview(await previewAirtableSync(companyId, purpose));
     } catch (e) {
@@ -138,6 +142,7 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
     setBusy("sync");
     try {
       const result = await syncAirtablePurpose(companyId, purpose, purpose === "roster" ? look.planToken : undefined);
+      if (purpose === "roster") setSyncedReport(result.report ?? null);
       const failed = result.failed ? result.failed.create + result.failed.attach + result.failed.link + result.failed.update + result.failed.remove : result.errors.length;
       toast.success(purpose === "roster"
         ? `Read ${result.read?.rawRead ?? "?"} records. Created ${result.created}, linked ${result.linked ?? 0}, updated ${result.updated}, removed ${result.removed ?? 0}, write failures ${failed}.`
@@ -214,7 +219,7 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
               : `Create ${preview.counts.create ?? 0}, link ${preview.counts.link ?? 0}, update ${preview.counts.update ?? 0}, conflicts ${preview.counts.conflict ?? 0}, skipped ${preview.counts.skipped ?? 0}.`}
           </p>
           {preview.notes.map((note) => <p key={note}>{note}</p>)}
-          {purpose === "roster" && preview.rows.filter((row) => row.action === "conflict").slice(0, 8).map((row) => <p key={`${row.action}-${row.airtableId}`} className="text-amber-500">Conflict: {row.label}</p>)}
+          {purpose === "roster" && <RosterSyncReport report={syncedReport ?? preview.report ?? null} />}
           {purpose === "events" && preview.rows.slice(0, 8).map((row) => <p key={`${row.action}-${row.airtableId}`}>{row.action}: {row.label}</p>)}
         </div>
       )}
