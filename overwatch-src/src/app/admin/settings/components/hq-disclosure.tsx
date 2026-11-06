@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 
 interface HqDisclosureProps {
@@ -25,12 +25,25 @@ interface HqDisclosureProps {
   /** card: same surface as the other HQ cards. nested: a row inside a card. */
   variant?: "card" | "nested";
   testId?: string;
+  /**
+   * Hash target on the always-visible frame. Field ids stay inside the panel;
+   * a hash that points at one of them opens this frame instead of a hidden input.
+   */
+  id?: string;
+  /**
+   * Controlled open state. Omit it and the disclosure remembers its own.
+   * forceOpen still keeps a dirty panel open.
+   */
+  open?: boolean;
+  onOpenChange?: (next: boolean) => void;
   children: ReactNode;
 }
 
 /**
- * Secondary / advanced HQ block. Children stay mounted while collapsed so a
- * draft survives. The trigger is a real button (Enter and Space).
+ * Secondary / advanced HQ block. Children stay mounted while collapsed
+ * (`hidden`, not `{open && children}`) so a draft survives. The trigger is a
+ * real button inside a heading (Enter and Space). Open state is not written
+ * to localStorage.
  */
 export function HqDisclosure({
   title,
@@ -42,11 +55,18 @@ export function HqDisclosure({
   forceOpen = false,
   variant = "nested",
   testId,
+  id: anchorId,
+  open: openProp,
+  onOpenChange,
   children,
 }: HqDisclosureProps) {
   const uid = useId();
   const panelId = `hq-disclosure-${uid}`;
   const buttonId = `${panelId}-trigger`;
+  const frameRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onOpenChangeRef = useRef(onOpenChange);
+  const controlled = openProp !== undefined;
   const [open, setOpen] = useState(defaultOpen || forceOpen || openWhen);
   const [seen, setSeen] = useState({ forceOpen, openWhen });
   if (forceOpen !== seen.forceOpen || openWhen !== seen.openWhen) {
@@ -55,14 +75,48 @@ export function HqDisclosure({
     if (shouldOpen) setOpen(true);
   }
 
-  const expanded = forceOpen || open;
+  useEffect(() => {
+    onOpenChangeRef.current = onOpenChange;
+  });
+
+  useEffect(() => {
+    const sync = () => {
+      const raw = window.location.hash.replace(/^#/, "");
+      if (!raw) return;
+      let hash = raw;
+      try { hash = decodeURIComponent(raw); } catch { /* keep the raw hash */ }
+      const el = document.getElementById(hash);
+      const targetsFrame = !!anchorId && hash === anchorId;
+      const targetsInside = !!el && el !== frameRef.current && !!panelRef.current?.contains(el);
+      if (!targetsFrame && !targetsInside) return;
+      setOpen(true);
+      onOpenChangeRef.current?.(true);
+      frameRef.current?.scrollIntoView?.({ block: "nearest" });
+    };
+    sync();
+    window.addEventListener("hashchange", sync);
+    return () => window.removeEventListener("hashchange", sync);
+  }, [anchorId]);
+
+  const expanded = forceOpen || (controlled ? openProp : open);
   const frame = variant === "card"
     ? "rounded-xl bg-card text-sm text-card-foreground ring-1 ring-foreground/10"
     : "rounded-lg border border-border/40";
   const Heading = variant === "card" ? "h3" : "h4";
 
+  function setExpanded(next: boolean) {
+    if (!controlled) setOpen(next);
+    onOpenChangeRef.current?.(next);
+  }
+
   return (
-    <div className={frame} data-testid={testId} data-hq-disclosure={expanded ? "open" : "closed"}>
+    <div
+      ref={frameRef}
+      id={anchorId}
+      className={`${frame}${anchorId ? " scroll-mt-28" : ""}`}
+      data-testid={testId}
+      data-hq-disclosure={expanded ? "open" : "closed"}
+    >
       <Heading className="text-sm font-semibold">
         <button
           id={buttonId}
@@ -70,7 +124,7 @@ export function HqDisclosure({
           className="flex min-h-11 w-full items-center gap-3 rounded-[inherit] px-4 py-3 text-left transition-colors hover:bg-muted/30 outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
           aria-expanded={expanded}
           aria-controls={panelId}
-          onClick={() => { if (!forceOpen) setOpen((v) => !v); }}
+          onClick={() => { if (!forceOpen) setExpanded(!expanded); }}
         >
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-center gap-2">
@@ -87,6 +141,7 @@ export function HqDisclosure({
         </button>
       </Heading>
       <div
+        ref={panelRef}
         id={panelId}
         role="region"
         aria-labelledby={buttonId}

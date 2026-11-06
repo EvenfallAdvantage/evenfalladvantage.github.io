@@ -97,6 +97,7 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
 
   // Test payload
   const [testPayload, setTestPayload] = useState<string>(SAMPLE_TEST_PAYLOAD);
+  const [advanced, setAdvanced] = useState<"mappings" | "tester" | "docs" | null>(null);
 
   /* ── Load ── */
   const load = useCallback(async () => {
@@ -427,10 +428,13 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
           )}
 
           <HqDisclosure
+            id="hq-field-mappings"
             title="Field mappings"
             description="Translate your form's field names into Overwatch fields. Anything you don't map is kept on the submission as extra."
-            openWhen={mappings.length > 0}
+            meta={mappings.length > 0 ? <Badge variant="outline" className="text-[10px]">{mappings.length} saved</Badge> : undefined}
             forceOpen={newSourceField.trim().length > 0 || savingMapping}
+            open={advanced === "mappings"}
+            onOpenChange={(next) => setAdvanced(next ? "mappings" : null)}
             testId="hq-field-mappings"
           >
             <div className="grid gap-2 sm:grid-cols-[1fr,1fr,auto]">
@@ -491,9 +495,12 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
           </HqDisclosure>
 
           <HqDisclosure
+            id="hq-test-payload"
             icon={<Beaker className="h-4 w-4" />}
             title="Test a payload"
             description="Paste a sample submission to see how your mappings transform it. This does not save anything."
+            open={advanced === "tester"}
+            onOpenChange={(next) => setAdvanced(next ? "tester" : null)}
             testId="hq-test-payload"
           >
             <div className="grid gap-2 lg:grid-cols-2">
@@ -527,9 +534,12 @@ export default function ApiSourcesSection({ companyId, userId }: ApiSourcesSecti
           </HqDisclosure>
 
           <HqDisclosure
+            id="hq-api-docs"
             icon={<BookOpen className="h-4 w-4" />}
             title="Integration guide and code snippets"
             description="Example requests. Nothing here is saved to the company."
+            open={advanced === "docs"}
+            onOpenChange={(next) => setAdvanced(next ? "docs" : null)}
             testId="hq-api-docs"
           >
               <div className="space-y-3">

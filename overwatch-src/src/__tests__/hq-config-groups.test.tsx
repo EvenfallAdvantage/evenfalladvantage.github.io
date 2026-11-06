@@ -103,6 +103,7 @@ import ApiSourcesSection from "@/app/admin/settings/components/api-sources-secti
 
 afterEach(cleanup);
 beforeEach(() => {
+  window.location.hash = "";
   Object.values(db).forEach((fn) => fn.mockClear());
   db.getIntegrationsConfig.mockResolvedValue([]);
   db.getBreakPolicy.mockResolvedValue(DEFAULT_BREAK_POLICY);
@@ -164,6 +165,32 @@ describe("HQ disclosure", () => {
     fireEvent.click(trigger);
     expect(screen.getByLabelText("Note")).toHaveValue("keep-me");
   });
+
+  it("opens when the hash targets the frame or a field inside it, and ignores a section anchor", async () => {
+    window.location.hash = "#hq-organization";
+    const { unmount } = render(
+      <HqDisclosure id="hq-company-logo" title="Logo and website" testId="logo">
+        <label htmlFor="company-logo-url">Company Logo</label>
+        <input id="company-logo-url" defaultValue="kept" />
+      </HqDisclosure>,
+    );
+    const trigger = screen.getByRole("button", { name: /Logo and website/ });
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+    expect(document.getElementById("hq-company-logo")?.getAttribute("data-hq-disclosure")).toBe("closed");
+    unmount();
+
+    window.location.hash = "#company-logo-url";
+    render(
+      <HqDisclosure id="hq-company-logo" title="Logo and website">
+        <label htmlFor="company-logo-url">Company Logo</label>
+        <input id="company-logo-url" defaultValue="kept" />
+      </HqDisclosure>,
+    );
+    await waitFor(() => expect(screen.getByRole("button", { name: /Logo and website/ })).toHaveAttribute("aria-expanded", "true"));
+    expect(document.getElementById("hq-company-logo")?.querySelector("[hidden]")).toBeNull();
+    expect(screen.getByLabelText("Company Logo")).toHaveValue("kept");
+    window.location.hash = "";
+  });
 });
 
 describe("company profile stays editable and keeps the selected colors", () => {
@@ -184,21 +211,66 @@ describe("company profile stays editable and keeps the selected colors", () => {
     const name = screen.getByLabelText("Company Name");
     const primary = screen.getByLabelText(/Primary Color/i);
     const accent = screen.getByLabelText(/Accent Color/i);
+    const logo = screen.getByRole("button", { name: /Logo and website/ });
     expect(name.closest("[hidden]")).toBeNull();
+    expect(screen.getByLabelText(/Timezone/i).closest("[hidden]")).toBeNull();
     expect(primary).toHaveValue("#080626");
     expect(accent).toHaveValue("#22c55e");
+    expect(screen.getByTestId("hq-brand-preview").closest("[hidden]")).toBeNull();
     expect(screen.getByRole("button", { name: /^Save$/ }).closest("[hidden]")).toBeNull();
+    expect(logo).toHaveAttribute("aria-expanded", "false");
+    expect(logo.textContent).toMatch(/Logo on file/);
+    expect(logo.textContent).toMatch(/old\.example\.com/);
+    expect(screen.getByLabelText(/Company Website/i).closest("[hidden]")).toBeTruthy();
 
-    fireEvent.change(name, { target: { value: "  New Co " } });
+    fireEvent.click(logo);
     fireEvent.change(screen.getByLabelText(/Company Website/i), { target: { value: "" } });
+    fireEvent.change(screen.getByLabelText(/Company Logo/i), { target: { value: "https://cdn.example.com/mark.png" } });
+    fireEvent.click(logo);
+    expect(logo).toHaveAttribute("aria-expanded", "false");
+    expect(logo.textContent).toMatch(/unsaved edits kept/);
+    const website = screen.getByLabelText(/Company Website/i);
+    const logoUrl = screen.getByLabelText(/Company Logo/i);
+    expect(website.closest("[hidden]")).toBeTruthy();
+    expect(logoUrl.closest("[hidden]")).toBeTruthy();
+    expect(website).toHaveValue("");
+    expect(logoUrl).toHaveValue("https://cdn.example.com/mark.png");
+    fireEvent.change(name, { target: { value: "  New Co " } });
     fireEvent.click(screen.getByRole("button", { name: /^Save$/ }));
     await waitFor(() => expect(db.updateCompany).toHaveBeenCalled());
     expect(db.updateCompany.mock.calls[0][1]).toMatchObject({
       name: "New Co",
       websiteUrl: null,
+      logoUrl: "https://cdn.example.com/mark.png",
       brandColor: "#080626",
       accentColor: "#22c55e",
     });
+  });
+
+  it("does not read localStorage for brand colors or copy a stored company id into the preview", () => {
+    localStorage.setItem("companyId", "00000000-0000-4000-8000-000000000099");
+    localStorage.setItem("overwatch:brand", JSON.stringify({ brandColor: "#ff0000", accentColor: "#00ff00", logoUrl: "https://evil.example/logo.png", apiKey: "sekret" }));
+    const setItem = vi.spyOn(Storage.prototype, "setItem");
+    render(
+      <CompanyProfileSection
+        companyId="c1"
+        initialName="Old"
+        initialTimezone="America/Los_Angeles"
+        initialBrandColor="#080626"
+        initialAccentColor="#22c55e"
+        initialLogoUrl=""
+        initialWebsiteUrl=""
+        joinCode="ABC123"
+      />,
+    );
+    const primary = screen.getByTestId("hq-brand-preview-primary");
+    expect(primary.getAttribute("style") ?? "").toMatch(/080626/i);
+    expect(primary.getAttribute("style") ?? "").not.toMatch(/ff0000/i);
+    expect(screen.getByTestId("hq-brand-preview").innerHTML).not.toContain("sekret");
+    expect(screen.getByTestId("hq-brand-preview").innerHTML).not.toContain("evil.example");
+    expect(setItem).not.toHaveBeenCalled();
+    setItem.mockRestore();
+    localStorage.clear();
   });
 });
 
@@ -216,6 +288,15 @@ describe("external integration groups", () => {
     expect(messaging).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByTestId("integration-whatsapp").closest("[aria-hidden='true']")).toBeNull();
     expect(screen.getByTestId("integration-whatsapp").textContent).toContain("Not available yet");
+    expect(screen.getByTestId("integration-whatsapp").textContent).not.toContain("Auto-invite");
+    expect(screen.getByTestId("integration-whatsapp").textContent).not.toMatch(/Saved|Enabled/);
+    fireEvent.click(payroll);
+    expect(payroll).toHaveAttribute("aria-expanded", "true");
+    expect(messaging).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByTestId("integration-whatsapp").closest("[aria-hidden='true']")).toBeTruthy();
+    fireEvent.click(messaging);
+    expect(messaging).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByTestId("integration-whatsapp").closest("[aria-hidden='true']")).toBeNull();
     fireEvent.click(messaging);
     expect(screen.getByTestId("integration-whatsapp").closest("[aria-hidden='true']")).toBeTruthy();
   });
@@ -262,25 +343,112 @@ describe("external integration groups", () => {
     fireEvent.click(group);
     expect(screen.getByLabelText("Default Package")).toHaveValue("tasker_standard");
   });
+
+  it("labels a saved enabled vendor as saved and enabled, and does not save when the group collapses", async () => {
+    render(
+      <IntegrationsSection
+        companyId="c"
+        initialIntegrations={[{ provider: "checkr", config: { package_slug: "tasker_standard" }, is_active: true }]}
+        groups={[{
+          id: "hiring",
+          label: "Hiring & Onboarding",
+          desc: "Background checks",
+          items: [{
+            provider: "checkr",
+            available: true,
+            label: "Checkr",
+            logo: null,
+            desc: "Background checks",
+            fields: [
+              { key: "package_slug", label: "Default Package", type: "text" },
+              { key: "api_key", label: "API Key", type: "password" },
+            ],
+          }, {
+            provider: "fillout",
+            available: false,
+            label: "Fillout",
+            logo: null,
+            desc: "Applications",
+            fields: [{ key: "webhook_secret", label: "Webhook Secret", type: "password" }],
+          }],
+        }, {
+          id: "payroll",
+          label: "Payroll & Finance",
+          desc: "Payroll",
+          items: [{
+            provider: "gusto",
+            available: false,
+            label: "Gusto",
+            logo: null,
+            desc: "Payroll",
+            fields: [],
+          }],
+        }]}
+      />,
+    );
+    const hiring = screen.getByRole("button", { name: /Hiring & Onboarding/ });
+    expect(hiring.textContent).toMatch(/1 saved/);
+    expect(hiring.textContent).toMatch(/1 enabled/);
+    expect(hiring.textContent).toMatch(/1 not available/);
+    fireEvent.click(hiring);
+    const checkr = screen.getByTestId("integration-checkr");
+    expect(checkr.textContent).toContain("Saved");
+    expect(checkr.textContent).toContain("Enabled");
+    expect(checkr.textContent).not.toContain("Active");
+    expect(checkr.textContent).not.toContain("Configured");
+    const fillout = screen.getByTestId("integration-fillout");
+    expect(fillout.textContent).toContain("Not available yet");
+    expect(fillout.textContent).not.toMatch(/Saved|Enabled/);
+    expect(fillout.querySelector("input")).toBeNull();
+    fireEvent.change(screen.getByLabelText("API Key"), { target: { value: "sekret-value" } });
+    fireEvent.click(screen.getByRole("button", { name: /Payroll & Finance/ }));
+    expect(hiring).toHaveAttribute("aria-expanded", "true");
+    expect(db.saveIntegrationConfig).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("API Key")).toHaveValue("sekret-value");
+  });
 });
 
 describe("pay break details", () => {
-  it("hides meal and rest grids until opened and still saves the edited policy", async () => {
+  it("keeps default rates visible, summarizes saved overtime and breaks, and saves edits made inside a collapsed panel", async () => {
     render(<PayOvertimeSection companyId="c1" />);
-    const save = await screen.findByRole("button", { name: /Save break policy/ });
-    expect(save.closest("[hidden]")).toBeNull();
-    expect(screen.getByRole("button", { name: /Save rates/ })).toBeTruthy();
-    const details = screen.getByRole("button", { name: /Meal and rest details/ });
-    expect(details).toHaveAttribute("aria-expanded", "false");
+    const saveBreak = await screen.findByRole("button", { name: /Save break policy/ });
+    const saveOt = screen.getByRole("button", { name: /Save overtime rules/ });
+    expect(saveBreak.closest("[hidden]")).toBeNull();
+    expect(saveOt.closest("[hidden]")).toBeNull();
+    expect(screen.getByLabelText(/Default pay rate/i).closest("[hidden]")).toBeNull();
+    expect(screen.getByRole("button", { name: /Save rates/ }).closest("[hidden]")).toBeNull();
+
+    const ot = screen.getByRole("button", { name: /Overtime rules/ });
+    expect(ot).toHaveAttribute("aria-expanded", "false");
+    expect(ot.textContent).toMatch(/Federal \(FLSA\)/);
+    expect(ot.textContent).toMatch(/40 hrs\/week/);
+    expect(screen.queryByRole("spinbutton", { name: /OT after \(hrs\/week\)/i })).toBeNull();
+
+    const breaks = screen.getByRole("button", { name: /Break policy/ });
+    expect(breaks).toHaveAttribute("aria-expanded", "false");
+    expect(breaks.textContent).toMatch(/California \(CA Labor Code\)/);
+    expect(breaks.textContent).toMatch(/break buttons on/);
+    expect(breaks.textContent).toMatch(/meal 30 min unpaid/);
+    expect(breaks.textContent).toMatch(/rest 10 min paid/);
     expect(screen.queryByRole("spinbutton", { name: /Meal duration/i })).toBeNull();
 
-    fireEvent.click(details);
+    fireEvent.click(ot);
+    fireEvent.change(screen.getByLabelText(/OT after \(hrs\/week\)/i), { target: { value: "36" } });
+    fireEvent.click(ot);
+    expect(ot).toHaveAttribute("aria-expanded", "false");
+    expect(ot.textContent).toMatch(/unsaved edits kept/);
+    expect(screen.getByRole("spinbutton", { name: /OT after \(hrs\/week\)/i, hidden: true })).toHaveValue(36);
+    fireEvent.click(saveOt);
+    await waitFor(() => expect(db.saveOvertimeConfig).toHaveBeenCalled());
+    expect(db.saveOvertimeConfig.mock.calls[0][1]).toMatchObject({ weeklyThreshold: 36 });
+
+    fireEvent.click(breaks);
     fireEvent.change(screen.getByLabelText(/Meal duration/i), { target: { value: "45" } });
-    fireEvent.click(details);
-    expect(details).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(breaks);
+    expect(breaks).toHaveAttribute("aria-expanded", "false");
+    expect(breaks.textContent).toMatch(/unsaved edits kept/);
     expect(screen.getByRole("spinbutton", { name: /Meal duration/i, hidden: true })).toHaveValue(45);
-    fireEvent.click(details);
-    fireEvent.click(save);
+    fireEvent.click(saveBreak);
     await waitFor(() => expect(db.saveBreakPolicy).toHaveBeenCalled());
     expect(db.saveBreakPolicy.mock.calls[0][1]).toMatchObject({ mealBreakMinutes: 45 });
   });
@@ -328,6 +496,12 @@ describe("API sources advanced blocks", () => {
     fireEvent.click(tester);
     expect(screen.getByLabelText("Sample JSON")).toHaveValue('{"name":"Edited"}');
     fireEvent.change(screen.getByLabelText("Sample JSON"), { target: { value: original } });
+    fireEvent.click(docs);
+    expect(docs).toHaveAttribute("aria-expanded", "true");
+    expect(tester).toHaveAttribute("aria-expanded", "false");
+    const hiddenSample = screen.getByLabelText("Sample JSON");
+    expect(hiddenSample.closest("[hidden]")).toBeTruthy();
+    expect(hiddenSample).toHaveValue(original);
 
     fireEvent.click(mappings);
     fireEvent.change(screen.getByLabelText("Your form field"), { target: { value: "fullName" } });

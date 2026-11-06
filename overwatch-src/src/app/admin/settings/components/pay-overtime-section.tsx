@@ -24,13 +24,48 @@ import { HqDisclosure } from "./hq-disclosure";
 const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 const tap = "h-11 sm:h-8";
 
+function otSummary(cfg: OvertimeConfig): string {
+  const preset = detectOtPreset(cfg);
+  const label = preset === "custom" ? "Custom" : (OT_PRESETS.find((p) => p.id === preset)?.label ?? "Custom");
+  const bits = [label];
+  if (cfg.weeklyThreshold > 0) bits.push(`${cfg.weeklyThreshold} hrs/week`);
+  if (cfg.dailyThreshold > 0) bits.push(`${cfg.dailyThreshold} hrs/day`);
+  if (cfg.doubletimeThreshold > 0) bits.push(`double time after ${cfg.doubletimeThreshold} hrs/day`);
+  if (cfg.seventhDayRule) bits.push("7th day rule");
+  return bits.join(" · ");
+}
+
+function breakSummary(policy: BreakPolicyConfig): string {
+  const preset = detectBreakPreset(policy);
+  const label = preset === "custom" ? "Custom" : (BREAK_PRESETS.find((p) => p.id === preset)?.label ?? "Custom");
+  const buttons = policy.breaksEnabled ? "break buttons on" : "break buttons off";
+  const meal = `meal ${policy.mealBreakMinutes} min ${policy.mealBreakPaid ? "paid" : "unpaid"}`;
+  const rest = `rest ${policy.restBreakMinutes} min ${policy.restBreakPaid ? "paid" : "unpaid"}`;
+  return `${label} · ${buttons} · ${meal} · ${rest}`;
+}
+
+function sameOt(a: OvertimeConfig, b: OvertimeConfig): boolean {
+  return a.weeklyThreshold === b.weeklyThreshold
+    && a.dailyThreshold === b.dailyThreshold
+    && a.doubletimeThreshold === b.doubletimeThreshold
+    && a.weekStartDay === b.weekStartDay
+    && !!a.seventhDayRule === !!b.seventhDayRule;
+}
+
+function sameBreak(a: BreakPolicyConfig, b: BreakPolicyConfig): boolean {
+  return (Object.keys(DEFAULT_BREAK_POLICY) as (keyof BreakPolicyConfig)[]).every((k) => a[k] === b[k]);
+}
+
 export default function PayOvertimeSection({ companyId }: { companyId: string }) {
   const [loading, setLoading] = useState(true);
   const [failed, setFailed] = useState(false);
   const [cfg, setCfg] = useState<OvertimeConfig>(DEFAULT_OT_CONFIG);
+  const [savedOt, setSavedOt] = useState<OvertimeConfig>(DEFAULT_OT_CONFIG);
   const [preset, setPreset] = useState<OtPresetId>("federal");
   const [breakPolicy, setBreakPolicy] = useState<BreakPolicyConfig>(DEFAULT_BREAK_POLICY);
+  const [savedBreak, setSavedBreak] = useState<BreakPolicyConfig>(DEFAULT_BREAK_POLICY);
   const [breakPreset, setBreakPreset] = useState<BreakPresetId>("california");
+  const [customBreakOnLoad, setCustomBreakOnLoad] = useState(false);
   const [pay, setPay] = useState("");
   const [bill, setBill] = useState("");
   const [savingOt, setSavingOt] = useState(false);
@@ -48,9 +83,12 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
         ]);
         if (cancelled) return;
         setCfg(c);
+        setSavedOt(c);
         setPreset(detectOtPreset(c));
         setBreakPolicy(bp);
+        setSavedBreak(bp);
         setBreakPreset(detectBreakPreset(bp));
+        setCustomBreakOnLoad(detectBreakPreset(bp) === "custom");
         setPay(r.payRate != null ? r.payRate.toFixed(2) : "");
         setBill(r.billRate != null ? r.billRate.toFixed(2) : "");
       } catch (e) {
@@ -105,7 +143,7 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
     const err = validateOvertimeConfig(cfg);
     if (err) { toast.error(err); return; }
     setSavingOt(true);
-    try { await saveOvertimeConfig(companyId, cfg); toast.success("Overtime rules saved"); }
+    try { await saveOvertimeConfig(companyId, cfg); setSavedOt(cfg); toast.success("Overtime rules saved"); }
     catch (e) { logger.swallow("pay-overtime:save-ot", e, "warn"); toast.error("Couldn't save overtime rules"); }
     finally { setSavingOt(false); }
   }
@@ -127,6 +165,7 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
     setSavingBreaks(true);
     try {
       await saveBreakPolicy(companyId, breakPolicy);
+      setSavedBreak(breakPolicy);
       // Sync into active auth store session so timeclock widgets update immediately
       const state = useAuthStore.getState();
       if (state.user) {
@@ -186,8 +225,13 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
               </Button>
             </section>
 
-            <section className="space-y-3 border-t border-border/30 pt-5" aria-label="Overtime rules">
-              <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Overtime rules</h4>
+            <section className="space-y-3 border-t border-border/30 pt-5">
+              <HqDisclosure
+                id="hq-overtime-rules"
+                title="Overtime rules"
+                description={sameOt(cfg, savedOt) ? otSummary(savedOt) : `${otSummary(savedOt)} · unsaved edits kept`}
+                testId="hq-overtime-rules"
+              >
               <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Overtime preset">
                 {[...OT_PRESETS, { id: "custom" as const, label: "Custom", desc: "Set your own thresholds." }].map((p) => (
                   <button key={p.id} type="button" role="radio" aria-checked={preset === p.id} onClick={() => pickPreset(p.id)}
@@ -231,20 +275,27 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
                 </span>
               </label>
               <p className="text-[10px] text-muted-foreground">0 turns a rule off.</p>
+              </HqDisclosure>
               <Button onClick={saveOt} disabled={savingOt} className={`gap-1.5 ${tap}`}>
                 {savingOt ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />} Save overtime rules
               </Button>
             </section>
 
-            <section className="space-y-4 border-t border-border/30 pt-5" aria-label="Break & meal policy">
+            <section className="space-y-3 border-t border-border/30 pt-5">
+              <HqDisclosure
+                id="hq-break-policy"
+                title="Break policy"
+                description={sameBreak(breakPolicy, savedBreak) ? breakSummary(savedBreak) : `${breakSummary(savedBreak)} · unsaved edits kept`}
+                openWhen={customBreakOnLoad}
+                testId="hq-break-policy"
+              >
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Break &amp; meal policy</h4>
                   <p className="text-[11px] text-muted-foreground">
                     Controls timeclock break buttons (&ldquo;Take Lunch&rdquo; / &ldquo;Take {breakPolicy.restBreakMinutes}&rdquo;), compliance warnings, and whether breaks are paid or deducted from payable hours.
                   </p>
                 </div>
-                <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
+                <label className="flex min-h-11 items-center gap-2 text-xs font-medium cursor-pointer">
                   <input
                     type="checkbox"
                     className="rounded"
@@ -271,12 +322,6 @@ export default function PayOvertimeSection({ companyId }: { companyId: string })
                 ))}
               </div>
 
-              <HqDisclosure
-                title="Meal and rest details"
-                description="Durations and thresholds. A named preset fills these in. Custom rules open so you can edit them."
-                openWhen={breakPreset === "custom"}
-                testId="hq-break-details"
-              >
               <div className="rounded-lg border border-border/40 bg-muted/10 p-3.5 space-y-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">

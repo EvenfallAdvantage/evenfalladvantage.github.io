@@ -26,6 +26,7 @@ describe("integration tiles", () => {
     const checkr = screen.getByTestId("integration-checkr");
     expect(checkr.textContent).toContain("Not available yet");
     expect(checkr.textContent).not.toContain("Active");
+    expect(checkr.textContent).not.toMatch(/Saved|Enabled/);
     expect(checkr.querySelector("input")).toBeNull();
     expect(screen.queryByTestId("integration-airtable")).toBeNull();
     expect(screen.queryByLabelText("API Key")).toBeNull();
