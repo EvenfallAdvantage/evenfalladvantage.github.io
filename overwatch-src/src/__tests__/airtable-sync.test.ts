@@ -181,7 +181,7 @@ describe("roster sync plan", () => {
   });
 
   it("does not demote a linked owner, clear a blank phone, or delete a missing person", () => {
-    const local = person({ role: "admin", airtableRecordId: "recAAAAAAAAAAAAAA", phone: "555" });
+    const local = person({ role: "admin", airtableRecordId: "recAAAAAAAAAAAAAA", phone: "555" }); // gitleaks:allow
     const plan = planRosterSync([local], [
       incoming("recAAAAAAAAAAAAAA", { "First Name": "Ada", "Last Name": "L", Email: "ada@example.com", Title: "Captain" }),
     ], { truncated: false });
@@ -193,12 +193,12 @@ describe("roster sync plan", () => {
 
     const missing = planRosterSync([
       local,
-      person({ membershipId: "m9", userId: "u9", airtableRecordId: "recCCCCCCCCCCCCCC", role: "owner" }),
+      person({ membershipId: "m9", userId: "u9", airtableRecordId: "recCCCCCCCCCCCCCC", role: "owner" }), // gitleaks:allow
     ], [incoming("recAAAAAAAAAAAAAA", { "First Name": "Ada", "Last Name": "L", Email: "ada@example.com" })], { truncated: false });
     expect(missing.missingFromAirtable.map((row) => row.membershipId)).toEqual(["m9"]);
     expect(JSON.stringify(missing)).not.toContain("delete");
     const hidden = planRosterSync([
-      person({ membershipId: "m9", userId: "u9", airtableRecordId: "recCCCCCCCCCCCCCC" }),
+      person({ membershipId: "m9", userId: "u9", airtableRecordId: "recCCCCCCCCCCCCCC" }), // gitleaks:allow
     ], [], { truncated: true });
     expect(hidden.missingFromAirtable).toEqual([]);
   });
@@ -246,7 +246,7 @@ describe("event sync plan", () => {
     expect(first.creates[0] && Object.keys(first.creates[0])).not.toContain("approved");
     const stored: EventLocal = {
       id: "ev1",
-      airtableRecordId: "recAAAAAAAAAAAAAA",
+      airtableRecordId: "recAAAAAAAAAAAAAA", // gitleaks:allow
       name: "Night watch",
       startDate: "2026-12-01T18:00:00.000Z",
       endDate: "2026-12-01T22:00:00.000Z",
