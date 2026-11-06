@@ -30,14 +30,15 @@ function logoWebsiteSummary(logo: string, website: string): string {
 }
 
 /**
- * Address safe to put in an img src. Only a parsed http(s) URL is returned.
- * encodeURI then escapes the remaining HTML meta-characters so a typed
- * address is not re-read as markup.
+ * Image address for the logo preview. `normalizeHttpUrl` parses the text and
+ * returns the URL serializer's single encoding, so a space becomes `%20` once
+ * and an existing `%20` stays `%20`. Non-http(s) schemes are rejected.
+ * React then assigns that string as the img src property.
  */
 function httpLogoSrc(input: string): string | null {
   const parsed = normalizeHttpUrl(input, "Logo URL");
   if (!parsed.ok || parsed.value == null) return null;
-  return encodeURI(parsed.value);
+  return parsed.value;
 }
 
 // Get all IANA timezone names

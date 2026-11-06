@@ -273,7 +273,7 @@ describe("company profile stays editable and keeps the selected colors", () => {
     localStorage.clear();
   });
 
-  it("only uses a parsed http(s) logo address as the image source", () => {
+  it("paints a parsed http(s) logo once, and refuses other schemes", () => {
     const props = {
       companyId: "c1",
       initialName: "Old",
@@ -283,15 +283,21 @@ describe("company profile stays editable and keeps the selected colors", () => {
       initialWebsiteUrl: "",
       joinCode: "ABC123",
     };
-    const { unmount } = render(
-      <CompanyProfileSection {...props} initialLogoUrl="javascript:alert(1)" />,
-    );
-    expect(document.querySelector("img")).toBeNull();
-    unmount();
-    render(
-      <CompanyProfileSection {...props} initialLogoUrl="https://cdn.example.com/mark.png?x=1&y=2" />,
-    );
-    expect(document.querySelector("img")?.getAttribute("src")).toBe("https://cdn.example.com/mark.png?x=1&y=2");
+    function srcFor(initialLogoUrl: string) {
+      const view = render(<CompanyProfileSection {...props} initialLogoUrl={initialLogoUrl} />);
+      const src = document.querySelector("img")?.getAttribute("src") ?? null;
+      view.unmount();
+      return src;
+    }
+    expect(srcFor("https://cdn.example/my logo.png")).toBe("https://cdn.example/my%20logo.png");
+    expect(srcFor("https://cdn.example/my%20logo.png")).toBe("https://cdn.example/my%20logo.png");
+    expect(srcFor("https://cdn.example/café.png")).toBe("https://cdn.example/caf%C3%A9.png");
+    expect(srcFor("https://cdn.example/caf%C3%A9.png")).toBe("https://cdn.example/caf%C3%A9.png");
+    expect(srcFor("https://cdn.example/a.png?x=1&y=2#frag")).toBe("https://cdn.example/a.png?x=1&y=2#frag");
+    expect(srcFor("http://cdn.example/a.png")).toBe("http://cdn.example/a.png");
+    for (const blocked of ["javascript:alert(1)", "data:text/html,hi", "ftp://cdn.example/a.png"]) {
+      expect(srcFor(blocked)).toBeNull();
+    }
   });
 });
 
