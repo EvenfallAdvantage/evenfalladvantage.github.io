@@ -62,7 +62,7 @@
     if (!isUuid(companyId)) return false;
     var id = companyId.toLowerCase();
     var body;
-    try { body = JSON.parse(text); } catch (e) { return false; }
+    try { body = JSON.parse(text); } catch { return false; }
     if (!body || body.id !== "/overwatch/pwa/" + id + "/") return false;
     if (typeof body.name !== "string" || !body.name.trim()) return false;
     if (typeof body.start_url !== "string" || body.start_url.indexOf("ow_company=" + id) === -1) return false;
