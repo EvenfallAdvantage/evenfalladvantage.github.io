@@ -5,7 +5,11 @@ import {
   type BuiltCompanyManifest,
 } from "@/lib/pwa-company-install";
 
-/** One budget for the worker claim and the proving fetches. Not a poll. */
+/**
+ * One budget for worker control and every proving fetch. Not a poll.
+ * finalizeCompanyInstallInBrowser applies it with an AbortSignal, including
+ * the manifest and icon requests.
+ */
 export const COMPANY_INSTALL_READY_MS = 8000;
 
 export const INSTALL_CACHE_MESSAGE =
@@ -16,6 +20,8 @@ export const INSTALL_MANIFEST_MESSAGE =
   "The manifest served for that company did not match the one just saved. Stay on this page and press Install again. Overwatch was not installed.";
 export const INSTALL_ICON_MESSAGE =
   "A saved icon for that company was not served from its cache. Stay on this page and press Install again. Overwatch was not installed.";
+export const INSTALL_TIMEOUT_MESSAGE =
+  "Saving the company install took too long. Stay on this page and press Install again. Overwatch was not installed.";
 
 const SHARED_ICON_SRCS = new Set<string>(OVERWATCH_ICONS.map((icon) => icon.src));
 
