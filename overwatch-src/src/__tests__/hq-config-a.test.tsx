@@ -2,6 +2,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { normalizeHttpUrl, HQ_SECTIONS } from "@/lib/hq-config";
+import { adjustBrightness } from "@/lib/brand-utils";
 
 describe("normalizeHttpUrl()", () => {
   it("empty clears the field", () => {
@@ -105,5 +106,17 @@ describe("CompanyProfileSection", () => {
   it("hides rotation when not allowed", () => {
     renderProfile({ canRotateJoinCode: false });
     expect(screen.queryByRole("button", { name: /New code/ })).toBeNull();
+  });
+
+  it("shows the selected primary and accent on the inputs and the preview", () => {
+    renderProfile({ initialBrandColor: "#080626", initialAccentColor: "#22c55e" });
+    expect(screen.getByLabelText(/Primary Color/i)).toHaveValue("#080626");
+    expect(screen.getByLabelText(/Accent Color/i)).toHaveValue("#22c55e");
+    expect(screen.getByTestId("hq-brand-preview-primary").getAttribute("style")).toContain("#080626");
+    expect(screen.getByTestId("hq-brand-preview-accent").getAttribute("style")).toContain("#22c55e");
+    expect(screen.getByTestId("hq-brand-preview-outline").getAttribute("style")).toContain("#22c55e");
+    const surface = screen.getByTestId("hq-brand-preview-surface").getAttribute("style") ?? "";
+    expect(surface).not.toContain("#22c55e");
+    expect(surface).toContain(adjustBrightness("#080626", 1.15));
   });
 });

@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { FIELD_MODE_BOOT } from "@/lib/field-mode";
+import { companySurfaceHex, DEFAULT_BRAND } from "@/lib/brand-utils";
 import { Oswald, Barlow } from "next/font/google";
 import { Providers } from "@/components/providers";
 import { AppShell } from "@/components/app-shell";
@@ -60,13 +61,16 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f8f9fa" },
-    { media: "(prefers-color-scheme: dark)", color: "#1d3451" },
-  ],
+  // One colour, no prefers-color-scheme split. Android's navigation bar
+  // (back/home) follows theme-color / manifest theme_color — not the iOS
+  // status-bar style. This default matches the dark company surface;
+  // BrandThemeProvider replaces it with the active company's surface.
+  themeColor: companySurfaceHex(DEFAULT_BRAND, "dark"),
   width: "device-width",
   initialScale: 1,
-  // Required so env(safe-area-inset-*) is non-zero with apple-mobile-web-app-status-bar-style=black-translucent
+  // Required so env(safe-area-inset-*) is non-zero. iOS uses this with
+  // apple-mobile-web-app-status-bar-style=black-translucent. Android uses
+  // it so the document can paint the navigation-bar inset.
   viewportFit: "cover",
 };
 

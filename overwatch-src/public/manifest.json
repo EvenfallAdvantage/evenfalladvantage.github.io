@@ -6,7 +6,7 @@
   "scope": "/overwatch/",
   "display": "standalone",
   "background_color": "#0b1422",
-  "theme_color": "#dd8c33",
+  "theme_color": "#203959",
   "orientation": "portrait-primary",
   "categories": ["business", "productivity", "security"],
   "icons": [
