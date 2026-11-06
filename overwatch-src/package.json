@@ -72,7 +72,7 @@
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
-    "fake-indexeddb": "^6.2.5",
+    "fake-indexeddb": "^6.2.7",
     "happy-dom": "^21.0.4",
     "jsdom": "^29.1.0",
     "knip": "^6.6.0",
