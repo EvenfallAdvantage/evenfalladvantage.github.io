@@ -33,7 +33,7 @@ const PURPOSES: { id: AirtablePurpose; title: string; preferredTable: string; co
     id: "roster",
     title: "Roster",
     preferredTable: "Employees",
-    copy: "Choose the Employees table, then map its columns. Sync adds and updates roster people. It does not remove anyone or change owner and admin roles.",
+    copy: "Choose the Employees table, then map its columns. Sync adds staff and removes other members who are not in Airtable. Owners, admins, and managers stay. A partial read removes nobody.",
   },
   {
     id: "events",

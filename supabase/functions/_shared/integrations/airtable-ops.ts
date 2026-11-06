@@ -13,14 +13,15 @@ import {
   mergePurposeSettings,
   planEventSync,
   planRosterSync,
-  PROTECTED_ROLES,
   readPurposeSelection,
   readSchemaFields,
   rosterCounts,
+  rosterPlanToken,
+  rosterSyncPayload,
+  sameFieldMap,
   schemaBaseChoices,
   schemaTableChoices,
-  assertRosterWrite,
-  assertAirtableCannotGrantRole,
+  takeAirtableRecords,
   type AirtablePurpose,
   type EventLocal,
   type FieldMap,
@@ -28,48 +29,31 @@ import {
   type MappedPurpose,
   type MappingAssessment,
   type PurposeSelection,
+  type RosterIdentity,
   type RosterPerson,
-  type RosterWrite,
+  type RosterPlan,
   type SchemaField,
 } from "../../../../overwatch-src/src/lib/integrations/airtable-sync.ts";
 
 const API = "https://api.airtable.com/v0";
 
 export interface RosterStore {
-  listPeople(companyId: string): Promise<RosterPerson[]>;
-  createStaff(row: {
+  listPeople(companyId: string): Promise<{ people: RosterPerson[]; truncated: boolean }>;
+  listEmailOwners(emails: readonly string[]): Promise<RosterIdentity[]>;
+  applyPlan(row: {
     companyId: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    phone?: string;
-    title?: string;
-    airtableRecordId: string;
     baseId: string;
     tableId: string;
-  }, ctx: AdapterCtx): Promise<{ membershipId: string; userId: string }>;
-  linkExisting(row: {
-    companyId: string;
-    membershipId: string;
-    userId: string;
-    airtableRecordId: string;
-    baseId: string;
-    tableId: string;
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-    title?: string;
-  }): Promise<void>;
-  updateLinked(row: {
-    companyId: string;
-    membershipId: string;
-    userId: string;
-    airtableRecordId: string;
-    firstName?: string;
-    lastName?: string;
-    phone?: string;
-    title?: string;
-  }): Promise<void>;
+    plan: ReturnType<typeof rosterSyncPayload>;
+  }): Promise<{
+    created: number;
+    attached: number;
+    linked: number;
+    updated: number;
+    removed: number;
+    failed: { create: number; attach: number; link: number; update: number; remove: number };
+    failures: { op: string; airtable_id: string; message: string }[];
+  }>;
 }
 
 export interface EventStore {
@@ -170,12 +154,12 @@ export async function fetchSchema(baseId: string, token: string | undefined, ctx
   });
 }
 
-export async function fetchRecords(baseId: string, tableId: string, token: string | undefined, ctx: AdapterCtx): Promise<{ records: { id?: unknown; fields?: unknown }[]; truncated: boolean }> {
-  const records: { id?: unknown; fields?: unknown }[] = [];
+export async function fetchRecords(baseId: string, tableId: string, token: string | undefined, ctx: AdapterCtx): Promise<{ records: { id?: unknown; fields?: unknown }[]; truncated: boolean; pages: number }> {
+  const pages: { records: { id?: unknown; fields?: unknown }[]; offset?: string | null }[] = [];
   const seen = new Set<string>();
   let offset: string | undefined;
-  let truncated = false;
-  for (let page = 0; page < 5; page++) {
+  const maxPages = Math.ceil(AIRTABLE_SYNC_MAX_RECORDS / 100) + 2;
+  for (let page = 0; page < maxPages; page++) {
     const url = new URL(`${API}/${baseId}/${tableId}`);
     url.searchParams.set("pageSize", "100");
     if (offset) {
@@ -187,14 +171,13 @@ export async function fetchRecords(baseId: string, tableId: string, token: strin
       fetchImpl: ctx.fetch,
       headers: bearer(token),
     });
-    records.push(...(data.records ?? []));
-    if (!data.offset || records.length >= AIRTABLE_SYNC_MAX_RECORDS) {
-      truncated = Boolean(data.offset) || records.length > AIRTABLE_SYNC_MAX_RECORDS;
-      break;
-    }
+    pages.push({ records: data.records ?? [], offset: data.offset ?? null });
+    const read = pages.reduce((sum, item) => sum + item.records.length, 0);
+    if (!data.offset || read >= AIRTABLE_SYNC_MAX_RECORDS) break;
     offset = data.offset;
   }
-  return { records: records.slice(0, AIRTABLE_SYNC_MAX_RECORDS), truncated };
+  const taken = takeAirtableRecords(pages);
+  return { records: taken.records, truncated: taken.truncated, pages: pages.length };
 }
 
 function purposeOf(value: unknown): AirtablePurpose | null {
@@ -301,10 +284,15 @@ export function opsActions(resolve: (ctx: AdapterCtx) => Promise<OpsDeps>): Reco
       async run(conn, input, ctx) {
         const purpose = mappedPurpose(input.purpose);
         const picked = selectionFrom(input);
-        if (!purpose || !picked.baseId || !picked.tableId) return fail("Choose a roster or events table");
+        if (!purpose) return fail("Choose a roster or events table");
+        const saved = readPurposeSelection(conn.settings, purpose);
+        if (!saved.baseId || !saved.tableId) return fail(`Save the ${purpose} table first`);
+        if ((picked.baseId && picked.baseId.trim() !== saved.baseId) || (picked.tableId && picked.tableId.trim() !== saved.tableId)) {
+          return fail("Save this table before loading its mapping");
+        }
         const deps = await resolve(ctx);
-        const row = await deps.mappings.get(conn.company_id, purpose, picked.baseId.trim(), picked.tableId.trim());
-        return { ok: true, mapping: row?.mappings ?? {}, confirmed_at: row?.confirmedAt ?? null };
+        const row = await deps.mappings.get(conn.company_id, purpose, saved.baseId, saved.tableId);
+        return { ok: true, mapping: row?.mappings ?? {}, confirmed_at: row?.confirmedAt ?? null, base_id: saved.baseId, table_id: saved.tableId };
       },
     },
     save_field_mapping: {
@@ -314,14 +302,20 @@ export function opsActions(resolve: (ctx: AdapterCtx) => Promise<OpsDeps>): Reco
         const purpose = mappedPurpose(input.purpose);
         const picked = selectionFrom(input);
         if (!purpose || !picked.baseId || !picked.tableId) return fail("Choose a roster or events table");
-        const checked = await schemaFor(conn, picked.baseId.trim(), picked.tableId.trim(), ctx);
+        const saved = readPurposeSelection(conn.settings, purpose);
+        if (picked.baseId.trim() !== saved.baseId || picked.tableId.trim() !== saved.tableId) {
+          return fail("Save this table before confirming its mapping");
+        }
+        const checked = await schemaFor(conn, saved.baseId, saved.tableId, ctx);
         if ("error" in checked) return fail(checked.error);
         const assessment = assessFieldMapping(purpose, input.mapping, checked.fields);
         if (!assessment.ok) return previewBody(assessment, { savedMapping: false });
         const deps = await resolve(ctx);
         const confirmedAt = ctx.now().toISOString();
-        await deps.mappings.confirm(conn.company_id, purpose, picked.baseId.trim(), picked.tableId.trim(), assessment.mapping, confirmedAt);
-        return { ok: true, confirmed_at: confirmedAt, mapping: assessment.mapping, unmappedFields: assessment.unmappedFields };
+        await deps.mappings.confirm(conn.company_id, purpose, saved.baseId, saved.tableId, assessment.mapping, confirmedAt);
+        const stored = await deps.mappings.get(conn.company_id, purpose, saved.baseId, saved.tableId);
+        if (!stored || !sameFieldMap(stored.mappings, assessment.mapping)) return fail("The field mapping was not stored");
+        return { ok: true, confirmed_at: stored.confirmedAt, mapping: stored.mappings, unmappedFields: assessment.unmappedFields };
       },
     },
     preview_roster: previewAction("roster", resolve),
@@ -342,10 +336,13 @@ function previewAction(purpose: MappedPurpose, resolve: (ctx: AdapterCtx) => Pro
       const checked = await schemaFor(conn, savedSelection.baseId, savedSelection.tableId, ctx);
       if ("error" in checked) return fail(checked.error);
       const stored = await deps.mappings.get(conn.company_id, purpose, savedSelection.baseId, savedSelection.tableId);
-      const proposed = input.mapping && typeof input.mapping === "object" ? input.mapping : stored?.mappings;
-      const assessment = assessFieldMapping(purpose, proposed ?? {}, checked.fields);
+      const savedAssessment = assessFieldMapping(purpose, stored?.mappings ?? {}, checked.fields);
+      const clientMapping = input.mapping && typeof input.mapping === "object" ? assessFieldMapping(purpose, input.mapping, checked.fields).mapping : null;
+      const clientMatches = clientMapping == null || sameFieldMap(clientMapping, savedAssessment.mapping);
+      const eventDraft = purpose === "events" && clientMapping != null && !clientMatches;
+      const assessment = eventDraft ? assessFieldMapping(purpose, clientMapping, checked.fields) : savedAssessment;
       if (!assessment.ok) return previewBody(assessment, { savedMapping: Boolean(stored?.confirmedAt) });
-      let fetched: { records: { id?: unknown; fields?: unknown }[]; truncated: boolean };
+      let fetched: { records: { id?: unknown; fields?: unknown }[]; truncated: boolean; pages: number };
       try {
         fetched = await fetchRecords(savedSelection.baseId, savedSelection.tableId, conn.secrets.access_token, ctx);
       } catch (error) {
@@ -354,38 +351,75 @@ function previewAction(purpose: MappedPurpose, resolve: (ctx: AdapterCtx) => Pro
         throw error;
       }
       const interpreted = fetched.records.map((record) => interpretRecord(purpose, record, assessment.mapping, checked.fields));
-      const body = purpose === "roster"
-        ? rosterPreview(interpreted, await deps.roster.listPeople(conn.company_id), fetched.truncated)
-        : eventPreview(interpreted, await deps.events.listEvents(conn.company_id), fetched.truncated);
-      const usingDraft = Boolean(input.mapping);
-      const canSync = Boolean(stored?.confirmedAt) && !usingDraft;
+      const usingDraft = eventDraft;
+      const canSync = Boolean(stored?.confirmedAt) && !eventDraft;
+      if (purpose === "events") {
+        const body = eventPreview(interpreted, await deps.events.listEvents(conn.company_id), fetched.truncated);
+        return {
+          ...body,
+          canSync,
+          savedMapping: Boolean(stored?.confirmedAt) && !usingDraft,
+          truncated: fetched.truncated,
+          mappingProblems: [],
+          unmappedFields: assessment.unmappedFields,
+          notes: [
+            fetched.truncated ? `Only the first ${AIRTABLE_SYNC_MAX_RECORDS} Airtable records were read. Nobody is removed for being absent.` : "People and operations missing from this page are reported and left in place.",
+            "Airtable is not changed. Owner and admin roles are not granted or removed.",
+            usingDraft ? "This check used the mapping on screen. Save it before syncing." : "Sync uses the confirmed mapping only.",
+          ],
+        };
+      }
+      const listed = await deps.roster.listPeople(conn.company_id);
+      const identities = await deps.roster.listEmailOwners(interpreted.flatMap((record) => record.values.email ? [record.values.email] : []));
+      const body = rosterPreview(interpreted, listed.people, { truncated: fetched.truncated, rosterTruncated: listed.truncated, identities });
+      const partial = fetched.truncated || listed.truncated;
       return {
         ...body,
         canSync,
         savedMapping: Boolean(stored?.confirmedAt) && !usingDraft,
-        truncated: fetched.truncated,
+        truncated: partial,
+        pages: fetched.pages,
         mappingProblems: [],
         unmappedFields: assessment.unmappedFields,
         notes: [
-          fetched.truncated ? `Only the first ${AIRTABLE_SYNC_MAX_RECORDS} Airtable records were read. Nobody is removed for being absent.` : "People and operations missing from this page are reported and left in place.",
-          "Airtable is not changed. Owner and admin roles are not granted or removed.",
-          usingDraft ? "This check used the mapping on screen. Save it before syncing." : "Sync uses the confirmed mapping only.",
+          partial
+            ? `Only the first ${AIRTABLE_SYNC_MAX_RECORDS} Airtable records were read, or the company roster was too large to compare. Nobody is removed from a partial read.`
+            : "People in this company who are not in Airtable are removed from the roster, except owners, admins, and managers. Logins are not deleted.",
+          "Airtable is not changed. Role and status are not changed.",
+          clientMatches ? "Sync uses the confirmed mapping only." : "The mapping on screen is not the saved mapping. These counts use the saved mapping.",
         ],
       };
     },
   };
 }
 
-function rosterPreview(interpreted: InterpretedRecord[], people: RosterPerson[], truncated: boolean) {
-  const plan = planRosterSync(people, interpreted, { truncated });
-  const rows = [
-    ...plan.creates.map((row) => ({ airtableId: row.airtableId, label: row.email, action: "create" })),
-    ...plan.links.map((row) => ({ airtableId: row.airtableId, label: row.membershipId, action: "link" })),
-    ...plan.updates.map((row) => ({ airtableId: row.airtableId, label: row.membershipId, action: row.protectedRole ? "update_protected" : "update" })),
-    ...plan.conflicts.map((row) => ({ airtableId: row.airtableId, label: row.reason, action: "conflict" })),
-    ...plan.skipped.map((row) => ({ airtableId: row.airtableId, label: row.reason, action: "skip" })),
-  ].slice(0, 25);
-  return { ok: true, counts: rosterCounts(plan), valueProblems: plan.valueProblems.slice(0, 50).map((problem) => ({ code: problem.code, message: problem.message })), rows };
+function rosterPreview(
+  interpreted: InterpretedRecord[],
+  people: RosterPerson[],
+  opts: { truncated: boolean; rosterTruncated: boolean; identities: readonly RosterIdentity[] },
+) {
+  const plan = planRosterSync(people, interpreted, opts);
+  const rows = plan.conflicts.slice(0, 25).map((row) => ({
+    airtableId: row.airtableId,
+    label: row.email ? `${row.reason} (${row.email})` : row.reason,
+    action: "conflict",
+  }));
+  return {
+    ok: true,
+    counts: {
+      ...rosterCounts(plan),
+      rawRead: plan.read.rawRead,
+      seen: plan.read.seen,
+      valid: plan.read.valid,
+      missingRequired: plan.read.missingRequired,
+      duplicate: plan.read.duplicateRecord + plan.read.duplicateEmail,
+    },
+    read: plan.read,
+    valueProblems: plan.valueProblems.slice(0, 8).map((problem) => ({ code: problem.code, message: problem.message })),
+    rows,
+    planToken: rosterPlanToken(plan),
+    removalHold: plan.removalHold,
+  };
 }
 
 function eventPreview(interpreted: InterpretedRecord[], events: EventLocal[], truncated: boolean) {
@@ -414,7 +448,7 @@ function syncAction(purpose: MappedPurpose, resolve: (ctx: AdapterCtx) => Promis
       if ("error" in checked) return fail(checked.error);
       const assessment = assessFieldMapping(purpose, stored.mappings, checked.fields);
       if (!assessment.ok) return fail(assessment.problems[0]?.message ?? "Field mapping is incomplete");
-      let fetched: { records: { id?: unknown; fields?: unknown }[]; truncated: boolean };
+      let fetched: { records: { id?: unknown; fields?: unknown }[]; truncated: boolean; pages: number };
       try {
         fetched = await fetchRecords(savedSelection.baseId, savedSelection.tableId, conn.secrets.access_token, ctx);
       } catch (error) {
@@ -424,8 +458,22 @@ function syncAction(purpose: MappedPurpose, resolve: (ctx: AdapterCtx) => Promis
       }
       const interpreted = fetched.records.map((record) => interpretRecord(purpose, record, assessment.mapping, checked.fields));
       if (purpose === "roster") {
-        const plan = planRosterSync(await deps.roster.listPeople(conn.company_id), interpreted, { truncated: fetched.truncated });
-        return await applyRoster(deps.roster, conn, savedSelection, plan, ctx);
+        const listed = await deps.roster.listPeople(conn.company_id);
+        const identities = await deps.roster.listEmailOwners(interpreted.flatMap((record) => record.values.email ? [record.values.email] : []));
+        const plan = planRosterSync(listed.people, interpreted, { truncated: fetched.truncated, rosterTruncated: listed.truncated, identities });
+        const token = rosterPlanToken(plan);
+        if (typeof input.plan_token !== "string" || input.plan_token !== token) {
+          return {
+            ok: false,
+            error: "The roster changed after the check. Review the counts and sync again.",
+            planToken: token,
+            removalHold: plan.removalHold,
+            counts: rosterCounts(plan),
+            read: plan.read,
+            pages: fetched.pages,
+          };
+        }
+        return await applyRoster(deps.roster, conn, savedSelection, plan, fetched.pages);
       }
       const plan = planEventSync(await deps.events.listEvents(conn.company_id), interpreted, { truncated: fetched.truncated });
       return await applyEvents(deps.events, conn, savedSelection, plan);
@@ -437,76 +485,41 @@ async function applyRoster(
   store: RosterStore,
   conn: LiveConnection,
   selection: PurposeSelection,
-  plan: ReturnType<typeof planRosterSync>,
-  ctx: AdapterCtx,
+  plan: RosterPlan,
+  pages: number,
 ) {
-  const errors: { airtableId: string; message: string }[] = [];
-  let created = 0;
-  let linked = 0;
-  let updated = 0;
-  const run = async (write: RosterWrite, op: () => Promise<void>) => {
-    try {
-      assertRosterWrite(write);
-      if (write.kind === "create") assertAirtableCannotGrantRole(write.role);
-      await op();
-      if (write.kind === "create") created += 1;
-      else if (write.kind === "link") linked += 1;
-      else updated += 1;
-    } catch (error) {
-      errors.push({ airtableId: write.airtableId, message: error instanceof Error ? error.message.slice(0, 180) : "Row failed" });
-    }
-  };
-  for (const write of plan.creates) {
-    await run(write, () => store.createStaff({
+  try {
+    const applied = await store.applyPlan({
       companyId: conn.company_id,
-      firstName: write.firstName ?? "Team member",
-      lastName: write.lastName ?? "",
-      email: write.email,
-      phone: write.phone,
-      title: write.title,
-      airtableRecordId: write.airtableId,
       baseId: selection.baseId,
       tableId: selection.tableId,
-    }, ctx).then(() => undefined));
+      plan: rosterSyncPayload(plan),
+    });
+    const failed = applied.failed ?? { create: 0, attach: 0, link: 0, update: 0, remove: 0 };
+    return {
+      ok: true,
+      created: applied.created,
+      attached: applied.attached,
+      linked: applied.linked,
+      updated: applied.updated,
+      removed: applied.removed,
+      failed,
+      conflicts: plan.conflicts.length,
+      skipped: plan.skipped.length,
+      missing: applied.removed,
+      held: plan.held.length,
+      protected: plan.protected.length,
+      truncated: plan.removalHold === "truncated" || plan.removalHold === "roster_truncated",
+      read: plan.read,
+      pages,
+      errors: applied.failures.slice(0, 25).map((row) => ({
+        airtableId: row.airtable_id,
+        message: `${row.op}: ${row.message}`,
+      })),
+    };
+  } catch (error) {
+    return fail(error instanceof Error ? error.message.slice(0, 300) : "Roster sync failed");
   }
-  for (const write of plan.links) {
-    await run(write, () => store.linkExisting({
-      companyId: conn.company_id,
-      membershipId: write.membershipId,
-      userId: write.userId,
-      airtableRecordId: write.airtableId,
-      baseId: selection.baseId,
-      tableId: selection.tableId,
-      firstName: write.firstName,
-      lastName: write.lastName,
-      phone: write.phone,
-      title: write.title,
-    }));
-  }
-  for (const write of plan.updates) {
-    await run(write, () => store.updateLinked({
-      companyId: conn.company_id,
-      membershipId: write.membershipId,
-      userId: write.userId,
-      airtableRecordId: write.airtableId,
-      firstName: write.firstName,
-      lastName: write.lastName,
-      phone: write.phone,
-      title: write.title,
-    }));
-  }
-  return {
-    ok: true,
-    created,
-    linked,
-    updated,
-    conflicts: plan.conflicts.length,
-    skipped: plan.skipped.length,
-    missing: plan.missingFromAirtable.length,
-    protected: plan.protected.length,
-    truncated: false,
-    errors: errors.slice(0, 25),
-  };
 }
 
 async function applyEvents(
@@ -583,43 +596,46 @@ export function defaultOpsDeps(fallbackTest: (companyId: string) => Promise<bool
     const roster: RosterStore = {
       async listPeople(companyId) {
         const [{ data: mems, error: memErr }, { data: links, error: linkErr }] = await Promise.all([
-          db.from("company_memberships").select("id, user_id, role, status, title, users(email, first_name, last_name, phone)").eq("company_id", companyId).limit(2000),
-          db.from("employee_external_ids").select("user_id, external_employee_id").eq("company_id", companyId).eq("provider", "airtable").limit(2000),
+          db.from("company_memberships").select("id, user_id, role, status, title, users(email, first_name, last_name, phone)").eq("company_id", companyId).limit(2001),
+          db.from("employee_external_ids").select("user_id, external_employee_id").eq("company_id", companyId).eq("provider", "airtable").limit(2001),
         ]);
         if (memErr) throw memErr;
         if (linkErr) throw linkErr;
         const byUser = new Map((links ?? []).map((row) => [(row as { user_id: string }).user_id, (row as { external_employee_id: string }).external_employee_id]));
-        return ((mems ?? []) as Record<string, unknown>[]).map((row) => {
-          const user = (Array.isArray(row.users) ? row.users[0] : row.users) as { email?: string | null; first_name?: string; last_name?: string; phone?: string | null } | null;
-          return {
-            membershipId: String(row.id),
-            userId: String(row.user_id),
-            role: String(row.role ?? "staff"),
-            status: String(row.status ?? "active"),
-            email: user?.email ?? null,
-            firstName: user?.first_name ?? "",
-            lastName: user?.last_name ?? "",
-            phone: user?.phone ?? null,
-            title: typeof row.title === "string" ? row.title : null,
-            airtableRecordId: byUser.get(String(row.user_id)) ?? null,
-          };
-        });
+        const source = (mems ?? []) as Record<string, unknown>[];
+        return {
+          truncated: source.length > 2000,
+          people: source.slice(0, 2000).map((row) => {
+            const user = (Array.isArray(row.users) ? row.users[0] : row.users) as { email?: string | null; first_name?: string; last_name?: string; phone?: string | null } | null;
+            return {
+              membershipId: String(row.id),
+              userId: String(row.user_id),
+              role: String(row.role ?? "staff").toLowerCase(),
+              status: String(row.status ?? "active").toLowerCase(),
+              email: user?.email ?? null,
+              firstName: user?.first_name ?? "",
+              lastName: user?.last_name ?? "",
+              phone: user?.phone ?? null,
+              title: typeof row.title === "string" ? row.title : null,
+              airtableRecordId: byUser.get(String(row.user_id)) ?? null,
+            };
+          }),
+        };
       },
-      async createStaff(row, callCtx) {
-        assertAirtableCannotGrantRole("staff");
-        const email = row.email.trim().toLowerCase();
-        const { data: existingUsers, error: userErr } = await db.from("users").select("id").ilike("email", email).limit(2);
-        if (userErr) throw userErr;
-        const userId = (existingUsers ?? [])[0] as { id?: string } | undefined;
-        if (userId?.id) {
-          const { data: mem, error: memErr } = await db.from("company_memberships").select("id, role").eq("company_id", row.companyId).eq("user_id", userId.id).maybeSingle();
-          if (memErr) throw memErr;
-          if (mem && PROTECTED_ROLES.has(String((mem as { role?: string }).role))) {
-            throw new Error("Airtable cannot change an owner or admin");
-          }
-          if (mem) throw new Error("This person is already on the roster");
+      async listEmailOwners(emails) {
+        const unique = [...new Set(emails.map((email) => email.trim().toLowerCase()).filter(Boolean))].slice(0, AIRTABLE_SYNC_MAX_RECORDS);
+        if (!unique.length) return [];
+        const { data, error } = await db.rpc("airtable_roster_email_owners", { p_emails: unique });
+        if (error) {
+          const missing = /airtable_roster_email_owners|schema cache|PGRST202/i.test(error.message);
+          throw new Error(missing ? "Apply the Airtable roster reconciliation migration before syncing." : error.message.slice(0, 180));
         }
-        const header = callCtx.callerAuthorization;
+        return ((data ?? []) as { user_id?: string; email?: string }[])
+          .filter((row) => row.user_id && row.email)
+          .map((row) => ({ userId: String(row.user_id), email: String(row.email) }));
+      },
+      async applyPlan(row) {
+        const header = ctx.callerAuthorization;
         const anon = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
         const url = Deno.env.get("SUPABASE_URL") ?? "";
         if (!header || !anon || !url) throw new Error("Roster sync is not configured");
@@ -627,75 +643,38 @@ export function defaultOpsDeps(fallbackTest: (companyId: string) => Promise<bool
           global: { headers: { Authorization: header } },
           auth: { autoRefreshToken: false, persistSession: false },
         });
-        const { data, error } = await userClient.rpc("create_roster_member", {
+        const { data, error } = await userClient.rpc("apply_airtable_roster_sync", {
           p_company_id: row.companyId,
-          p_first_name: row.firstName,
-          p_last_name: row.lastName,
-          p_email: email,
-          p_phone: row.phone ?? null,
-          p_role: "staff",
+          p_base_id: row.baseId,
+          p_table_id: row.tableId,
+          p_plan: row.plan,
         });
-        if (error) throw new Error(error.message.slice(0, 180));
-        const created = data as { user_id?: string; membership_id?: string; existing_user?: boolean } | null;
-        if (!created?.membership_id || !created.user_id) throw new Error("Roster member was not created");
-        const { data: roleRow, error: roleErr } = await db.from("company_memberships").select("role").eq("id", created.membership_id).eq("company_id", row.companyId).maybeSingle();
-        if (roleErr) throw roleErr;
-        if (PROTECTED_ROLES.has(String((roleRow as { role?: string } | null)?.role))) {
-          throw new Error("Airtable cannot change an owner or admin");
-        }
-        const { error: linkErr } = await db.from("employee_external_ids").insert({
-          company_id: row.companyId,
-          user_id: created.user_id,
-          provider: "airtable",
-          external_employee_id: row.airtableRecordId,
-          match_method: "import",
-        });
-        if (linkErr && linkErr.code !== "23505") throw linkErr;
-        if (row.title) {
-          const { error: titleErr } = await db.from("company_memberships").update({ title: row.title }).eq("id", created.membership_id).eq("company_id", row.companyId);
-          if (titleErr) throw titleErr;
-        }
-        return { membershipId: created.membership_id, userId: created.user_id };
-      },
-      async linkExisting(row) {
-        const { data: mem, error } = await db.from("company_memberships").select("role, user_id, title").eq("id", row.membershipId).eq("company_id", row.companyId).maybeSingle();
-        if (error) throw error;
-        const role = String((mem as { role?: string } | null)?.role ?? "");
-        if (!mem || (mem as { user_id?: string }).user_id !== row.userId) throw new Error("Roster member was not found");
-        if (PROTECTED_ROLES.has(role)) throw new Error("Airtable cannot change an owner or admin");
-        const { error: linkErr } = await db.from("employee_external_ids").insert({
-          company_id: row.companyId,
-          user_id: row.userId,
-          provider: "airtable",
-          external_employee_id: row.airtableRecordId,
-          match_method: "email",
-        });
-        if (linkErr && linkErr.code !== "23505") throw linkErr;
-        await patchPerson(row.companyId, row.membershipId, row.userId, row);
-      },
-      async updateLinked(row) {
-        const { data: link, error } = await db.from("employee_external_ids").select("external_employee_id").eq("company_id", row.companyId).eq("user_id", row.userId).eq("provider", "airtable").maybeSingle();
-        if (error) throw error;
-        if ((link as { external_employee_id?: string } | null)?.external_employee_id !== row.airtableRecordId) {
-          throw new Error("Airtable record is not linked to this person");
-        }
-        await patchPerson(row.companyId, row.membershipId, row.userId, row);
+        if (error) throw new Error(error.message.slice(0, 300));
+        const applied = data as {
+          created?: number; attached?: number; linked?: number; updated?: number; removed?: number;
+          failed?: { create?: number; attach?: number; link?: number; update?: number; remove?: number };
+          failures?: { op?: string; airtable_id?: string; message?: string }[];
+        } | null;
+        const failed = applied?.failed ?? {};
+        return {
+          created: applied?.created ?? 0,
+          attached: applied?.attached ?? 0,
+          linked: applied?.linked ?? 0,
+          updated: applied?.updated ?? 0,
+          removed: applied?.removed ?? 0,
+          failed: {
+            create: failed.create ?? 0,
+            attach: failed.attach ?? 0,
+            link: failed.link ?? 0,
+            update: failed.update ?? 0,
+            remove: failed.remove ?? 0,
+          },
+          failures: (applied?.failures ?? [])
+            .filter((row) => row.op && row.message)
+            .map((row) => ({ op: String(row.op), airtable_id: String(row.airtable_id ?? ""), message: String(row.message) })),
+        };
       },
     };
-    async function patchPerson(companyId: string, membershipId: string, userId: string, set: { firstName?: string; lastName?: string; phone?: string; title?: string }) {
-      const userPatch: Record<string, string> = {};
-      if (set.firstName) userPatch.first_name = set.firstName;
-      if (set.lastName) userPatch.last_name = set.lastName;
-      if (set.phone) userPatch.phone = set.phone;
-      if (Object.keys(userPatch).length) {
-        const { error } = await db.from("users").update(userPatch).eq("id", userId);
-        if (error) throw error;
-      }
-      if (set.title) {
-        const { error } = await db.from("company_memberships").update({ title: set.title }).eq("id", membershipId).eq("company_id", companyId);
-        if (error) throw error;
-      }
-    }
     const events: EventStore = {
       async listEvents(companyId) {
         const { data, error } = await db.from("events").select("id, name, start_date, end_date, location, notes, status, airtable_record_id, airtable_sync_hash").eq("company_id", companyId).limit(2001);

@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { getIntegrationConnections } from "@/lib/supabase/db-integrations";
 import { getAirtableFieldMapping, previewAirtableSync, syncAirtablePurpose } from "@/lib/services/airtable-service";
-import { readPurposeSelection, type MappedPurpose } from "@/lib/integrations/airtable-sync";
+import { readPurposeSelection, rosterConfirmDescription, type MappedPurpose } from "@/lib/integrations/airtable-sync";
 
 interface Props {
   companyId: string;
@@ -51,12 +51,17 @@ export function AirtableExplicitSync({ companyId, purpose, onSynced }: Props) {
       const counts = look.counts ?? {};
       const ok = await confirm({
         title: purpose === "roster" ? "Sync roster from Airtable?" : "Sync operations from Airtable?",
-        description: `Create ${counts.create ?? 0}, update ${counts.update ?? 0}, conflicts ${counts.conflict ?? 0}, skipped ${counts.skipped ?? 0}. This does not delete local records or change owner and admin roles.`,
+        description: purpose === "roster"
+          ? rosterConfirmDescription(counts, { truncated: look.truncated, removalHold: look.removalHold, read: look.read })
+          : `Create ${counts.create ?? 0}, update ${counts.update ?? 0}, conflicts ${counts.conflict ?? 0}, skipped ${counts.skipped ?? 0}. This does not delete local records or change owner and admin roles.`,
         confirmLabel: "Sync now",
       });
       if (!ok) return;
-      const result = await syncAirtablePurpose(companyId, purpose);
-      toast.success(`Synced ${result.created} new and ${result.updated} updated`);
+      const result = await syncAirtablePurpose(companyId, purpose, purpose === "roster" ? look.planToken : undefined);
+      const failed = result.failed ? result.failed.create + result.failed.attach + result.failed.link + result.failed.update + result.failed.remove : result.errors.length;
+      toast.success(purpose === "roster"
+        ? `Read ${result.read?.rawRead ?? "?"} records. Created ${result.created}, linked ${result.linked ?? 0}, updated ${result.updated}, removed ${result.removed ?? 0}, write failures ${failed}.`
+        : `Synced ${result.created} new and ${result.updated} updated`);
       onSynced();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Sync failed");

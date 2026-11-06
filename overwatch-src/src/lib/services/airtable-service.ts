@@ -76,6 +76,28 @@ export interface AirtableSyncPreview {
   unmappedFields: string[];
   rows: { airtableId: string; label: string; action: string }[];
   notes: string[];
+  planToken?: string;
+  removalHold?: string | null;
+  pages?: number;
+  read?: {
+    rawRead: number;
+    seen: number;
+    valid: number;
+    invalidId: number;
+    duplicateRecord: number;
+    duplicateEmail: number;
+    conflict: number;
+    missingRequired: number;
+    create: number;
+    attach: number;
+    link: number;
+    update: number;
+    unchanged: number;
+    remove: number;
+    held: number;
+    protected: number;
+    cap: number;
+  };
 }
 
 export interface AirtableSyncResult {
@@ -85,9 +107,15 @@ export interface AirtableSyncResult {
   conflicts: number;
   skipped: number;
   missing: number;
+  removed?: number;
+  attached?: number;
+  held?: number;
   protected?: number;
   manual?: number;
   errors: { airtableId: string; message: string }[];
+  failed?: { create: number; attach: number; link: number; update: number; remove: number };
+  read?: AirtableSyncPreview["read"];
+  pages?: number;
 }
 
 export async function saveAirtableTable(
@@ -167,27 +195,41 @@ export async function previewAirtableSync(
     unmappedFields: result.unmappedFields ?? [],
     rows: result.rows ?? [],
     notes: result.notes ?? [],
+    planToken: result.planToken,
+    removalHold: result.removalHold ?? null,
+    pages: result.pages,
+    read: result.read,
   };
 }
 
-export async function syncAirtablePurpose(companyId: string, purpose: "roster" | "events"): Promise<AirtableSyncResult> {
+export async function syncAirtablePurpose(
+  companyId: string,
+  purpose: "roster" | "events",
+  planToken?: string,
+): Promise<AirtableSyncResult> {
   const body = await runIntegrationAction<AirtableSyncResult & { ok: boolean; error?: string }>(
     companyId,
     "airtable",
     purpose === "roster" ? "sync_roster" : "sync_events",
-    { confirm: true },
+    purpose === "roster" ? { confirm: true, plan_token: planToken } : { confirm: true },
   );
   const result = unwrap(body);
   return {
     created: result.created ?? 0,
     linked: result.linked ?? 0,
     updated: result.updated ?? 0,
+    attached: result.attached ?? 0,
+    removed: result.removed ?? 0,
+    held: result.held ?? 0,
     conflicts: result.conflicts ?? 0,
     skipped: result.skipped ?? 0,
     missing: result.missing ?? 0,
     protected: result.protected ?? 0,
     manual: result.manual ?? 0,
     errors: result.errors ?? [],
+    failed: result.failed,
+    read: result.read,
+    pages: result.pages,
   };
 }
 

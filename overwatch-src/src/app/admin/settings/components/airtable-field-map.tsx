@@ -17,6 +17,7 @@ import {
 import {
   assessFieldMapping,
   destinationsFor,
+  rosterConfirmDescription,
   suggestFieldMapping,
   type MappedPurpose,
 } from "@/lib/integrations/airtable-sync";
@@ -39,6 +40,7 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [savedIds, setSavedIds] = useState<Record<string, string>>({});
   const [confirmedAt, setConfirmedAt] = useState<string | null>(null);
+  const [mappingLoaded, setMappingLoaded] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const [preview, setPreview] = useState<AirtableSyncPreview | null>(null);
 
@@ -47,26 +49,29 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
     setPreview(null);
     setConfirmedAt(null);
     setSavedIds({});
+    setMappingLoaded(false);
     void getAirtableFieldMapping(companyId, purpose, baseId, tableId).then((row) => {
       if (cancel) return;
       const ids = Object.fromEntries(Object.entries(row.mapping).map(([key, binding]) => [key, binding.field_id]));
       setSavedIds(ids);
       setDraft(ids);
       setConfirmedAt(row.confirmedAt);
+      setMappingLoaded(true);
     }).catch(() => {
       if (!cancel) {
         setSavedIds({});
         setDraft({});
         setConfirmedAt(null);
+        setMappingLoaded(true);
       }
     });
     return () => { cancel = true; };
   }, [companyId, purpose, baseId, tableId]);
 
   useEffect(() => {
-    if (!fields || confirmedAt || Object.keys(savedIds).length > 0) return;
+    if (!mappingLoaded || !fields || confirmedAt || Object.keys(savedIds).length > 0) return;
     setDraft(suggestFieldMapping(fields, purpose));
-  }, [fields, purpose, confirmedAt, savedIds]);
+  }, [mappingLoaded, fields, purpose, confirmedAt, savedIds]);
 
   const mapping = useMemo(() => {
     const out: Record<string, AirtableFieldBinding> = {};
@@ -93,7 +98,9 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
         toast.error(result.mappingProblems[0]?.message ?? "Mapping was not saved");
         return;
       }
-      setSavedIds(draft);
+      const storedIds = Object.fromEntries(Object.entries(result.mapping ?? mapping).map(([key, binding]) => [key, binding.field_id]));
+      setSavedIds(storedIds);
+      setDraft(storedIds);
       setConfirmedAt(result.confirmed_at ?? new Date().toISOString());
       toast.success("Field mapping confirmed");
     } catch (e) {
@@ -107,7 +114,7 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
     setBusy("preview");
     setPreview(null);
     try {
-      setPreview(await previewAirtableSync(companyId, purpose, dirty || !confirmedAt ? mapping : undefined));
+      setPreview(await previewAirtableSync(companyId, purpose));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Preview failed");
     } finally {
@@ -117,18 +124,24 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
 
   async function sync() {
     if (!confirmedAt || dirty) { toast.error("Confirm the field mapping before syncing"); return; }
-    const look = preview ?? await previewAirtableSync(companyId, purpose);
+    const look = await previewAirtableSync(companyId, purpose);
+    setPreview(look);
     const counts = look.counts ?? {};
     const ok = await confirm({
       title: purpose === "roster" ? "Sync roster from Airtable?" : "Sync operations from Airtable?",
-      description: `Create ${counts.create ?? 0}, link ${counts.link ?? 0}, update ${counts.update ?? 0}. Conflicts ${counts.conflict ?? 0}, skipped ${counts.skipped ?? 0}. Missing Airtable rows stay in Overwatch. Owner and admin roles are not changed. Airtable is not written.`,
+      description: purpose === "roster"
+        ? rosterConfirmDescription(counts, { truncated: look.truncated, removalHold: look.removalHold, read: look.read })
+        : `Create ${counts.create ?? 0}, link ${counts.link ?? 0}, update ${counts.update ?? 0}. Conflicts ${counts.conflict ?? 0}, skipped ${counts.skipped ?? 0}. Missing Airtable rows stay in Overwatch. Owner and admin roles are not changed. Airtable is not written.`,
       confirmLabel: "Sync now",
     });
     if (!ok) return;
     setBusy("sync");
     try {
-      const result = await syncAirtablePurpose(companyId, purpose);
-      toast.success(`Synced ${result.created} new, ${result.updated} updated${result.linked ? `, ${result.linked} linked` : ""}`);
+      const result = await syncAirtablePurpose(companyId, purpose, purpose === "roster" ? look.planToken : undefined);
+      const failed = result.failed ? result.failed.create + result.failed.attach + result.failed.link + result.failed.update + result.failed.remove : result.errors.length;
+      toast.success(purpose === "roster"
+        ? `Read ${result.read?.rawRead ?? "?"} records. Created ${result.created}, linked ${result.linked ?? 0}, updated ${result.updated}, removed ${result.removed ?? 0}, write failures ${failed}.`
+        : `Synced ${result.created} new, ${result.updated} updated${result.linked ? `, ${result.linked} linked` : ""}`);
       if (result.errors.length) toast.error(result.errors[0]?.message ?? "Some rows failed");
       onSynced();
     } catch (e) {
@@ -196,11 +209,13 @@ export function AirtableFieldMap({ companyId, purpose, baseId, tableId, fields, 
       {preview && (
         <div className="text-[10px] text-muted-foreground space-y-1" data-testid={`airtable-sync-preview-${purpose}`}>
           <p>
-            Create {preview.counts.create ?? 0}, link {preview.counts.link ?? 0}, update {preview.counts.update ?? 0}, conflicts {preview.counts.conflict ?? 0}, skipped {preview.counts.skipped ?? 0}, missing {preview.counts.missing ?? 0}.
+            {purpose === "roster" && preview.read
+              ? `Read ${preview.read.rawRead} of up to ${preview.read.cap} across ${preview.pages ?? 0} pages. Seen ${preview.read.seen}, valid ${preview.read.valid}, duplicate/conflict ${preview.read.duplicateRecord + preview.read.conflict}, missing required ${preview.read.missingRequired}, updated ${preview.read.update}, unchanged ${preview.read.unchanged}, removals ${preview.read.remove}.`
+              : `Create ${preview.counts.create ?? 0}, link ${preview.counts.link ?? 0}, update ${preview.counts.update ?? 0}, conflicts ${preview.counts.conflict ?? 0}, skipped ${preview.counts.skipped ?? 0}.`}
           </p>
           {preview.notes.map((note) => <p key={note}>{note}</p>)}
-          {preview.valueProblems.slice(0, 8).map((problem) => <p key={problem.message} className="text-amber-500">{problem.message}</p>)}
-          {preview.rows.slice(0, 8).map((row) => <p key={`${row.action}-${row.airtableId}`}>{row.action}: {row.label}</p>)}
+          {purpose === "roster" && preview.rows.filter((row) => row.action === "conflict").slice(0, 8).map((row) => <p key={`${row.action}-${row.airtableId}`} className="text-amber-500">Conflict: {row.label}</p>)}
+          {purpose === "events" && preview.rows.slice(0, 8).map((row) => <p key={`${row.action}-${row.airtableId}`}>{row.action}: {row.label}</p>)}
         </div>
       )}
       <ConfirmDialog />
