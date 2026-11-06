@@ -265,7 +265,10 @@ export default function AirtableConnectionPanel({ companyId, canManage, connecti
                 fields={schemas[`${purpose.id}:${tableId}`] ?? null}
                 loading={busy === `schema-${purpose.id}`}
                 tested={connection.last_test_ok === true}
-                onLoadFields={() => void loadSchema(purpose.id)}
+                onLoadFields={() => {
+                  const purposeId = purpose.id;
+                  if (purposeId === "roster" || purposeId === "events") void loadSchema(purposeId);
+                }}
                 onSynced={onSaved}
               />
             )}
