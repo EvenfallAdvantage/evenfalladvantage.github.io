@@ -44,6 +44,8 @@ export interface AdapterCtx {
   env: (name: string) => string | undefined;
   now: () => Date;
   log: (msg: string, meta?: Record<string, unknown>) => void;
+  /** Caller Authorization header for user-scoped RPCs. Never log this. */
+  callerAuthorization?: string;
 }
 
 export interface ExchangeResult extends TokenSet {

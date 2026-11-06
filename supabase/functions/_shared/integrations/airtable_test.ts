@@ -216,6 +216,42 @@ Deno.test("import refuses when the connection has not passed test", async () => 
   assertEquals(fetched, 0);
 });
 
+Deno.test("saved Employees table does not filter the authorized schema", async () => {
+  const calls: string[] = [];
+  const ctx = ctxWith((url) => {
+    calls.push(url);
+    if (url.includes("offset=page-2")) return json({ bases: [{ id: "appSECONDBASE1234", name: "Second", permissionLevel: "edit" }] });
+    if (url.endsWith("/meta/bases")) {
+      return json({
+        bases: [{ id: "appOPERATIONS1234", name: "Operations", permissionLevel: "read" }, { id: "appHIRING12345678", name: "Hiring", permissionLevel: "none" }],
+        offset: "page-2",
+      });
+    }
+    return json({ tables: [
+      { id: "tblEMPLOYEES12345", name: "Employees", fields: [{ name: "SSN" }] },
+      { id: "tblEVENTS12345678", name: "Events" },
+      { id: "tblVENDORS1234567", name: "Vendors" },
+    ] });
+  }, []);
+  const saved = conn({ settings: { base_id: "appOPERATIONS1234", table_id: "tblEMPLOYEES12345", table_name: "Employees", roster_table_id: "tblEMPLOYEES12345" } });
+  const bases = await adapter.actions.list_bases.run(saved, {}, ctx) as { bases: { name: string }[] };
+  const tables = await adapter.actions.list_tables.run(saved, { base_id: "appOPERATIONS1234" }, ctx) as { tables: { name: string }[] };
+  assertEquals(bases.bases.map((b) => b.name), ["Operations", "Second"]);
+  assertEquals(tables.tables.map((t) => t.name), ["Employees", "Events", "Vendors"]);
+  assertEquals(calls.some((url) => url.includes("tblEMPLOYEES12345")), false);
+});
+
+Deno.test("roster sync does not run without confirmation", async () => {
+  let fetched = 0;
+  const result = await adapter.actions.sync_roster.run(conn(), {}, ctxWith(() => {
+    fetched++;
+    return json({});
+  })) as { ok: boolean; error?: string };
+  assertEquals(result.ok, false);
+  assertStringIncludes(result.error ?? "", "Confirm the sync");
+  assertEquals(fetched, 0);
+});
+
 Deno.test("planApplicantImport does not silently duplicate a batch email", () => {
   const plan = planApplicantImport([], [
     normalizeAirtableRecord({ id: "recAAAAAAAAAAAAAA", fields: { Email: "a@example.com", Name: "A One" } }),
