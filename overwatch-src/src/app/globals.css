@@ -128,10 +128,13 @@
     @apply bg-background text-foreground;
     -webkit-tap-highlight-color: transparent;
     overflow-x: hidden;
+    min-height: 100%;
   }
   html {
-    @apply font-sans;
+    @apply font-sans bg-background;
     overflow-x: hidden;
+    /* Cover the Android system-bar inset. viewport-fit=cover is set in layout. */
+    min-height: 100%;
   }
   /* Tell browsers to use dark native controls in dark mode */
   .dark {
@@ -191,9 +194,22 @@
   color-scheme: dark;
 }
 
-/* iOS safe area for bottom nav */
+/* iOS safe area for bottom nav. On an installed Android PWA the same inset
+   is the strip behind the system back/home buttons when the bar is
+   edge-to-edge. Paint the company surface (--background) there, opaquely,
+   so a window-level theme colour cannot show through the nav's 95% fill. */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+nav.safe-area-bottom::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: env(safe-area-inset-bottom, 0px);
+  background-color: var(--background);
+  pointer-events: none;
 }
 
 /* Smooth scrolling for mobile */
@@ -269,8 +285,15 @@ html.ow-field-mode [class*="text-muted-foreground/"] { color: var(--muted-foregr
 .text-foreground\/40, .text-foreground\/50, .text-foreground\/60 { color: var(--muted-foreground) !important; }
 /* Dark surfaces: brand orange and 500-weight status colours as TEXT fall
    below 4.5:1 on cards; use lighter tints for text only (fills unchanged). */
-/* Follow the company accent (dark --primary = accent), lightened for contrast. */
+/* Follow the company accent (dark --primary = accent), lightened for contrast.
+   Avatar initials are excluded below: they sit on a tint of this same colour. */
 .dark .text-primary, .dark.text-primary { color: color-mix(in oklch, var(--primary) 78%, white); }
+/* Initials foreground only. --primary, --accent, and bg-primary/20 stay put.
+   The variable is chosen per brand pair in BrandThemeProvider. */
+.dark [data-slot="avatar-fallback"].text-primary { color: var(--avatar-initials-fg); }
+html:not(.dark) [data-surface="sidebar"][data-slot="avatar-fallback"].text-primary {
+  color: var(--avatar-initials-fg-sidebar);
+}
 .dark .text-brand, .dark.text-brand { color: color-mix(in oklch, var(--brand-accent, #d59b3c) 78%, white); }
 .dark .text-red-500, .dark .text-destructive { color: var(--color-red-300); }
 .dark .text-emerald-500, .dark .text-green-500 { color: var(--color-emerald-300); }

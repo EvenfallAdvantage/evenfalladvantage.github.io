@@ -458,7 +458,7 @@ export function AppSidebar({ collapsed, onToggle }: AppSidebarProps) {
           >
             <Avatar className="h-8 w-8 shrink-0">
               <AvatarImage src={user?.avatarUrl ?? undefined} />
-              <AvatarFallback className="bg-primary/20 text-xs font-semibold text-primary">
+              <AvatarFallback data-surface="sidebar" className="bg-primary/20 text-xs font-semibold text-primary">
                 {initials}
               </AvatarFallback>
             </Avatar>

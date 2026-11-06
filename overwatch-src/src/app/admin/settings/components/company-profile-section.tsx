@@ -280,21 +280,21 @@ export default function CompanyProfileSection({
             {/* Live preview card */}
             <div className="rounded-lg border border-border overflow-hidden">
               <div className="px-3 py-2 text-[10px] text-muted-foreground uppercase tracking-wider">Preview</div>
-              <div className="flex">
-                <div className="w-16 p-2 flex flex-col gap-1.5" style={{ background: brandColor }}>
+              <div className="flex" data-testid="hq-brand-preview">
+                <div className="w-16 p-2 flex flex-col gap-1.5" style={{ background: brandColor }} data-testid="hq-brand-preview-primary">
                   <div className="w-full h-1.5 rounded-full opacity-30" style={{ background: "#ffffff" }} />
-                  <div className="w-full h-1.5 rounded-full" style={{ background: accentColor }} />
+                  <div className="w-full h-1.5 rounded-full" style={{ background: accentColor }} data-testid="hq-brand-preview-accent" />
                   <div className="w-full h-1.5 rounded-full opacity-30" style={{ background: "#ffffff" }} />
                   <div className="w-full h-1.5 rounded-full opacity-30" style={{ background: "#ffffff" }} />
                 </div>
-                <div className="flex-1 p-3 space-y-2" style={{ background: adjustBrightness(brandColor, 1.15) }}>
+                <div className="flex-1 p-3 space-y-2" style={{ background: adjustBrightness(brandColor, 1.15) }} data-testid="hq-brand-preview-surface">
                   <div className="flex items-center gap-2">
                     <div className="w-5 h-5 rounded-full" style={{ background: accentColor }} />
                     <div className="h-2 w-24 rounded-full bg-white/20" />
                   </div>
                   <div className="flex gap-1.5">
                     <div className="h-6 px-3 rounded-md text-[10px] font-semibold flex items-center text-white" style={{ background: accentColor }}>Button</div>
-                    <div className="h-6 px-3 rounded-md text-[10px] font-semibold flex items-center border" style={{ borderColor: accentColor, color: accentColor }}>Outline</div>
+                    <div className="h-6 px-3 rounded-md text-[10px] font-semibold flex items-center border" style={{ borderColor: accentColor, color: accentColor }} data-testid="hq-brand-preview-outline">Outline</div>
                   </div>
                   <div className="h-2 w-32 rounded-full bg-white/10" />
                   <div className="h-2 w-20 rounded-full bg-white/10" />
