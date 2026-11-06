@@ -24,7 +24,7 @@ type IntDef = {
   /**
    * false = the vendor can't work yet (browser calls blocked by CORS, no
    * push SDK, undeployed webhook / OAuth refresh). The tile is shown as
-   * "Not available yet" with no credential form, and is never "Active".
+   * "Not available yet" with no credential form. It is not labeled Saved or Enabled.
    * Existing integrations_config rows are left untouched.
    */
   available?: boolean;
@@ -149,6 +149,7 @@ export default function IntegrationsSection({ companyId, initialIntegrations, gr
   const [savingInt, setSavingInt] = useState<string | null>(null);
   const [savedInt, setSavedInt] = useState<string | null>(null);
   const [showSecret, setShowSecret] = useState<Record<string, boolean>>({});
+  const [openGroup, setOpenGroup] = useState<string | null>(null);
 
   // Build initial forms
   const buildForms = () => {
@@ -220,11 +221,10 @@ export default function IntegrationsSection({ companyId, initialIntegrations, gr
         </div>
 
         {groups.map(group => {
-          const activeCount = group.items.filter(d => {
-            const f = intForms[d.provider];
-            return isIntegrationAvailable(d) && f?.isActive;
-          }).length;
-          const configuredCount = group.items.filter(d => isIntegrationAvailable(d) && integrations.find((i: IntConfig) => i.provider === d.provider)).length;
+          const available = group.items.filter((d) => isIntegrationAvailable(d));
+          const unavailable = group.items.filter((d) => !isIntegrationAvailable(d));
+          const enabledCount = available.filter((d) => intForms[d.provider]?.isActive).length;
+          const savedCount = available.filter((d) => integrations.some((i: IntConfig) => i.provider === d.provider)).length;
           const dirty = group.items.some((def) => providerDirty(def, intForms[def.provider], integrations.find((i) => i.provider === def.provider)));
 
           return (
@@ -234,34 +234,20 @@ export default function IntegrationsSection({ companyId, initialIntegrations, gr
               title={group.label}
               description={group.desc}
               forceOpen={dirty}
+              open={openGroup === group.id}
+              onOpenChange={(next) => setOpenGroup(next ? group.id : null)}
               meta={
                 <>
-                  {activeCount > 0 && <Badge className="text-[10px] bg-green-500/15 text-green-500">{activeCount} active</Badge>}
-                  {configuredCount > 0 && activeCount === 0 && <Badge variant="outline" className="text-[10px]">{configuredCount} configured</Badge>}
+                  {savedCount > 0 && <Badge variant="outline" className="text-[10px]">{savedCount} saved</Badge>}
+                  {enabledCount > 0 && <Badge className="text-[10px] bg-green-500/15 text-green-500">{enabledCount} enabled</Badge>}
+                  {unavailable.length > 0 && <Badge variant="outline" className="text-[10px]">{unavailable.length} not available</Badge>}
                 </>
               }
             >
-                  {group.items.map(def => {
+                  {available.map(def => {
                     const form = intForms[def.provider];
                     const existing = integrations.find((i: IntConfig) => i.provider === def.provider);
                     const isConfigured = !!existing;
-
-                    if (!isIntegrationAvailable(def)) {
-                      return (
-                        <div key={def.provider} data-testid={`integration-${def.provider}`} className="rounded-lg border border-dashed border-border/40 p-4 opacity-70">
-                          <div className="flex flex-wrap items-center gap-2">
-                            {def.logo && (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={def.logo} alt="" className="h-5 w-5 object-contain grayscale" />
-                            )}
-                            <span className="text-sm font-semibold">{def.label}</span>
-                            <Badge variant="outline" className="text-[10px]">Not available yet</Badge>
-                          </div>
-                          <p className="mt-1 text-xs text-muted-foreground">{def.desc}</p>
-                          <p className="mt-1 text-xs text-muted-foreground">This connection isn&apos;t supported yet. Contact support if you need it.</p>
-                        </div>
-                      );
-                    }
 
                     return (
                       <div key={def.provider} data-testid={`integration-${def.provider}`} className={`rounded-lg border p-4 space-y-3 ${
@@ -276,10 +262,10 @@ export default function IntegrationsSection({ companyId, initialIntegrations, gr
                               <Mail className="h-4 w-4 text-primary" />
                             )}
                             <span className="text-sm font-semibold">{def.label}</span>
-                            {isConfigured && form?.isActive && <Badge className="text-[10px] bg-green-500/15 text-green-500">Active</Badge>}
-                            {isConfigured && !form?.isActive && <Badge variant="outline" className="text-[10px]">Configured</Badge>}
+                            {isConfigured && <Badge variant="outline" className="text-[10px]">Saved</Badge>}
+                            {form?.isActive && <Badge className="text-[10px] bg-green-500/15 text-green-500">Enabled</Badge>}
                           </div>
-                          <label className="flex items-center gap-1.5 text-xs cursor-pointer">
+                          <label className="flex min-h-11 items-center gap-1.5 text-xs cursor-pointer">
                             <input type="checkbox" checked={form?.isActive ?? false}
                               onChange={() => toggleIntActive(def.provider)}
                               className="rounded" />
@@ -344,6 +330,21 @@ export default function IntegrationsSection({ companyId, initialIntegrations, gr
                       </div>
                     );
                   })}
+                  {unavailable.length > 0 && (
+                    <div className="space-y-2" data-testid={`hq-integration-unavailable-${group.id}`}>
+                      <p className="text-xs text-muted-foreground">Not available yet. Saved values for these stay stored and are not edited or enabled here.</p>
+                      {unavailable.map((def) => (
+                        <div key={def.provider} data-testid={`integration-${def.provider}`} className="flex min-h-11 flex-wrap items-center gap-2 rounded-lg border border-dashed border-border/40 px-3 py-2">
+                          {def.logo && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={def.logo} alt="" className="h-5 w-5 object-contain grayscale" />
+                          )}
+                          <span className="text-sm font-semibold">{def.label}</span>
+                          <Badge variant="outline" className="text-[10px]">Not available yet</Badge>
+                        </div>
+                      ))}
+                    </div>
+                  )}
             </HqDisclosure>
           );
         })}

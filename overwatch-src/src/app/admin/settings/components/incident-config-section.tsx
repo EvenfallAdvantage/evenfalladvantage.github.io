@@ -5,6 +5,7 @@ import { ArrowDown, ArrowUp, Check, Loader2, Pencil, Plus, Trash2, X } from "luc
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { HqDisclosure } from "./hq-disclosure";
 import { toast } from "sonner";
 import { hasMinRole } from "@/lib/permissions";
 import { useAuthStore } from "@/stores/auth-store";
@@ -287,15 +288,13 @@ export default function IncidentConfigSection({ companyId }: { companyId: string
         <p className="text-xs text-muted-foreground">Types and custom fields appear on the incident report form. Statuses drive the incident list and board.</p>
       </div>
 
-      {/* ── Types ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Incident types</CardTitle>
-          <CardDescription>
-            {types.length ? "Only enabled types are offered on new reports." : "None set up, so reports use the built-in list (General, Trespass, Theft…)."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <HqDisclosure
+        id="hq-incident-types"
+        variant="card"
+        title="Incident types"
+        description={types.length ? `${types.filter((t) => t.isActive).length} of ${types.length} enabled on new reports` : "None set up, so reports use the built-in list (General, Trespass, Theft…)."}
+        testId="hq-incident-types"
+      >
           {!types.length && (
             <Button variant="outline" className="h-11 w-full sm:h-8 sm:w-auto" onClick={seedTypes} disabled={busy}>
               Start from the built-in list
@@ -323,18 +322,15 @@ export default function IncidentConfigSection({ companyId }: { companyId: string
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+      </HqDisclosure>
 
-      {/* ── Statuses ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Incident statuses</CardTitle>
-          <CardDescription>
-            {statuses.length ? "Closed statuses count an incident as finished." : "None set up, so the default Open / Investigating / Resolved / Closed are used."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <HqDisclosure
+        id="hq-incident-statuses"
+        variant="card"
+        title="Incident statuses"
+        description={statuses.length ? `${statuses.length} status${statuses.length === 1 ? "" : "es"} · ${statuses.filter((s) => s.isTerminal).length} close an incident` : "None set up, so the default Open / Investigating / Resolved / Closed are used."}
+        testId="hq-incident-statuses"
+      >
           {!statuses.length && (
             <Button variant="outline" className="h-11 w-full sm:h-8 sm:w-auto" onClick={seedStatuses} disabled={busy}>
               Start from the defaults
@@ -365,16 +361,15 @@ export default function IncidentConfigSection({ companyId }: { companyId: string
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+      </HqDisclosure>
 
-      {/* ── Custom fields ── */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm">Custom fields</CardTitle>
-          <CardDescription>Extra questions on the report form. A field for one type only shows when that type is picked.</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
+      <HqDisclosure
+        id="hq-incident-fields"
+        variant="card"
+        title="Custom fields"
+        description={fields.length ? `${fields.length} custom question${fields.length === 1 ? "" : "s"} · extra questions on the report form` : "No custom questions yet. Extra questions show on the report form."}
+        testId="hq-incident-fields"
+      >
           <form onSubmit={addField} className="space-y-2 rounded-lg border border-border/40 p-3">
             <div className="grid gap-2 sm:grid-cols-3">
               <Input aria-label="Field name" placeholder="Question (e.g. Weapon involved?)" value={fieldLabel} onChange={(e) => setFieldLabel(e.target.value)} className="h-11 sm:h-8" maxLength={80} />
@@ -445,8 +440,7 @@ export default function IncidentConfigSection({ companyId }: { companyId: string
               );
             })}
           </div>
-        </CardContent>
-      </Card>
+      </HqDisclosure>
       <ConfirmDialog />
     </div>
   );

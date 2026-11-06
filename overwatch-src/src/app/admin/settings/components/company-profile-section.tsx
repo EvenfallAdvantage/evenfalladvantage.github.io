@@ -13,6 +13,33 @@ import { normalizeHttpUrl } from "@/lib/hq-config";
 import { useAuthStore } from "@/stores/auth-store";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { getLuminance, adjustBrightness } from "@/lib/brand-utils";
+import { HqDisclosure } from "./hq-disclosure";
+
+/** Saved logo/website, as text. The raw address is not echoed when it is not an http(s) URL. */
+function logoWebsiteSummary(logo: string, website: string): string {
+  const logoBit = logo.trim() ? "Logo on file" : "No logo";
+  const site = website.trim();
+  if (!site) return `${logoBit} · no website`;
+  try {
+    const url = new URL(site);
+    if (url.protocol !== "http:" && url.protocol !== "https:") return `${logoBit} · website set`;
+    return `${logoBit} · ${url.host}`;
+  } catch {
+    return `${logoBit} · website set`;
+  }
+}
+
+/**
+ * Image address for the logo preview. `normalizeHttpUrl` parses the text and
+ * returns the URL serializer's single encoding, so a space becomes `%20` once
+ * and an existing `%20` stays `%20`. Non-http(s) schemes are rejected.
+ * React then assigns that string as the img src property.
+ */
+function httpLogoSrc(input: string): string | null {
+  const parsed = normalizeHttpUrl(input, "Logo URL");
+  if (!parsed.ok || parsed.value == null) return null;
+  return parsed.value;
+}
 
 // Get all IANA timezone names
 const ALL_TIMEZONES: string[] = typeof Intl !== "undefined" && Intl.supportedValuesOf
@@ -63,6 +90,8 @@ export default function CompanyProfileSection({
   const [accentColor, setAccentColor] = useState(initialAccentColor);
   const [logoUrl, setLogoUrl] = useState(initialLogoUrl);
   const [websiteUrl, setWebsiteUrl] = useState(initialWebsiteUrl);
+  const [savedLogo, setSavedLogo] = useState(initialLogoUrl);
+  const [savedWebsite, setSavedWebsite] = useState(initialWebsiteUrl);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -71,6 +100,7 @@ export default function CompanyProfileSection({
   const tzRef = useRef<HTMLDivElement>(null);
   const logoFileRef = useRef<HTMLInputElement>(null);
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoSrc = httpLogoSrc(logoUrl);
 
   async function handleSave() {
     if (!companyId) return;
@@ -87,6 +117,8 @@ export default function CompanyProfileSection({
       setName(trimmedName);
       setWebsiteUrl(site.value ?? "");
       setLogoUrl(logo.value ?? "");
+      setSavedWebsite(site.value ?? "");
+      setSavedLogo(logo.value ?? "");
       // Refresh the session copy so the sidebar name, logo and colours update without a reload.
       if (user) {
         setUser({
@@ -146,63 +178,74 @@ export default function CompanyProfileSection({
             <Label htmlFor="company-name" className="text-xs text-muted-foreground">Company Name</Label>
             <Input id="company-name" value={name} onChange={(e) => setName(e.target.value)} className="mt-1" />
           </div>
-          <div>
-            <Label htmlFor="company-logo-url" className="text-xs text-muted-foreground">Company Logo</Label>
-            <div className="flex items-center gap-2 mt-1">
-              {logoUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logoUrl} alt="Logo" className="h-9 w-9 rounded-lg object-cover border border-border" />
-              ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted border border-border">
-                  <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                </div>
-              )}
-              <Input id="company-logo-url" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className="flex-1" placeholder="https://example.com/logo.png" />
-              {logoUrl && (
-                <Button type="button" size="icon" variant="ghost" className="size-11 shrink-0 sm:size-8" aria-label="Remove logo" onClick={() => setLogoUrl("")}>
-                  <X className="h-4 w-4" />
+          <HqDisclosure
+            id="hq-company-logo"
+            title="Logo and website"
+            description={
+              logoUrl !== savedLogo || websiteUrl !== savedWebsite
+                ? `${logoWebsiteSummary(savedLogo, savedWebsite)} · unsaved edits kept`
+                : logoWebsiteSummary(savedLogo, savedWebsite)
+            }
+            testId="hq-company-logo"
+          >
+            <div>
+              <Label htmlFor="company-logo-url" className="text-xs text-muted-foreground">Company Logo</Label>
+              <div className="flex items-center gap-2 mt-1">
+                {logoSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={logoSrc} alt="Logo" className="h-9 w-9 rounded-lg object-cover border border-border" />
+                ) : (
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-muted border border-border">
+                    <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                  </div>
+                )}
+                <Input id="company-logo-url" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className="h-11 flex-1 sm:h-8" placeholder="https://example.com/logo.png" />
+                {logoUrl && (
+                  <Button type="button" size="icon" variant="ghost" className="size-11 shrink-0 sm:size-8" aria-label="Remove logo" onClick={() => setLogoUrl("")}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+                <input
+                  ref={logoFileRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !companyId) return;
+                    setUploadingLogo(true);
+                    try {
+                      const url = await uploadCompanyLogo(file, companyId);
+                      setLogoUrl(url);
+                    } catch (err) {
+                      console.error("Logo upload failed:", err);
+                      toast.error(err instanceof Error ? err.message : "Failed to upload logo");
+                    } finally {
+                      setUploadingLogo(false);
+                      if (logoFileRef.current) logoFileRef.current.value = "";
+                    }
+                  }}
+                />
+                <Button
+                  type="button" size="sm" variant="outline"
+                  className="h-11 shrink-0 gap-1.5 text-xs sm:h-8"
+                  onClick={() => logoFileRef.current?.click()}
+                  disabled={uploadingLogo}
+                >
+                  {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+                  Upload
                 </Button>
-              )}
-              <input
-                ref={logoFileRef}
-                type="file"
-                accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
-                className="hidden"
-                onChange={async (e) => {
-                  const file = e.target.files?.[0];
-                  if (!file || !companyId) return;
-                  setUploadingLogo(true);
-                  try {
-                    const url = await uploadCompanyLogo(file, companyId);
-                    setLogoUrl(url);
-                  } catch (err) {
-                    console.error("Logo upload failed:", err);
-                    toast.error(err instanceof Error ? err.message : "Failed to upload logo");
-                  } finally {
-                    setUploadingLogo(false);
-                    if (logoFileRef.current) logoFileRef.current.value = "";
-                  }
-                }}
-              />
-              <Button
-                type="button" size="sm" variant="outline"
-                className="shrink-0 gap-1.5 text-xs"
-                onClick={() => logoFileRef.current?.click()}
-                disabled={uploadingLogo}
-              >
-                {uploadingLogo ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
-                Upload
-              </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1">Upload an image or paste a URL. It appears in the sidebar. Clear the field and save to remove it.</p>
             </div>
-            <p className="text-[11px] text-muted-foreground mt-1">Upload an image or paste a URL. It appears in the sidebar. Clear the field and save to remove it.</p>
-          </div>
-          <div>
-            <Label htmlFor="company-website-url" className="text-xs text-muted-foreground flex items-center gap-1.5">
-              <LinkIcon className="h-3 w-3" /> Company Website
-            </Label>
-            <Input id="company-website-url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} className="mt-1" placeholder="https://www.yourcompany.com" />
-            <p className="text-[11px] text-muted-foreground mt-1">Visitors can click your badge on the landing page to visit it. Must be an http(s) address; leave empty to remove.</p>
-          </div>
+            <div>
+              <Label htmlFor="company-website-url" className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <LinkIcon className="h-3 w-3" /> Company Website
+              </Label>
+              <Input id="company-website-url" value={websiteUrl} onChange={(e) => setWebsiteUrl(e.target.value)} className="mt-1 h-11 sm:h-8" placeholder="https://www.yourcompany.com" />
+              <p className="text-[11px] text-muted-foreground mt-1">Visitors can click your badge on the landing page to visit it. Must be an http(s) address; leave empty to remove.</p>
+            </div>
+          </HqDisclosure>
           <div ref={tzRef}>
             <Label htmlFor="company-timezone" className="text-xs text-muted-foreground flex items-center gap-1.5">
               <Globe className="h-3 w-3" /> Timezone
@@ -216,7 +259,7 @@ export default function CompanyProfileSection({
                     onChange={(e) => { setTzSearch(e.target.value); setTzOpen(true); }}
                     onFocus={() => { setTzSearch(""); setTzOpen(true); }}
                     placeholder="Search timezones..."
-                    className="pr-8"
+                    className="h-11 pr-8 sm:h-8"
                   />
                   {timezone && !tzOpen && (
                     <MapPin className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground/50" />
@@ -224,7 +267,7 @@ export default function CompanyProfileSection({
                 </div>
                 <Button
                   type="button" size="sm" variant="outline"
-                  className="shrink-0 text-[10px] gap-1"
+                  className="h-11 shrink-0 gap-1 text-xs sm:h-8"
                   onClick={() => { setTimezone(DEVICE_TZ); setTzOpen(false); }}
                   title={`Detect: ${DEVICE_TZ}`}
                 >
@@ -259,7 +302,7 @@ export default function CompanyProfileSection({
               <Label htmlFor="company-brand-color" className="text-xs text-muted-foreground">Primary Color (dark backgrounds)</Label>
               <p className="text-[10px] text-muted-foreground/60 mb-1.5">Used for sidebar, dark surfaces. Must be a dark color.</p>
               <div className="flex items-center gap-2">
-                <input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="h-9 w-9 rounded-md border border-border cursor-pointer bg-transparent" />
+                <input type="color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="h-11 w-11 shrink-0 cursor-pointer rounded-md border border-border bg-transparent sm:h-8 sm:w-8" />
                 <Input id="company-brand-color" value={brandColor} onChange={(e) => setBrandColor(e.target.value)} className="flex-1 font-mono" />
                 {getLuminance(brandColor) > 0.15 && (
                   <span className="text-[10px] text-amber-500 flex items-center gap-1"><AlertTriangle size={12} /> Too light</span>
@@ -270,7 +313,7 @@ export default function CompanyProfileSection({
               <Label htmlFor="company-accent-color" className="text-xs text-muted-foreground">Accent Color (highlights &amp; buttons)</Label>
               <p className="text-[10px] text-muted-foreground/60 mb-1.5">Used for buttons, active states, badges. Should be bright/visible.</p>
               <div className="flex items-center gap-2">
-                <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-9 w-9 rounded-md border border-border cursor-pointer bg-transparent" />
+                <input type="color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="h-11 w-11 shrink-0 cursor-pointer rounded-md border border-border bg-transparent sm:h-8 sm:w-8" />
                 <Input id="company-accent-color" value={accentColor} onChange={(e) => setAccentColor(e.target.value)} className="flex-1 font-mono" />
                 {getLuminance(accentColor) < 0.1 && (
                   <span className="text-[10px] text-amber-500 flex items-center gap-1"><AlertTriangle size={12} /> Too dark</span>
