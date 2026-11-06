@@ -41,6 +41,7 @@ import {
   readLastSeenReleaseId,
   shouldAutoOpenWhatsNew,
   visibleHighlightSummary,
+  visibleHighlightTitle,
   type ReleaseHighlight,
   type ReleaseNote,
 } from "@/lib/releases";
@@ -118,7 +119,8 @@ export function renderHighlightIcon(iconName?: string) {
 /**
  * One full-changelog row. The bold title stays; subtext is omitted when it
  * only repeats that title, and a repeated title prefix is trimmed so a real
- * tail (and any Try-it link) still show.
+ * tail (and any Try-it link) still show. A title cut inside brackets is shown
+ * as the summary's complete sentence instead of an orphan tail.
  */
 export function ChangelogHighlightLine({
   highlight: h,
@@ -127,6 +129,7 @@ export function ChangelogHighlightLine({
   highlight: ReleaseHighlight;
   onTry?: (highlight: ReleaseHighlight) => void;
 }) {
+  const shownTitle = visibleHighlightTitle(h.title, h.summary);
   const detail = visibleHighlightSummary(h.title, h.summary);
   return (
     <div
@@ -136,7 +139,7 @@ export function ChangelogHighlightLine({
       <div className="mt-0.5 shrink-0">{renderHighlightIcon(h.icon)}</div>
       <div className="min-w-0 flex-1">
         <span className="font-semibold text-foreground">
-          {detail ? `${h.title}: ` : h.title}
+          {detail ? `${shownTitle}: ` : shownTitle}
         </span>
         {detail ? (
           <span
@@ -422,6 +425,7 @@ export function WhatsNewModal() {
           {view === "rollup" ? (
             <div data-testid="whats-new-rollup-list" className="space-y-2.5">
               {rollUp.highlights.map((h) => {
+                const shownTitle = visibleHighlightTitle(h.title, h.summary);
                 const detail = visibleHighlightSummary(h.title, h.summary);
                 return (
                   <div
@@ -436,7 +440,7 @@ export function WhatsNewModal() {
                       <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex items-center justify-between gap-2 flex-wrap">
                           <h3 className="text-sm font-semibold leading-snug">
-                            {h.title}
+                            {shownTitle}
                           </h3>
                           <span className="text-[10px] font-mono text-muted-foreground">
                             {h.releaseVersion}

@@ -6,12 +6,26 @@ import {
   GENERATED_RELEASES,
   RELEASES,
   filterReleaseHighlightsForRole,
+  firstTopLevelClause,
+  highlightDedupeKey,
+  mergeReleases,
   parseGitHubCommitsToReleases,
   visibleHighlightSummary,
+  visibleHighlightTitle,
   type ReleaseHighlight,
+  type ReleaseNote,
 } from "@/lib/releases";
-import { formatCommitTitleAndSummary } from "../../scripts/generate-releases.mjs";
+import {
+  firstTopLevelClause as buildFirstTopLevelClause,
+  formatCommitTitleAndSummary,
+  parseGitLogToReleases,
+} from "../../scripts/generate-releases.mjs";
 import { ChangelogHighlightLine } from "@/components/updates/whats-new-modal";
+
+const BRIEFINGS = "UX: Briefings uses the Comms tab row (Incidents-style tabs; Scanner stays)";
+const BRIEFINGS_CUT = "UX: Briefings uses the Comms tab row (Incidents-style tabs";
+const NESTED = "Keep alerts (outer [inner; still inside] tail)";
+const AFTER_GROUP = "Show status (alpha; beta); then the real tail";
 
 function highlight(id: string): ReleaseHighlight {
   const found = GENERATED_RELEASES.flatMap((r) => r.highlights).find((h) => h.id === id);
@@ -24,27 +38,41 @@ function lineText(node: HTMLElement): string {
 }
 
 describe("visibleHighlightSummary", () => {
-  it("drops the screenshot duplicates and keeps the Briefings tail", () => {
-    const dupes = [
-      "git-9956a03e", // What's New: dedupe PRs across sources, consistent UTC (Zulu) dates
-      "git-a3216fa5", // Invoices: save per company, status list, client read access
-      "git-ae1d61f6", // UX: restore dashboard section gaps…
-      "git-7b11062f", // UX: drop leftover Clock/Mass Clock tab row from /patrols
-      "git-62121e41", // UX: per-tab page headings across multi-tab screens
-      "git-9e77975b", // UX: each Comms tab gets its own heading
-      "git-665e0e66", // UX: page action sits right-aligned just below the tabs on phones
+  it("drops screenshot duplicates that add no words beyond the title", () => {
+    const dupes: Array<[string, string]> = [
+      [
+        "What's New: dedupe PRs across sources, consistent UTC (Zulu) dates",
+        "What's New: dedupe PRs across sources, consistent UTC (Zulu) dates.",
+      ],
+      [
+        "Invoices: save per company, status list, client read access",
+        "Invoices: save per company, status list, client read access.",
+      ],
+      [
+        "UX: restore dashboard section gaps, roomier cards, title-subtitle gap",
+        "UX: restore dashboard section gaps, roomier cards, title-subtitle gap.",
+      ],
+      [
+        "UX: drop leftover Clock/Mass Clock tab row from /patrols",
+        "UX: drop leftover Clock/Mass Clock tab row from /patrols.",
+      ],
+      [
+        "UX: per-tab page headings across multi-tab screens",
+        "UX: per-tab page headings across multi-tab screens.",
+      ],
+      [
+        "UX: each Comms tab gets its own heading",
+        "UX: each Comms tab gets its own heading.",
+      ],
+      [
+        "UX: page action sits right-aligned just below the tabs on phones",
+        "UX: page action sits right-aligned just below the tabs on phones.",
+      ],
     ];
-    for (const id of dupes) {
-      const h = highlight(id);
-      expect(visibleHighlightSummary(h.title, h.summary), h.title).toBe("");
+    for (const [title, summary] of dupes) {
+      expect(visibleHighlightSummary(title, summary), title).toBe("");
+      expect(visibleHighlightTitle(title, summary)).toBe(title);
     }
-
-    const briefings = highlight("git-9e9c7684");
-    expect(briefings.title).toBe("UX: Briefings uses the Comms tab row (Incidents-style tabs");
-    expect(briefings.summary).toBe(
-      "UX: Briefings uses the Comms tab row (Incidents-style tabs; Scanner stays).",
-    );
-    expect(visibleHighlightSummary(briefings.title, briefings.summary)).toBe("Scanner stays).");
   });
 
   it("treats case, whitespace, and punctuation-only differences as duplicates", () => {
@@ -71,6 +99,11 @@ describe("visibleHighlightSummary", () => {
     expect(visibleHighlightSummary("Add roads", "Add roads and a live legend.")).toBe(
       "Add roads and a live legend.",
     );
+    expect(visibleHighlightSummary("Price $5", "Price5")).toBe("Price5");
+    expect(visibleHighlightSummary("Price $5", "Price 5.")).toBe("Price 5.");
+    expect(visibleHighlightSummary("Re-sign", "Resign the roster.")).toBe("Resign the roster.");
+    expect(visibleHighlightSummary("Price $5", "Price $5.")).toBe("");
+    expect(visibleHighlightSummary("Re-sign", "Re-sign.")).toBe("");
   });
 
   it("shows only the genuine tail after a repeated title and a separator", () => {
@@ -85,12 +118,6 @@ describe("visibleHighlightSummary", () => {
     );
     expect(visibleHighlightSummary("Export", "Export: ; overnight CSV.")).toBe("overnight CSV.");
 
-    const roster = highlight("git-81dc880a");
-    expect(roster.title).toBe("Roster: Link rostered agents by verified email");
-    expect(visibleHighlightSummary(roster.title, roster.summary)).toBe(
-      "fix false expired on set-password; batch bulk invites.",
-    );
-
     const built = formatCommitTitleAndSummary(
       "feat",
       "roster",
@@ -102,18 +129,106 @@ describe("visibleHighlightSummary", () => {
       "fix false expired on set-password; batch bulk invites.",
     );
 
+    const liveRoster = parseGitHubCommitsToReleases([
+      {
+        sha: "81dc880a11223344",
+        commit: {
+          message:
+            "feat(roster): link rostered agents by verified email; fix false expired on set-password; batch bulk invites",
+          author: { date: "2026-10-23T12:00:00Z" },
+        },
+      },
+    ])[0].highlights[0];
+    expect(liveRoster.title).toBe(built.title);
+    expect(visibleHighlightSummary(liveRoster.title, liveRoster.summary)).toBe(
+      "fix false expired on set-password; batch bulk invites.",
+    );
+  });
+
+  it("keeps a semicolon inside brackets in the title on both parsers", () => {
+    const cases: Array<[string, string]> = [
+      [BRIEFINGS, BRIEFINGS],
+      [NESTED, NESTED],
+      ["Route [alpha; beta] stays whole", "Route [alpha; beta] stays whole"],
+      ["Note {alpha; beta} stays whole", "Note {alpha; beta} stays whole"],
+      ["Mix (a [b; c] d) stays whole", "Mix (a [b; c] d) stays whole"],
+      [AFTER_GROUP, "Show status (alpha; beta)"],
+      ["Outer (inner); next clause", "Outer (inner)"],
+    ];
+    for (const [input, clause] of cases) {
+      expect(firstTopLevelClause(input), input).toBe(clause);
+      expect(buildFirstTopLevelClause(input), input).toBe(clause);
+    }
+
+    const built = formatCommitTitleAndSummary("feat", "", BRIEFINGS);
     const live = parseGitHubCommitsToReleases([
       {
         sha: "9e9c7684aabbccdd",
         commit: {
-          message: "UX: Briefings uses the Comms tab row (Incidents-style tabs; Scanner stays) (#239)",
+          message: `${BRIEFINGS} (#239)`,
           author: { date: "2026-11-01T12:00:00Z" },
         },
       },
+    ])[0].highlights[0];
+    const fromLog = (
+      parseGitLogToReleases(`9e9c7684aabbccdd\t2026-11-01\t${BRIEFINGS} (#239)`) as ReleaseNote[]
+    )[0].highlights[0];
+
+    expect(built.title).toBe(BRIEFINGS);
+    expect(live.title).toBe(BRIEFINGS);
+    expect(fromLog.title).toBe(BRIEFINGS);
+    expect(live.id).toBe("gh-9e9c7684");
+    expect(fromLog.id).toBe("git-9e9c7684");
+    expect(live.pr).toBe(239);
+    expect(fromLog.pr).toBe(239);
+    expect(highlightDedupeKey(live)).toBe("pr:239");
+    expect(highlightDedupeKey(fromLog)).toBe(highlightDedupeKey(live));
+    expect(visibleHighlightSummary(live.title, live.summary)).toBe("");
+    expect(visibleHighlightTitle(live.title, live.summary)).toBe(BRIEFINGS);
+
+    const legacySummary = `${BRIEFINGS}.`;
+    expect(visibleHighlightTitle(BRIEFINGS_CUT, legacySummary)).toBe(BRIEFINGS);
+    expect(visibleHighlightSummary(BRIEFINGS_CUT, legacySummary)).toBe("");
+    expect(visibleHighlightSummary(BRIEFINGS_CUT, legacySummary)).not.toBe("Scanner stays).");
+
+    const nestedCut = "Keep alerts (outer [inner";
+    const nestedSummary = `${NESTED}.`;
+    expect(visibleHighlightTitle(nestedCut, nestedSummary)).toBe(NESTED);
+    expect(visibleHighlightSummary(nestedCut, nestedSummary)).toBe("");
+
+    const grouped = formatCommitTitleAndSummary("feat", "", AFTER_GROUP);
+    expect(grouped.title).toBe("Show status (alpha; beta)");
+    expect(visibleHighlightSummary(grouped.title, grouped.summary)).toBe("then the real tail.");
+
+    const legacyRelease: ReleaseNote = {
+      id: "git-2026-11-01",
+      date: "Nov 1, 2026",
+      version: "git-2026.11.01",
+      title: BRIEFINGS_CUT,
+      tier: "major",
+      highlights: [
+        {
+          id: "git-9e9c7684",
+          pr: 239,
+          title: BRIEFINGS_CUT,
+          summary: legacySummary,
+          roles: ["all"],
+        },
+      ],
+    };
+    const merged = mergeReleases([], [legacyRelease], [
+      {
+        id: "git-2026-11-01",
+        date: "Nov 1, 2026",
+        version: "git-2026.11.01",
+        title: live.title,
+        tier: "minor",
+        highlights: [live],
+      },
     ]);
-    const h = live[0].highlights[0];
-    expect(h.title).toBe(highlight("git-9e9c7684").title);
-    expect(visibleHighlightSummary(h.title, h.summary)).toBe("Scanner stays).");
+    const kept = merged.flatMap((r) => r.highlights).filter((h) => h.pr === 239);
+    expect(kept).toHaveLength(1);
+    expect(kept[0].id).toBe("git-9e9c7684");
   });
 
   it("does not drop distinct entries, dates, or role filtering", () => {
@@ -133,11 +248,38 @@ describe("visibleHighlightSummary", () => {
 describe("ChangelogHighlightLine", () => {
   afterEach(() => cleanup());
 
-  it("renders screenshot rows once, with the Briefings tail and the Timeclock link", () => {
-    const dedupe = highlight("git-9956a03e");
-    const invoices = highlight("git-a3216fa5");
-    const clock = highlight("git-7b11062f");
-    const briefings = highlight("git-9e9c7684");
+  it("renders screenshot rows once, with the full Briefings sentence and the Timeclock link", () => {
+    const dedupe: ReleaseHighlight = {
+      id: "dedupe",
+      title: "What's New: dedupe PRs across sources, consistent UTC (Zulu) dates",
+      summary: "What's New: dedupe PRs across sources, consistent UTC (Zulu) dates.",
+      roles: ["all"],
+      icon: "Megaphone",
+    };
+    const invoices: ReleaseHighlight = {
+      id: "invoices",
+      title: "Invoices: save per company, status list, client read access",
+      summary: "Invoices: save per company, status list, client read access.",
+      roles: ["all"],
+    };
+    const clock: ReleaseHighlight = {
+      id: "clock",
+      title: "UX: drop leftover Clock/Mass Clock tab row from /patrols",
+      summary: "UX: drop leftover Clock/Mass Clock tab row from /patrols.",
+      roles: ["all"],
+      tryHref: "/timeclock",
+      tryLabel: "Open Timeclock",
+      icon: "Coffee",
+    };
+    const briefings: ReleaseHighlight = {
+      id: "briefings",
+      title: BRIEFINGS_CUT,
+      summary: `${BRIEFINGS}.`,
+      roles: ["all"],
+      tryHref: "/patrols",
+      tryLabel: "Open Patrols",
+      icon: "MessageSquare",
+    };
     const onTry = vi.fn();
 
     const { container } = render(
@@ -155,15 +297,16 @@ describe("ChangelogHighlightLine", () => {
     expect(text.match(/save per company, status list, client read access/g)).toHaveLength(1);
     expect(text.match(/Clock\/Mass Clock/g)).toHaveLength(1);
     expect(text).not.toContain("patrols.");
-    expect(text).toContain("Scanner stays).");
+    expect(text).toContain(BRIEFINGS);
+    expect(text).not.toContain("Scanner stays).");
+    expect(text.match(/Scanner stays/g)).toHaveLength(1);
     expect(text.match(/Incidents-style tabs/g)).toHaveLength(1);
 
-    expect(screen.queryByTestId(`whats-new-changelog-detail-${dedupe.id}`)).toBeNull();
-    expect(screen.queryByTestId(`whats-new-changelog-detail-${invoices.id}`)).toBeNull();
-    expect(screen.queryByTestId(`whats-new-changelog-detail-${clock.id}`)).toBeNull();
-    expect(screen.getByTestId(`whats-new-changelog-detail-${briefings.id}`).textContent).toBe(
-      "Scanner stays).",
-    );
+    expect(screen.queryByTestId("whats-new-changelog-detail-dedupe")).toBeNull();
+    expect(screen.queryByTestId("whats-new-changelog-detail-invoices")).toBeNull();
+    expect(screen.queryByTestId("whats-new-changelog-detail-clock")).toBeNull();
+    expect(screen.queryByTestId("whats-new-changelog-detail-briefings")).toBeNull();
+    expect(screen.getByRole("button", { name: /Open Patrols/ })).toBeTruthy();
 
     const cta = screen.getByRole("button", { name: /Open Timeclock/ });
     expect(cta.className).toContain("underline");
