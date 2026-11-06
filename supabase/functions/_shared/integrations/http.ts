@@ -48,18 +48,38 @@ export async function isCronCall(req: Request, admin: ReturnType<typeof serviceC
 }
 
 /**
+ * Public app key only. A browser may send the publishable or legacy anon key
+ * as `apikey`. A secret key from the client is ignored.
+ */
+export function publicApiKey(value: string | null | undefined): string {
+  const key = (value ?? "").trim();
+  if (!key || key.startsWith("sb_secret_") || /\s/.test(key)) return "";
+  if (key.startsWith("sb_publishable_")) return key;
+  const parts = key.split(".");
+  if (parts.length === 3 && parts.every((part) => part.length > 0)) return key;
+  return "";
+}
+
+/**
  * Resolve the signed-in caller and their role in company_id.
  * Returns null user when the JWT is missing/invalid. Only an active membership
  * counts, matching public.my_company_role().
+ *
+ * getUser() with no argument reads a persisted session. This client has none,
+ * so that call returns no user and the action 401s before the role lookup.
+ * The bearer on the request is the token to check.
  */
 export async function callerRole(req: Request, admin: ReturnType<typeof serviceClient>, companyId: string): Promise<{ authUserId: string | null; userId: string | null; role: string | null }> {
-  const authHeader = req.headers.get("authorization") ?? "";
-  if (!authHeader.startsWith("Bearer ")) return { authUserId: null, userId: null, role: null };
-  const userClient = createClient(env("SUPABASE_URL") ?? "", env("SUPABASE_ANON_KEY") ?? "", {
-    global: { headers: { Authorization: authHeader } },
+  const match = /^Bearer\s+(\S+)/i.exec((req.headers.get("authorization") ?? "").trim());
+  const jwt = match?.[1] ?? "";
+  if (!jwt) return { authUserId: null, userId: null, role: null };
+  const apiKey = publicApiKey(req.headers.get("apikey")) || publicApiKey(env("SUPABASE_ANON_KEY"));
+  const supabaseUrl = env("SUPABASE_URL") ?? "";
+  if (!apiKey || !supabaseUrl) return { authUserId: null, userId: null, role: null };
+  const userClient = createClient(supabaseUrl, apiKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const { data: { user } } = await userClient.auth.getUser();
+  const { data: { user } } = await userClient.auth.getUser(jwt);
   if (!user) return { authUserId: null, userId: null, role: null };
   const { data: me } = await admin.from("users").select("id").eq("supabase_id", user.id).maybeSingle();
   const userId = (me as { id?: string } | null)?.id ?? null;
