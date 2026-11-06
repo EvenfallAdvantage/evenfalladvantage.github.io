@@ -181,6 +181,17 @@ self.addEventListener("fetch", (event) => {
     event.respondWith((async () => {
       const cache = await caches.open(owCompanyPwa.companyCacheName(companyPwa.companyId));
       const hit = (await cache.match(req)) || (await cache.match(url.pathname));
+      if (hit && companyPwa.file === "manifest.webmanifest") {
+        const text = await hit.clone().text();
+        // The URL company id is the only identity. A cached body for a different
+        // company, or one company's icon path, is a miss. Do not serve the shared manifest.
+        if (!owCompanyPwa.manifestBodyMatchesCompany(text, companyPwa.companyId)) {
+          return new Response("Not found", {
+            status: 404,
+            headers: { "Content-Type": "text/plain", "Cache-Control": "no-store" },
+          });
+        }
+      }
       if (hit) return hit;
       return new Response("Not found", {
         status: 404,

@@ -6,21 +6,18 @@ import { Download } from "lucide-react";
 import { useAuthStore } from "@/stores/auth-store";
 import { Button } from "@/components/ui/button";
 import {
-  INSTALL_CONTROL_RELOAD_KEY,
   INSTALL_QUERY,
   activeMembership,
   approvedLogoUrl,
   buildCompanyManifest,
-  companyInstallPath,
   companyManifestPath,
-  installCompanyIdFromSearch,
   installableCompanies,
-  shouldReloadUncontrolledInstall,
   type InstallMembership,
 } from "@/lib/pwa-company-install";
 import { companySurfaceHex, DEFAULT_BRAND } from "@/lib/brand-utils";
 import { rasterizeCompanyIcons } from "@/lib/pwa-company-raster";
-import { activateServiceWorkerForInstall, writeCompanyCacheInBrowser } from "@/lib/pwa-company-browser";
+import { finalizeCompanyInstallInBrowser, writeCompanyCacheInBrowser } from "@/lib/pwa-company-browser";
+import { companyInstallUrlIfVerified } from "@/lib/pwa-company-finalize";
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -48,33 +45,6 @@ function InstallScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-
-  useEffect(() => {
-    const companyId = installCompanyIdFromSearch(window.location.search);
-    let alreadyReloaded = false;
-    try {
-      alreadyReloaded = sessionStorage.getItem(INSTALL_CONTROL_RELOAD_KEY) === "1";
-    } catch {
-      alreadyReloaded = true;
-    }
-    const controlled = Boolean(navigator.serviceWorker?.controller);
-    if (controlled) {
-      try { sessionStorage.removeItem(INSTALL_CONTROL_RELOAD_KEY); } catch { /* private mode */ }
-    }
-    if (!shouldReloadUncontrolledInstall({
-      pathname: window.location.pathname,
-      companyId,
-      hasController: controlled,
-      alreadyReloaded,
-    })) return;
-    let cancelled = false;
-    activateServiceWorkerForInstall().then((active) => {
-      if (cancelled || !active || navigator.serviceWorker.controller) return;
-      try { sessionStorage.setItem(INSTALL_CONTROL_RELOAD_KEY, "1"); } catch { /* private mode */ }
-      window.location.replace(window.location.href);
-    });
-    return () => { cancelled = true; };
-  }, []);
 
   useEffect(() => {
     const onPrompt = (event: Event) => {
@@ -118,16 +88,16 @@ function InstallScreen() {
       return;
     }
     await writeCompanyCacheInBrowser(built, useLogo ? icons : []);
-    const active = await activateServiceWorkerForInstall();
-    if (!active) {
+    const verified = await finalizeCompanyInstallInBrowser(built, useLogo ? icons : []);
+    const next = companyInstallUrlIfVerified(verified, built.companyId);
+    if (!verified.ok || !next) {
       setBusy(null);
-      setNote("This browser has no active service worker, so the company manifest cannot be served. Reload Overwatch and press Install again.");
+      setNote(verified.ok ? "The company manifest could not be confirmed. Stay on this page and press Install again." : verified.message);
       return;
     }
-    try { sessionStorage.removeItem(INSTALL_CONTROL_RELOAD_KEY); } catch { /* private mode */ }
-    // Same tab. A new tab is often uncontrolled, so its first manifest fetch
-    // misses the worker and the install dialog keeps the default name.
-    window.location.assign(new URL(companyInstallPath(built.companyId), window.location.origin).toString());
+    // One same-tab navigation, and only after the worker served this company's
+    // cached manifest and icons. No reload loop and no shared-manifest fallback.
+    window.location.assign(new URL(next, window.location.origin).toString());
   }
 
   return (

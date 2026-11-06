@@ -3,7 +3,6 @@ import fs from "node:fs";
 import path from "node:path";
 import vm from "node:vm";
 import {
-  INSTALL_CONTROL_RELOAD_KEY,
   INSTALL_QUERY,
   LAUNCH_QUERY,
   LAUNCH_SESSION_KEY,
@@ -20,7 +19,6 @@ import {
   isInstallDocumentPath,
   launchSessionMayRetargetManifest,
   resolveLaunchCompany,
-  shouldReloadUncontrolledInstall,
   storeCompanyManifest,
   type InstallMembership,
 } from "@/lib/pwa-company-install";
@@ -63,6 +61,8 @@ function loadSwHelpers() {
     companyCacheName: (id: string) => string;
     matchCompanyPwaPath: (pathname: string) => { companyId: string; file: string } | null;
     shouldPreserveCompanyCache: (name: string) => boolean;
+    iconSrcAllowedForCompany: (src: string, companyId: string) => boolean;
+    manifestBodyMatchesCompany: (text: string, companyId: string) => boolean;
   };
 }
 
@@ -264,8 +264,10 @@ describe("install navigation", () => {
     expect(companyInstallPath(A)).toBe(`/overwatch/install/?${INSTALL_QUERY}=${A}`);
     expect(companyInstallPath(B.toUpperCase())).toBe(`/overwatch/install/?${INSTALL_QUERY}=${B}`);
     expect(installCompanyIdFromSearch(`?${INSTALL_QUERY}=${A}`)).toBe(A);
+    expect(installCompanyIdFromSearch(`?${INSTALL_QUERY}=${A.toUpperCase()}&extra=1`)).toBe(A);
     expect(installCompanyIdFromSearch(`?${INSTALL_QUERY}=not-a-uuid`)).toBeNull();
     expect(installCompanyIdFromSearch(`?${LAUNCH_QUERY}=${A}`)).toBeNull();
+    expect(installCompanyIdFromSearch(`?foo=1&${INSTALL_QUERY}=${B}`)).toBe(B);
     expect(isInstallDocumentPath("/overwatch/install/")).toBe(true);
     expect(isInstallDocumentPath("/overwatch/feed/")).toBe(false);
     expect(launchSessionMayRetargetManifest("/overwatch/install/")).toBe(false);
@@ -275,15 +277,12 @@ describe("install navigation", () => {
     expect(buildCompanyManifest([bravo], A, false)).toBeNull();
   });
 
-  it("reloads once when the install document is not controlled", () => {
-    const base = { pathname: "/overwatch/install/", companyId: A, hasController: false, alreadyReloaded: false };
-    expect(shouldReloadUncontrolledInstall(base)).toBe(true);
-    expect(shouldReloadUncontrolledInstall({ ...base, hasController: true })).toBe(false);
-    expect(shouldReloadUncontrolledInstall({ ...base, alreadyReloaded: true })).toBe(false);
-    expect(shouldReloadUncontrolledInstall({ ...base, companyId: null })).toBe(false);
-    expect(shouldReloadUncontrolledInstall({ ...base, companyId: "nope" })).toBe(false);
-    expect(shouldReloadUncontrolledInstall({ ...base, pathname: "/overwatch/feed/" })).toBe(false);
-    expect(INSTALL_CONTROL_RELOAD_KEY).toBe("overwatch:pwa-install-sw-reload");
+  it("does not reload the install page while waiting for a worker", () => {
+    const page = fs.readFileSync(path.join(rootDir, "src/app/install/page.tsx"), "utf8");
+    expect(page).not.toContain("location.reload");
+    expect(page).not.toContain("location.replace");
+    expect(page).toContain("finalizeCompanyInstallInBrowser");
+    expect(page).toContain("location.assign");
   });
 });
 
@@ -297,6 +296,16 @@ describe("service worker company cache separation", () => {
     expect(api.matchCompanyPwaPath("/overwatch/manifest.json")).toBeNull();
     expect(api.matchCompanyPwaPath("/overwatch/pwa/not-a-uuid/manifest.webmanifest")).toBeNull();
     expect(api.matchCompanyPwaPath(`/overwatch/pwa/${B}/icon-512.png`)).toEqual({ companyId: B, file: "icon-512.png" });
+    expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${A}/icon-192.png`, A)).toBe(true);
+    expect(api.iconSrcAllowedForCompany("/overwatch/images/icon-512.png", A)).toBe(true);
+    expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${B}/icon-512.png`, A)).toBe(false);
+    const branded = buildCompanyManifest([alpha], A, true)!;
+    expect(api.manifestBodyMatchesCompany(JSON.stringify(branded.body), A)).toBe(true);
+    expect(api.manifestBodyMatchesCompany(JSON.stringify({ ...branded.body, id: `/overwatch/pwa/${B}/` }), A)).toBe(false);
+    expect(api.manifestBodyMatchesCompany(JSON.stringify({
+      ...branded.body,
+      icons: [{ src: `/overwatch/pwa/${B}/icon-192.png`, sizes: "192x192", type: "image/png", purpose: "any" }],
+    }), A)).toBe(false);
     expect(api.shouldPreserveCompanyCache(companyCacheName(A))).toBe(true);
     expect(api.shouldPreserveCompanyCache(companyCacheName(B))).toBe(true);
     expect(api.shouldPreserveCompanyCache("overwatch-pages-abc12345")).toBe(false);
@@ -311,6 +320,7 @@ describe("service worker company cache separation", () => {
     expect(block).toContain("no-store");
     expect(block).not.toContain("fetch(");
     expect(block).not.toContain("manifest.json");
+    expect(block).toContain("owCompanyPwa.manifestBodyMatchesCompany");
     expect(sw).toContain("`${BASE_PATH}/install/`");
   });
 

@@ -9,6 +9,8 @@ import {
   PWA_LAUNCH_BOOT,
   SHARED_MANIFEST_PATH,
   buildCompanyManifest,
+  companyCacheName,
+  companyIconPath,
   companyManifestPath,
   type InstallMembership,
 } from "@/lib/pwa-company-install";
@@ -236,6 +238,124 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
       expect(corrected.url).toContain(built!.manifestPath);
       expect(correctedParsed.name).toBe(COMPANY_NAME);
       await context.close();
+    } finally {
+      await browser.close();
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  }, 60_000);
+
+  it("serves the branded manifest only after the cache commit and a controlling worker", async () => {
+    const membership: InstallMembership = {
+      companyId: COMPANY,
+      companyName: COMPANY_NAME,
+      companyLogo: `https://abc.supabase.co/storage/v1/object/public/company-logos/${COMPANY}/logo.png`,
+      brandColor: "#102030",
+      status: "active",
+    };
+    const built = buildCompanyManifest([membership], COMPANY, true)!;
+    const stale = { ...built.body, id: `/overwatch/pwa/${OTHER}/`, start_url: `/overwatch/?${LAUNCH_QUERY}=${OTHER}`, name: "Harbor Watch" };
+    const files = new Map<string, { body: Buffer; type: string }>([
+      ["/overwatch/index.html", { body: Buffer.from(pageHtml({ manifestLink: true })), type: "text/html" }],
+      ["/overwatch/manifest.json", { body: fs.readFileSync(path.join(rootDir, "public/manifest.json")), type: "application/manifest+json" }],
+      ["/overwatch/sw.js", { body: fs.readFileSync(path.join(rootDir, "public/sw.js")), type: "text/javascript" }],
+      ["/overwatch/pwa-company-cache.js", { body: fs.readFileSync(path.join(rootDir, "public/pwa-company-cache.js")), type: "text/javascript" }],
+    ]);
+    const { server, port } = await startServer(files);
+    const { chromium } = await import("playwright-core");
+    const browser = await chromium.launch({
+      executablePath: chromePath,
+      headless: true,
+      args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    });
+    try {
+      const page = await browser.newPage();
+      await page.goto(`http://127.0.0.1:${port}/overwatch/`, { waitUntil: "domcontentloaded" });
+      const observed = await page.evaluate(async (args) => {
+        async function read(url: string) {
+          const response = await fetch(url, { cache: "no-store", credentials: "same-origin" });
+          return {
+            status: response.status,
+            type: response.headers.get("content-type"),
+            text: await response.text(),
+            controlled: navigator.serviceWorker.controller !== null,
+          };
+        }
+        const beforeWorker = await read(args.manifestPath);
+        const claimed = new Promise<void>((resolve) => {
+          if (navigator.serviceWorker.controller) resolve();
+          navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), { once: true });
+        });
+        await navigator.serviceWorker.register("/overwatch/sw.js", { scope: "/overwatch/" });
+        await navigator.serviceWorker.ready;
+        await claimed;
+        let release: () => void = () => {};
+        const gate = new Promise<void>((resolve) => { release = resolve; });
+        const putTask = (async () => {
+          await gate;
+          const cache = await caches.open(args.cacheName);
+          await cache.put(new URL(args.manifestPath, location.origin).toString(), new Response(args.manifestBody, {
+            headers: { "Content-Type": "application/manifest+json" },
+          }));
+          await cache.put(new URL(args.iconPath, location.origin).toString(), new Response(Uint8Array.from(args.png), {
+            headers: { "Content-Type": "image/png" },
+          }));
+        })();
+        const duringCommit = await read(args.manifestPath);
+        release();
+        await putTask;
+        const after = await read(args.manifestPath);
+        const queried = await read(`${args.manifestPath}?v=2`);
+        const icon = await fetch(args.iconPath, { cache: "no-store", credentials: "same-origin" });
+        const other = await fetch(args.otherIcon, { cache: "no-store", credentials: "same-origin" });
+        const cache = await caches.open(args.cacheName);
+        await cache.put(new URL(args.manifestPath, location.origin).toString(), new Response(args.staleBody, {
+          headers: { "Content-Type": "application/manifest+json" },
+        }));
+        const stale = await read(args.manifestPath);
+        return {
+          beforeWorker,
+          duringCommit,
+          after,
+          queried,
+          iconStatus: icon.status,
+          iconType: icon.headers.get("content-type"),
+          iconBytes: Array.from(new Uint8Array(await icon.arrayBuffer())),
+          otherStatus: other.status,
+          stale,
+          stayed: location.pathname + location.search,
+        };
+      }, {
+        cacheName: companyCacheName(COMPANY),
+        manifestPath: built.manifestPath,
+        manifestBody: JSON.stringify(built.body),
+        iconPath: companyIconPath(COMPANY, "icon-192.png"),
+        otherIcon: companyIconPath(OTHER, "icon-192.png"),
+        png: Array.from(PNG),
+        staleBody: JSON.stringify(stale),
+      });
+
+      expect(observed.beforeWorker.controlled).toBe(false);
+      expect(observed.beforeWorker.status).toBe(404);
+      expect(observed.beforeWorker.text).not.toContain(COMPANY_NAME);
+      expect(observed.duringCommit.controlled).toBe(true);
+      expect(observed.duringCommit.status).toBe(404);
+      expect(observed.duringCommit.text).not.toContain(COMPANY_NAME);
+      expect(observed.after.status).toBe(200);
+      expect(observed.after.type).toContain("application/manifest+json");
+      const after = JSON.parse(observed.after.text) as { name: string; id: string; theme_color: string; icons: { src: string }[] };
+      expect(after.name).toBe(COMPANY_NAME);
+      expect(after.id).toBe(built.appId);
+      expect(after.theme_color).toBe(built.themeColor);
+      expect(after.icons[0].src).toBe(companyIconPath(COMPANY, "icon-192.png"));
+      expect(observed.queried.status).toBe(200);
+      expect(observed.queried.text).toContain(COMPANY_NAME);
+      expect(observed.iconStatus).toBe(200);
+      expect(observed.iconType).toContain("image/png");
+      expect(Buffer.from(observed.iconBytes)).toEqual(PNG);
+      expect(observed.otherStatus).toBe(404);
+      expect(observed.stale.status).toBe(404);
+      expect(observed.stale.text).not.toContain("Harbor Watch");
+      expect(observed.stayed).toBe("/overwatch/");
     } finally {
       await browser.close();
       await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));

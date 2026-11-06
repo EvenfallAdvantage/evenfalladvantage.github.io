@@ -213,28 +213,6 @@ export function launchSessionMayRetargetManifest(pathname: string): boolean {
   return !isInstallDocumentPath(pathname);
 }
 
-export const INSTALL_CONTROL_RELOAD_KEY = "overwatch:pwa-install-sw-reload";
-
-/**
- * A company manifest fetch during parse is intercepted only when this
- * document is already controlled. navigator.serviceWorker.ready means an
- * active worker exists; it does not set controller on the current document.
- * One same-tab reload after the worker is active is controlled. A second
- * reload is not attempted.
- */
-export function shouldReloadUncontrolledInstall(input: {
-  pathname: string;
-  companyId: string | null;
-  hasController: boolean;
-  alreadyReloaded: boolean;
-}): boolean {
-  if (!isInstallDocumentPath(input.pathname)) return false;
-  if (!isUuid(input.companyId)) return false;
-  if (input.hasController) return false;
-  if (input.alreadyReloaded) return false;
-  return true;
-}
-
 /**
  * Inline head script. Runs while the document is parsing.
  *
