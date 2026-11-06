@@ -17,13 +17,24 @@ export async function getIntegrationConnections(companyId: string): Promise<Inte
 
 async function callFunction<T>(name: string, body: Record<string, unknown>): Promise<T> {
   const supabase = createClient();
+  // getUser refreshes a stale access token. getSession alone can still hold
+  // the expired one, and the function then rejects it before checking a role.
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+  if (userError || !user) throw new Error("Not signed in");
   const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Not signed in");
+  const token = session?.access_token;
+  if (!token) throw new Error("Not signed in");
   const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
   if (!base) throw new Error("Supabase URL missing");
+  const headers: Record<string, string> = {
+    Authorization: `Bearer ${token}`,
+    "Content-Type": "application/json",
+  };
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (anon) headers.apikey = anon;
   const res = await fetch(`${base.replace(/\/+$/, "")}/functions/v1/${name}`, {
     method: "POST",
-    headers: { Authorization: `Bearer ${session.access_token}`, "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
   const out = (await res.json().catch(() => ({}))) as T & { error?: string };
