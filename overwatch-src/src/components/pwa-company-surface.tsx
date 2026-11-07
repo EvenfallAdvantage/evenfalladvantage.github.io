@@ -133,6 +133,23 @@ function manifestHref(): string {
   return document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "";
 }
 
+/** The worker can become active after the short budget if its script was slow to arrive. */
+function waitForController(ms: number): Promise<boolean> {
+  if (navigator.serviceWorker.controller) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const finish = (controlled: boolean) => {
+      window.clearTimeout(timer);
+      navigator.serviceWorker.removeEventListener("controllerchange", onChange);
+      resolve(controlled);
+    };
+    const onChange = () => {
+      if (navigator.serviceWorker.controller) finish(true);
+    };
+    const timer = window.setTimeout(() => finish(Boolean(navigator.serviceWorker.controller)), ms);
+    navigator.serviceWorker.addEventListener("controllerchange", onChange);
+  });
+}
+
 /**
  * The browser menu reads this document. An installed launch (`?ow_company=` or
  * the launch session) stays that company when the signed-in company changes
@@ -183,8 +200,11 @@ export function CompanyInstallSurface() {
       if (!built || !("caches" in window)) return;
       await writeCompanyCacheInBrowser(built, useLogo ? icons : []);
       if (cancelled) return;
-      const workerReady = await waitForActiveServiceWorker();
-      if (cancelled || !workerReady || !navigator.serviceWorker.controller) return;
+      if (!("serviceWorker" in navigator)) return;
+      await waitForActiveServiceWorker();
+      if (cancelled) return;
+      const controlled = navigator.serviceWorker.controller ? true : await waitForController(20_000);
+      if (cancelled || !controlled) return;
       try {
         sessionStorage.setItem(SURFACE_COMPANY_KEY, built.companyId);
         sessionStorage.setItem(SURFACE_NAME_KEY, built.name);
