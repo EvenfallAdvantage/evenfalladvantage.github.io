@@ -19,6 +19,7 @@ import {
   rosterPlanToken,
   rosterDiagnosticReport,
   rosterDisplayName,
+  scrubRosterWriteError,
   rosterSyncPayload,
   sameFieldMap,
   isRosterDiagnosticReport,
@@ -536,7 +537,7 @@ async function applyRoster(
       plan: rosterSyncPayload(plan),
     });
     const failed = applied.failed ?? { create: 0, attach: 0, link: 0, update: 0, remove: 0 };
-    const failures = applied.failures.map((row) => ({ op: row.op, airtableId: row.airtable_id, message: row.message }));
+    const failures = applied.failures.map((row) => ({ op: row.op, airtableId: row.airtable_id, message: scrubRosterWriteError(row.message) }));
     const report = rosterDiagnosticReport({
       kind: "sync",
       plan,
@@ -544,6 +545,13 @@ async function applyRoster(
       ...rosterNames(interpreted, people),
       failures,
       writeFailures: failed,
+      applied: {
+        created: applied.created,
+        attached: applied.attached,
+        linked: applied.linked,
+        updated: applied.updated,
+        removed: applied.removed,
+      },
     });
     return {
       ok: true,
@@ -556,7 +564,8 @@ async function applyRoster(
       conflicts: plan.conflicts.length,
       skipped: plan.skipped.length,
       missing: applied.removed,
-      held: plan.held.length,
+      held: report.held,
+      removalHold: report.removalHold,
       protected: plan.protected.length,
       truncated: plan.removalHold === "truncated" || plan.removalHold === "roster_truncated",
       read: plan.read,
