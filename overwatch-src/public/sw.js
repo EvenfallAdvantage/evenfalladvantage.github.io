@@ -180,7 +180,11 @@ self.addEventListener("fetch", (event) => {
   if (companyPwa) {
     event.respondWith((async () => {
       const cache = await caches.open(owCompanyPwa.companyCacheName(companyPwa.companyId));
-      const hit = (await cache.match(req)) || (await cache.match(url.pathname));
+      // Exact URL only when the request is versioned. The pathname entry can
+      // still be the previous icon while a migration is writing ?v=2, and
+      // serving it would store those old bytes under the new URL.
+      const exact = await cache.match(req);
+      const hit = exact || (url.search ? undefined : await cache.match(url.pathname));
       if (hit && companyPwa.file === "manifest.webmanifest") {
         const text = await hit.clone().text();
         // The URL company id is the only identity. A cached body for a different

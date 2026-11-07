@@ -25,14 +25,24 @@ export const INSTALL_TIMEOUT_MESSAGE =
 
 const SHARED_ICON_SRCS = new Set<string>(OVERWATCH_ICONS.map((icon) => icon.src));
 
+function iconSrcPath(src: string): string {
+  const query = src.indexOf("?");
+  const hash = src.indexOf("#");
+  let end = src.length;
+  if (query >= 0) end = Math.min(end, query);
+  if (hash >= 0) end = Math.min(end, hash);
+  return src.slice(0, end);
+}
+
 export function iconSrcAllowedForCompany(src: string, companyId: string): boolean {
   const id = companyId.toLowerCase();
+  const path = iconSrcPath(src);
   const own = `/overwatch/pwa/${id}/`;
-  if (src.startsWith(own)) {
-    const file = src.slice(own.length);
+  if (path.startsWith(own)) {
+    const file = path.slice(own.length);
     return file === "icon-192.png" || file === "icon-512.png" || file === "icon-maskable-192.png" || file === "icon-maskable-512.png";
   }
-  return SHARED_ICON_SRCS.has(src);
+  return SHARED_ICON_SRCS.has(path);
 }
 
 export type ManifestProbe = {

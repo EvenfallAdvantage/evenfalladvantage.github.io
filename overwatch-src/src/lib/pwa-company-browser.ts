@@ -9,26 +9,64 @@ import {
   type IconProbe,
 } from "@/lib/pwa-company-finalize";
 
+type CompanyCachePut = {
+  put(request: string, response: Response): Promise<void>;
+};
+
+/**
+ * Writes one company's install cache.
+ * Versioned icon URLs are stored first. The manifest is replaced only after
+ * every icon it names is already stored, so another controlled tab cannot
+ * read a ?v= revision whose icon is still missing. Pathname aliases are
+ * replaced last; a versioned request must not depend on them.
+ * Does not open any other cache.
+ */
+export async function writeCompanyInstallCache(
+  cache: CompanyCachePut,
+  built: BuiltCompanyManifest,
+  icons: { path: string; blob: Blob }[],
+  origin: string,
+): Promise<void> {
+  const prefix = `/overwatch/pwa/${built.companyId}/`;
+  const provided = new Map<string, Blob>();
+  for (const icon of icons) {
+    if (!icon.path.startsWith(prefix)) continue;
+    provided.set(icon.path, icon.blob);
+  }
+  const expected = built.icons.filter((icon) => icon.src.startsWith(prefix));
+  if (expected.length !== provided.size || expected.some((icon) => !provided.has(icon.src))) {
+    throw new Error("company-icons-incomplete");
+  }
+  const png = { headers: { "Content-Type": "image/png" } };
+  const versioned: { path: string; blob: Blob }[] = [];
+  for (const icon of expected) {
+    const blob = provided.get(icon.src);
+    if (!blob) throw new Error("company-icons-incomplete");
+    const stored = new URL(icon.src, origin);
+    await cache.put(stored.toString(), new Response(blob, png));
+    versioned.push({ path: stored.toString(), blob });
+  }
+  await cache.put(
+    new URL(built.manifestPath, origin).toString(),
+    new Response(JSON.stringify(built.body), {
+      headers: { "Content-Type": "application/manifest+json" },
+    }),
+  );
+  for (const icon of versioned) {
+    const alias = new URL(icon.path);
+    if (!alias.search) continue;
+    alias.search = "";
+    await cache.put(alias.toString(), new Response(icon.blob, png));
+  }
+}
+
 /** Writes the company manifest and its snapshotted icons. Does not open any other cache. */
 export async function writeCompanyCacheInBrowser(
   built: BuiltCompanyManifest,
   icons: { path: string; blob: Blob }[],
 ): Promise<void> {
   const cache = await caches.open(built.cacheName);
-  const manifestUrl = new URL(built.manifestPath, location.origin).toString();
-  await cache.put(
-    manifestUrl,
-    new Response(JSON.stringify(built.body), {
-      headers: { "Content-Type": "application/manifest+json" },
-    }),
-  );
-  for (const icon of icons) {
-    if (!icon.path.startsWith(`/overwatch/pwa/${built.companyId}/`)) continue;
-    await cache.put(
-      new URL(icon.path, location.origin).toString(),
-      new Response(icon.blob, { headers: { "Content-Type": "image/png" } }),
-    );
-  }
+  await writeCompanyInstallCache(cache, built, icons, location.origin);
 }
 
 type ServiceWorkerControl = {

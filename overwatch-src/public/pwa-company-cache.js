@@ -44,12 +44,22 @@
     "/overwatch/images/icon-maskable-512.png": true,
   };
 
+  function iconSrcPath(src) {
+    var query = src.indexOf("?");
+    var hash = src.indexOf("#");
+    var end = src.length;
+    if (query >= 0) end = Math.min(end, query);
+    if (hash >= 0) end = Math.min(end, hash);
+    return src.slice(0, end);
+  }
+
   function iconSrcAllowedForCompany(src, companyId) {
     if (typeof src !== "string" || !isUuid(companyId)) return false;
     var id = companyId.toLowerCase();
+    var path = iconSrcPath(src);
     var own = "/overwatch/pwa/" + id + "/";
-    if (src.indexOf(own) === 0) return !!FILES[src.slice(own.length)];
-    return !!SHARED_ICONS[src];
+    if (path.indexOf(own) === 0) return !!FILES[path.slice(own.length)];
+    return !!SHARED_ICONS[path];
   }
 
   function uuidsIn(value) {

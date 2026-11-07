@@ -12,6 +12,7 @@ import {
   buildCompanyManifest,
   companyCacheName,
   companyIconPath,
+  companyIconSrc,
   companyManifestPath,
   type InstallMembership,
 } from "@/lib/pwa-company-install";
@@ -358,6 +359,7 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
         const after = await read(args.manifestPath);
         const queried = await read(`${args.manifestPath}?v=2`);
         const icon = await fetch(args.iconPath, { cache: "no-store", credentials: "same-origin" });
+        const versioned = await fetch(args.versionedIcon, { cache: "no-store", credentials: "same-origin" });
         const other = await fetch(args.otherIcon, { cache: "no-store", credentials: "same-origin" });
         const cache = await caches.open(args.cacheName);
         await cache.put(new URL(args.manifestPath, location.origin).toString(), new Response(args.staleBody, {
@@ -372,6 +374,8 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
           iconStatus: icon.status,
           iconType: icon.headers.get("content-type"),
           iconBytes: Array.from(new Uint8Array(await icon.arrayBuffer())),
+          versionedStatus: versioned.status,
+          versionedBytes: Array.from(new Uint8Array(await versioned.arrayBuffer())),
           otherStatus: other.status,
           stale,
           stayed: location.pathname + location.search,
@@ -381,6 +385,7 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
         manifestPath: built.manifestPath,
         manifestBody: JSON.stringify(built.body),
         iconPath: companyIconPath(COMPANY, "icon-192.png"),
+        versionedIcon: companyIconSrc(COMPANY, "icon-192.png"),
         otherIcon: companyIconPath(OTHER, "icon-192.png"),
         png: Array.from(PNG),
         staleBody: JSON.stringify(stale),
@@ -398,12 +403,14 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
       expect(after.name).toBe(COMPANY_NAME);
       expect(after.id).toBe(built.appId);
       expect(after.theme_color).toBe(built.themeColor);
-      expect(after.icons[0].src).toBe(companyIconPath(COMPANY, "icon-192.png"));
-      expect(observed.queried.status).toBe(200);
-      expect(observed.queried.text).toContain(COMPANY_NAME);
+      expect(after.icons[0].src).toBe(companyIconSrc(COMPANY, "icon-192.png"));
+      expect(observed.queried.status).toBe(404);
+      expect(observed.queried.text).not.toContain(COMPANY_NAME);
       expect(observed.iconStatus).toBe(200);
       expect(observed.iconType).toContain("image/png");
       expect(Buffer.from(observed.iconBytes)).toEqual(PNG);
+      expect(observed.versionedStatus).toBe(404);
+      expect(Buffer.from(observed.versionedBytes)).not.toEqual(PNG);
       expect(observed.otherStatus).toBe(404);
       expect(observed.stale.status).toBe(404);
       expect(observed.stale.text).not.toContain("Harbor Watch");
@@ -449,10 +456,10 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
       args: ["--no-sandbox", "--disable-dev-shm-usage"],
     });
     const iconFiles = (id: string, small: Buffer, large: Buffer) => [
-      [companyIconPath(id, "icon-192.png"), small],
-      [companyIconPath(id, "icon-512.png"), large],
-      [companyIconPath(id, "icon-maskable-192.png"), small],
-      [companyIconPath(id, "icon-maskable-512.png"), large],
+      [companyIconSrc(id, "icon-192.png"), small],
+      [companyIconSrc(id, "icon-512.png"), large],
+      [companyIconSrc(id, "icon-maskable-192.png"), small],
+      [companyIconSrc(id, "icon-maskable-512.png"), large],
     ] as const;
     try {
       const page = await browser.newPage();
@@ -546,6 +553,137 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
       const updated = JSON.parse((await readAppManifest(page)).data || "{}") as { name?: string; id?: string };
       expect(updated.name).toBe(COMPANY_NAME);
       expect(updated.id).toBe(first.appId);
+    } finally {
+      await browser.close();
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  }, 60_000);
+
+  it("does not publish a v2 manifest or serve a v1 alias for a versioned icon", async () => {
+    const membership: InstallMembership = {
+      companyId: COMPANY,
+      companyName: COMPANY_NAME,
+      companyLogo: `https://abc.supabase.co/storage/v1/object/public/company-logos/${COMPANY}/logo.png`,
+      brandColor: "#102030",
+      status: "active",
+    };
+    const built = buildCompanyManifest([membership], COMPANY, true)!;
+    const v1Manifest = JSON.stringify({
+      ...built.body,
+      icons: built.body.icons.map((icon) => ({ ...icon, src: icon.src.split("?")[0] })),
+    });
+    const files = new Map<string, { body: Buffer; type: string }>([
+      ["/overwatch/index.html", { body: Buffer.from(pageHtml({ manifestLink: true })), type: "text/html" }],
+      ["/overwatch/sw.js", { body: fs.readFileSync(path.join(rootDir, "public/sw.js")), type: "text/javascript" }],
+      ["/overwatch/pwa-company-cache.js", { body: fs.readFileSync(path.join(rootDir, "public/pwa-company-cache.js")), type: "text/javascript" }],
+    ]);
+    const { server, port } = await startServer(files);
+    const { chromium } = await import("playwright-core");
+    const browser = await chromium.launch({
+      executablePath: chromePath,
+      headless: true,
+      args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    });
+    try {
+      const page = await browser.newPage();
+      await page.goto(`http://127.0.0.1:${port}/overwatch/`, { waitUntil: "domcontentloaded" });
+      const observed = await page.evaluate(async (args) => {
+        const claimed = new Promise<void>((resolve) => {
+          if (navigator.serviceWorker.controller) resolve();
+          navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), { once: true });
+        });
+        await navigator.serviceWorker.register("/overwatch/sw.js", { scope: "/overwatch/" });
+        await navigator.serviceWorker.ready;
+        await claimed;
+        const cache = await caches.open(args.cacheName);
+        const png = { headers: { "Content-Type": "image/png" } };
+        const manifestType = { headers: { "Content-Type": "application/manifest+json" } };
+        await cache.put(new URL(args.manifestPath, location.origin).toString(), new Response(args.v1Manifest, manifestType));
+        for (const path of args.aliases) {
+          await cache.put(new URL(path, location.origin).toString(), new Response(Uint8Array.from(args.v1Bytes), png));
+        }
+        async function read(url: string) {
+          const response = await fetch(url, { cache: "no-store", credentials: "same-origin" });
+          return { status: response.status, bytes: Array.from(new Uint8Array(await response.arrayBuffer())) };
+        }
+        const before = {
+          versioned: await read(args.versioned),
+          alias: await read(args.alias),
+          manifest: await read(args.manifestPath),
+        };
+        let interrupted = false;
+        try {
+          await cache.put(new URL(args.versioned, location.origin).toString(), new Response(Uint8Array.from(args.v2Bytes), png));
+          throw new Error("interrupted");
+        } catch (error) {
+          interrupted = error instanceof Error && error.message === "interrupted";
+        }
+        const afterInterrupt = {
+          versioned: await read(args.versioned),
+          alias: await read(args.alias),
+          manifest: await read(args.manifestPath),
+          other: await read(args.otherVersioned),
+        };
+        let readyWriters = 0;
+        const releases: (() => void)[] = [];
+        const writeOne = async () => {
+          for (const src of args.versionedIcons) {
+            await cache.put(new URL(src, location.origin).toString(), new Response(Uint8Array.from(args.v2Bytes), png));
+          }
+          readyWriters += 1;
+          await new Promise<void>((resolve) => { releases.push(resolve); });
+          await cache.put(new URL(args.manifestPath, location.origin).toString(), new Response(args.v2Manifest, manifestType));
+        };
+        const first = writeOne();
+        const second = writeOne();
+        while (readyWriters < 2) await new Promise((resolve) => setTimeout(resolve, 0));
+        const during = {
+          versioned: await read(args.versioned),
+          alias: await read(args.alias),
+          manifest: await read(args.manifestPath),
+          other: await read(args.otherVersioned),
+        };
+        for (const release of releases) release();
+        await Promise.all([first, second]);
+        const after = {
+          versioned: await read(args.versioned),
+          alias: await read(args.alias),
+          manifest: await read(args.manifestPath),
+        };
+        return { before, interrupted, afterInterrupt, during, after };
+      }, {
+        cacheName: companyCacheName(COMPANY),
+        manifestPath: built.manifestPath,
+        v1Manifest,
+        v2Manifest: JSON.stringify(built.body),
+        aliases: built.icons.map((icon) => icon.src.split("?")[0]),
+        versioned: companyIconSrc(COMPANY, "icon-192.png"),
+        otherVersioned: companyIconSrc(COMPANY, "icon-512.png"),
+        alias: companyIconPath(COMPANY, "icon-192.png"),
+        versionedIcons: built.icons.map((icon) => icon.src),
+        v1Bytes: [9, 9, 9, 9],
+        v2Bytes: [4, 4, 4, 4],
+      });
+      expect(observed.interrupted).toBe(true);
+      expect(observed.before.versioned.status).toBe(404);
+      expect(observed.before.versioned.bytes).not.toEqual([9, 9, 9, 9]);
+      expect(observed.before.alias).toEqual({ status: 200, bytes: [9, 9, 9, 9] });
+      expect(observed.before.manifest.status).toBe(200);
+      expect(new TextDecoder().decode(Uint8Array.from(observed.before.manifest.bytes))).not.toContain("?v=");
+      expect(observed.afterInterrupt.versioned).toEqual({ status: 200, bytes: [4, 4, 4, 4] });
+      expect(observed.afterInterrupt.alias).toEqual({ status: 200, bytes: [9, 9, 9, 9] });
+      expect(observed.afterInterrupt.other.status).toBe(404);
+      expect(observed.afterInterrupt.other.bytes).not.toEqual([9, 9, 9, 9]);
+      expect(new TextDecoder().decode(Uint8Array.from(observed.afterInterrupt.manifest.bytes))).not.toContain("?v=");
+      expect(observed.during.manifest.status).toBe(200);
+      expect(new TextDecoder().decode(Uint8Array.from(observed.during.manifest.bytes))).not.toContain("?v=");
+      expect(observed.during.versioned).toEqual({ status: 200, bytes: [4, 4, 4, 4] });
+      expect(observed.during.other).toEqual({ status: 200, bytes: [4, 4, 4, 4] });
+      expect(observed.during.alias).toEqual({ status: 200, bytes: [9, 9, 9, 9] });
+      expect(observed.after.versioned).toEqual({ status: 200, bytes: [4, 4, 4, 4] });
+      expect(observed.after.alias).toEqual({ status: 200, bytes: [9, 9, 9, 9] });
+      const published = JSON.parse(new TextDecoder().decode(Uint8Array.from(observed.after.manifest.bytes))) as { icons: { src: string }[] };
+      expect(published.icons.every((icon) => icon.src.includes("?v="))).toBe(true);
     } finally {
       await browser.close();
       await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));

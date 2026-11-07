@@ -1,10 +1,14 @@
-import { COMPANY_ICON_FILES, approvedLogoUrl, companyIconPath } from "@/lib/pwa-company-install";
+import { COMPANY_ICON_FILES, approvedLogoUrl, companyIconSrc } from "@/lib/pwa-company-install";
 
 /**
- * Draw the company's existing public logo onto opaque PNG icons.
+ * Snapshot the company logo into install PNGs.
+ * The any-purpose icons keep the file's own alpha: this canvas does not paint
+ * a plate behind them. Maskable icons are a separate opaque safe-area image
+ * because Android crops those and transparent corners become a black or
+ * system plate. Logo pixels are drawn on top, so brand colors in the file stay.
  * Fails closed: the caller falls back to the Overwatch icons.
  */
-export async function rasterizeCompanyIcons(companyId: string, logoUrl: string, background: string): Promise<{ path: string; blob: Blob }[]> {
+export async function rasterizeCompanyIcons(companyId: string, logoUrl: string, maskablePlate: string): Promise<{ path: string; blob: Blob }[]> {
   const approved = approvedLogoUrl(companyId, logoUrl);
   if (!approved) throw new Error("logo-not-approved");
   const response = await fetch(approved, { mode: "cors", credentials: "omit", referrerPolicy: "no-referrer" });
@@ -16,8 +20,9 @@ export async function rasterizeCompanyIcons(companyId: string, logoUrl: string, 
     const out: { path: string; blob: Blob }[] = [];
     for (const icon of COMPANY_ICON_FILES) {
       const size = icon.sizes.startsWith("512") ? 512 : 192;
-      const blob = await drawIcon(bitmap, size, background, icon.purpose === "maskable");
-      out.push({ path: companyIconPath(companyId, icon.file), blob });
+      const maskable = icon.purpose === "maskable";
+      const blob = await drawIcon(bitmap, size, maskable ? maskablePlate : null, maskable ? 0.2 : 0.08);
+      out.push({ path: companyIconSrc(companyId, icon.file), blob });
     }
     return out;
   } finally {
@@ -25,15 +30,18 @@ export async function rasterizeCompanyIcons(companyId: string, logoUrl: string, 
   }
 }
 
-function drawIcon(bitmap: ImageBitmap, size: number, background: string, maskable: boolean): Promise<Blob> {
+function drawIcon(bitmap: ImageBitmap, size: number, plate: string | null, padRatio: number): Promise<Blob> {
   const canvas = document.createElement("canvas");
   canvas.width = size;
   canvas.height = size;
-  const ctx = canvas.getContext("2d");
+  const ctx = canvas.getContext("2d", { alpha: true });
   if (!ctx) return Promise.reject(new Error("canvas"));
-  ctx.fillStyle = background;
-  ctx.fillRect(0, 0, size, size);
-  const pad = maskable ? size * 0.2 : size * 0.08;
+  ctx.clearRect(0, 0, size, size);
+  if (plate) {
+    ctx.fillStyle = plate;
+    ctx.fillRect(0, 0, size, size);
+  }
+  const pad = size * padRatio;
   const side = size - pad * 2;
   const scale = Math.min(side / bitmap.width, side / bitmap.height);
   const width = bitmap.width * scale;

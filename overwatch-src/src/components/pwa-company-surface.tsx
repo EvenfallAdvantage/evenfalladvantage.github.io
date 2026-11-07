@@ -7,13 +7,15 @@ import {
   LAUNCH_SESSION_KEY,
   SURFACE_COMPANY_KEY,
   SHARED_MANIFEST_PATH,
+  COMPANY_ICON_REVISION,
   activeMembership,
   approvedLogoUrl,
   buildCompanyManifest,
-  companyIconPath,
+  companyIconSrc,
   companyManifestPath,
   installedLaunchCompanyId,
   isInstallDocumentPath,
+  publishedSurfaceIsCurrent,
   type InstallMembership,
 } from "@/lib/pwa-company-install";
 import { rasterizeCompanyIcons } from "@/lib/pwa-company-raster";
@@ -21,6 +23,7 @@ import { waitForActiveServiceWorker, writeCompanyCacheInBrowser } from "@/lib/pw
 import type { CompanyContext } from "@/types";
 
 const SURFACE_NAME_KEY = "overwatch:pwa-surface-name";
+const SURFACE_ICON_REVISION_KEY = "overwatch:pwa-surface-icon-revision";
 const GENERIC_TITLE = "Overwatch";
 const GENERIC_TOUCH_ICON = "/overwatch/images/apple-touch-icon.png?v=2";
 const GENERIC_FAVICON = "/overwatch/favicon.png?v=2";
@@ -63,7 +66,7 @@ function setManifest(href: string) {
 
 /** Shortcut dialogs read these. The manifest is a second read. Both follow the same company. */
 export function applyCompanySurface(companyId: string, companyName: string, useLogo: boolean) {
-  const icon = useLogo ? companyIconPath(companyId, "icon-192.png") : GENERIC_TOUCH_ICON;
+  const icon = useLogo ? companyIconSrc(companyId, "icon-192.png") : GENERIC_TOUCH_ICON;
   setMeta("apple-mobile-web-app-title", companyName);
   setMeta("application-name", companyName);
   setManifest(companyManifestPath(companyId));
@@ -112,6 +115,7 @@ export function restoreGenericSurface() {
   try {
     sessionStorage.removeItem(SURFACE_COMPANY_KEY);
     sessionStorage.removeItem(SURFACE_NAME_KEY);
+    sessionStorage.removeItem(SURFACE_ICON_REVISION_KEY);
   } catch { /* private mode */ }
 }
 
@@ -174,7 +178,12 @@ export function CompanyInstallSurface() {
       restoreGenericSurface();
       return;
     }
-    if (manifestHref() === companyManifestPath(target.companyId) && sessionGet(SURFACE_COMPANY_KEY) === target.companyId) {
+    if (publishedSurfaceIsCurrent({
+      manifestHref: manifestHref(),
+      surfaceCompanyId: sessionGet(SURFACE_COMPANY_KEY),
+      storedRevision: sessionGet(SURFACE_ICON_REVISION_KEY),
+      companyId: target.companyId,
+    })) {
       return;
     }
     const published = target;
@@ -208,6 +217,7 @@ export function CompanyInstallSurface() {
       try {
         sessionStorage.setItem(SURFACE_COMPANY_KEY, built.companyId);
         sessionStorage.setItem(SURFACE_NAME_KEY, built.name);
+        sessionStorage.setItem(SURFACE_ICON_REVISION_KEY, COMPANY_ICON_REVISION);
         if (launchId) sessionStorage.setItem(LAUNCH_SESSION_KEY, launchId);
       } catch { /* private mode */ }
       applyCompanySurface(built.companyId, built.name, useLogo);

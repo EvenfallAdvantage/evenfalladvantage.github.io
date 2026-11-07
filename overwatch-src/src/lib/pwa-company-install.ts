@@ -28,6 +28,13 @@ export const COMPANY_ICON_FILES = [
   { file: "icon-maskable-512.png", sizes: "512x512", purpose: "maskable" },
 ] as const;
 
+/**
+ * Bumped when generated company icon bytes change. Icon URLs include it so a
+ * browser does not keep the previous PNG, and the signed-in page rewrites the
+ * company cache when the stored revision is older.
+ */
+export const COMPANY_ICON_REVISION = "2";
+
 export type InstallMembership = {
   companyId: string;
   companyName: string;
@@ -84,6 +91,22 @@ export function companyIconPath(companyId: string, file: string): string {
   return `/overwatch/pwa/${companyId.toLowerCase()}/${file}`;
 }
 
+export function companyIconSrc(companyId: string, file: string): string {
+  return `${companyIconPath(companyId, file)}?v=${COMPANY_ICON_REVISION}`;
+}
+
+/** True when this document already publishes this company's current icon revision. */
+export function publishedSurfaceIsCurrent(input: {
+  manifestHref: string | null;
+  surfaceCompanyId: string | null;
+  storedRevision: string | null;
+  companyId: string;
+}): boolean {
+  return input.manifestHref === companyManifestPath(input.companyId)
+    && input.surfaceCompanyId === input.companyId.toLowerCase()
+    && input.storedRevision === COMPANY_ICON_REVISION;
+}
+
 /** Public company-logos object for this company only. Anything else falls back. */
 export function approvedLogoUrl(companyId: string, logoUrl: string | null | undefined): string | null {
   if (!logoUrl || !isUuid(companyId)) return null;
@@ -135,7 +158,7 @@ export function buildCompanyManifest(companies: InstallMembership[], companyId: 
   const logoOk = useLogo && approvedLogoUrl(company.companyId, company.companyLogo) !== null;
   const icons: CompanyManifestIcon[] = logoOk
     ? COMPANY_ICON_FILES.map((icon) => ({
-        src: companyIconPath(id, icon.file),
+        src: companyIconSrc(id, icon.file),
         sizes: icon.sizes,
         type: "image/png",
         purpose: icon.purpose,

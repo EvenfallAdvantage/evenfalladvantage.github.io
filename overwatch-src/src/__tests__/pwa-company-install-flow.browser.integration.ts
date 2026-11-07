@@ -628,7 +628,39 @@ describe.skipIf(!chromePath).sequential("built company install flow", () => {
       expect(after.id).toBe(`/overwatch/pwa/${COMPANY}/`);
       expect(after.start_url).toContain(`ow_company=${COMPANY}`);
       expect(after.icons?.every((icon) => icon.src.includes(COMPANY) && !icon.src.includes(OTHER))).toBe(true);
+      expect(after.icons?.filter((icon) => icon.purpose === "any").every((icon) => !icon.src.includes("maskable"))).toBe(true);
+      expect(after.icons?.filter((icon) => icon.purpose === "maskable").every((icon) => icon.src.includes("maskable"))).toBe(true);
       expect(JSON.stringify(after)).not.toContain(OTHER_NAME);
+      const sample = await page.evaluate(async (icons) => {
+        async function pixel(src: string) {
+          const response = await fetch(src);
+          const bitmap = await createImageBitmap(await response.blob());
+          const canvas = document.createElement("canvas");
+          canvas.width = bitmap.width;
+          canvas.height = bitmap.height;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) throw new Error("canvas");
+          ctx.drawImage(bitmap, 0, 0);
+          const at = (x: number, y: number) => Array.from(ctx.getImageData(x, y, 1, 1).data);
+          return {
+            status: response.status,
+            corner: at(0, 0),
+            center: at(Math.floor(bitmap.width / 2), Math.floor(bitmap.height / 2)),
+          };
+        }
+        const any = icons.find((icon) => icon.purpose === "any" && icon.sizes === "192x192");
+        const mask = icons.find((icon) => icon.purpose === "maskable" && icon.sizes === "192x192");
+        return { any: any ? await pixel(any.src) : null, mask: mask ? await pixel(mask.src) : null };
+      }, after.icons ?? []);
+      expect(sample.any?.status).toBe(200);
+      expect(sample.any?.corner[3]).toBe(0);
+      expect(sample.any?.center[3]).toBe(255);
+      expect(sample.any?.center[2]).toBeGreaterThan(150);
+      expect(sample.mask?.status).toBe(200);
+      expect(sample.mask?.corner[3]).toBe(255);
+      expect(sample.mask?.corner[2]).toBeLessThan(80);
+      expect(sample.mask?.center[3]).toBe(255);
+      expect(sample.mask?.center[2]).toBeGreaterThan(150);
       expect((await readInstallability(page)).filter((id) => MANIFEST_FAILURES.includes(id))).toEqual([]);
 
       await page.reload({ waitUntil: "load" });
