@@ -6,6 +6,7 @@ import {
   INSTALL_QUERY,
   LAUNCH_QUERY,
   LAUNCH_SESSION_KEY,
+  SURFACE_COMPANY_KEY,
   PWA_LAUNCH_BOOT,
   SHARED_MANIFEST_PATH,
   activeMembership,
@@ -16,6 +17,7 @@ import {
   companyManifestPath,
   INSTALL_CONTROL_ONCE_KEY,
   installCompanyIdFromSearch,
+  installedLaunchCompanyId,
   installableCompanies,
   shouldNavigateToPublishManifest,
   isInstallDocumentPath,
@@ -241,6 +243,32 @@ describe("launch boot script", () => {
     expect(uncontrolled.manifests()).toEqual([]);
     const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [], controlling: true });
     expect(result.manifests()).toEqual([companyManifestPath(A)]);
+  });
+
+  it("reads the installed launch id from the url or the session, and ignores anything else", () => {
+    const read = (saved: string | null) => (key: string) => (key === LAUNCH_SESSION_KEY ? saved : null);
+    expect(installedLaunchCompanyId(`?${LAUNCH_QUERY}=${A}`, read(null))).toBe(A);
+    expect(installedLaunchCompanyId(`?${LAUNCH_QUERY}=${A.toUpperCase()}`, read(B))).toBe(A);
+    expect(installedLaunchCompanyId("", read(B))).toBe(B);
+    expect(installedLaunchCompanyId("?ow_company=not-a-uuid", read(null))).toBeNull();
+    expect(installedLaunchCompanyId("?company=" + A, read(null))).toBeNull();
+    expect(installedLaunchCompanyId("", read("../manifest.json"))).toBeNull();
+  });
+
+  it("publishes a signed-in company on an app page only while that document is controlled", () => {
+    const uncontrolled = run("https://www.evenfalladvantage.com/overwatch/feed/", { [SURFACE_COMPANY_KEY]: A });
+    expect(uncontrolled.manifests()).toEqual([SHARED_MANIFEST_PATH]);
+    const controlled = run("https://www.evenfalladvantage.com/overwatch/feed/", { [SURFACE_COMPANY_KEY]: A }, { controlling: true });
+    expect(controlled.manifests()).toEqual([companyManifestPath(A)]);
+    const other = run("https://www.evenfalladvantage.com/overwatch/feed/", { [SURFACE_COMPANY_KEY]: B }, { controlling: true });
+    expect(other.manifests()).toEqual([companyManifestPath(B)]);
+    expect(other.manifests().some((href) => href?.includes(A))).toBe(false);
+    const launched = run(
+      "https://www.evenfalladvantage.com/overwatch/feed/",
+      { [LAUNCH_SESSION_KEY]: A, [SURFACE_COMPANY_KEY]: B },
+      { controlling: true },
+    );
+    expect(launched.manifests()).toEqual([companyManifestPath(A)]);
   });
 
   it("restores the shared manifest on the install chooser and leaves other pages alone", () => {

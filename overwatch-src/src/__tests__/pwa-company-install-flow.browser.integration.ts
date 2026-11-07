@@ -574,4 +574,139 @@ describe.skipIf(!chromePath).sequential("built company install flow", () => {
       await browser.close();
     }
   }, 90_000);
+
+  it("publishes the signed-in company on the feed the browser menu reads", async () => {
+    const browser = await launchChrome();
+    const context = await browser.newContext();
+    let swBlock = Promise.resolve();
+    let openSw = () => {};
+    const holdServiceWorker = () => {
+      let opened = false;
+      swBlock = new Promise<void>((resolve) => {
+        openSw = () => {
+          if (opened) return;
+          opened = true;
+          resolve();
+        };
+      });
+    };
+    holdServiceWorker();
+    await context.route("**/sw.js", async (route) => {
+      await swBlock;
+      await route.continue();
+    });
+    await installFixtures(context, supabaseHost);
+    const page = await context.newPage();
+    try {
+      await page.goto(`${origin}/overwatch/feed/`, { waitUntil: "load" });
+      await page.getByText(/Welcome/i).first().waitFor({ timeout: 25_000 });
+      const before = await page.evaluate(() => ({
+        apple: document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute("content") || "",
+        touch: document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute("href") || "",
+        manifest: document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "",
+        controlled: Boolean(navigator.serviceWorker.controller),
+      }));
+      expect(before.controlled).toBe(false);
+      expect(before.apple).toBe("Overwatch");
+      expect(before.manifest).toBe("/overwatch/manifest.json");
+      expect(before.touch).not.toContain("/overwatch/pwa/");
+      expect(parsed(await readAppManifest(page)).name).toBe("Overwatch");
+
+      openSw();
+      await page.waitForFunction(
+        (id) => {
+          const apple = document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute("content") || "";
+          const manifest = document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "";
+          const touch = document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute("href") || "";
+          return apple === "Northstar Recruitment" && manifest.includes(id) && touch.includes(id);
+        },
+        COMPANY,
+        { timeout: 30_000 },
+      );
+      const after = parsed(await readAppManifest(page));
+      expect(after.name).toBe(COMPANY_NAME);
+      expect(after.id).toBe(`/overwatch/pwa/${COMPANY}/`);
+      expect(after.start_url).toContain(`ow_company=${COMPANY}`);
+      expect(after.icons?.every((icon) => icon.src.includes(COMPANY) && !icon.src.includes(OTHER))).toBe(true);
+      expect(JSON.stringify(after)).not.toContain(OTHER_NAME);
+      expect((await readInstallability(page)).filter((id) => MANIFEST_FAILURES.includes(id))).toEqual([]);
+
+      await page.reload({ waitUntil: "load" });
+      const reloaded = await page.evaluate(() => document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "");
+      expect(reloaded).toContain(COMPANY);
+      expect(parsed(await readAppManifest(page)).name).toBe(COMPANY_NAME);
+
+      const plain = await browser.newContext();
+      const home = await plain.newPage();
+      await home.goto(`${origin}/overwatch/`, { waitUntil: "load" });
+      const generic = await home.evaluate(() => ({
+        apple: document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute("content") || "",
+        manifest: document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "",
+      }));
+      expect(generic.apple).toBe("Overwatch");
+      expect(generic.manifest).toBe("/overwatch/manifest.json");
+      expect(parsed(await readAppManifest(home)).name).toBe("Overwatch");
+      await plain.close();
+    } finally {
+      openSw();
+      await browser.close();
+    }
+  }, 120_000);
+
+  it("keeps an installed company when the signed-in company changes, in another tab, and after sign-out", async () => {
+    const browser = await launchChrome();
+    const context = await browser.newContext();
+    await context.addInitScript((activeId) => {
+      localStorage.setItem("overwatch-auth", JSON.stringify({ state: { activeCompanyId: activeId }, version: 0 }));
+    }, OTHER);
+    await installFixtures(context, supabaseHost);
+    const launched = await context.newPage();
+    const otherTab = await context.newPage();
+    try {
+      await launched.goto(`${origin}/overwatch/feed/?ow_company=${COMPANY}`, { waitUntil: "load" });
+      await launched.waitForFunction(
+        (id) => {
+          const apple = document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute("content") || "";
+          const manifest = document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "";
+          return apple === "Northstar Recruitment" && manifest.includes(id);
+        },
+        COMPANY,
+        { timeout: 30_000 },
+      );
+      const launchedManifest = parsed(await readAppManifest(launched));
+      expect(launchedManifest.name).toBe(COMPANY_NAME);
+      expect(launchedManifest.id).toBe(`/overwatch/pwa/${COMPANY}/`);
+      expect(JSON.stringify(launchedManifest)).not.toContain(OTHER_NAME);
+
+      await otherTab.goto(`${origin}/overwatch/feed/`, { waitUntil: "load" });
+      await otherTab.waitForFunction(
+        (id) => {
+          const apple = document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute("content") || "";
+          const manifest = document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "";
+          return apple === "Harbor Watch" && manifest.includes(id);
+        },
+        OTHER,
+        { timeout: 30_000 },
+      );
+      expect(parsed(await readAppManifest(otherTab)).name).toBe(OTHER_NAME);
+      expect(parsed(await readAppManifest(launched)).name).toBe(COMPANY_NAME);
+
+      await launched.goto(`${origin}/overwatch/more/`, { waitUntil: "load" });
+      await launched.getByRole("button", { name: "Close What's New" }).click({ timeout: 3_000 }).catch(() => undefined);
+      await launched.getByRole("button", { name: "Sign Out" }).click();
+      await launched.waitForFunction(() => !location.pathname.includes("/more"), { timeout: 15_000 });
+      await launched.goto(`${origin}/overwatch/feed/`, { waitUntil: "domcontentloaded" });
+      await launched.waitForFunction(
+        (id) => (document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "").includes(id),
+        COMPANY,
+        { timeout: 15_000 },
+      );
+      const afterSignOut = parsed(await readAppManifest(launched));
+      expect(afterSignOut.name).toBe(COMPANY_NAME);
+      expect(afterSignOut.id).toBe(`/overwatch/pwa/${COMPANY}/`);
+      expect(parsed(await readAppManifest(otherTab)).name).toBe(OTHER_NAME);
+    } finally {
+      await browser.close();
+    }
+  }, 120_000);
 });
