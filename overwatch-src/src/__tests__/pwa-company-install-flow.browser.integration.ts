@@ -652,4 +652,57 @@ describe.skipIf(!chromePath).sequential("built company install flow", () => {
       await browser.close();
     }
   }, 120_000);
+
+  it("keeps an installed company when the signed-in company changes, in another tab, and after sign-out", async () => {
+    const browser = await launchChrome();
+    const context = await browser.newContext();
+    await context.addInitScript((activeId) => {
+      localStorage.setItem("overwatch-auth", JSON.stringify({ state: { activeCompanyId: activeId }, version: 0 }));
+    }, OTHER);
+    await installFixtures(context, supabaseHost);
+    const launched = await context.newPage();
+    const otherTab = await context.newPage();
+    try {
+      await launched.goto(`${origin}/overwatch/feed/?ow_company=${COMPANY}`, { waitUntil: "load" });
+      await launched.waitForFunction(
+        (id) => {
+          const apple = document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute("content") || "";
+          const manifest = document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "";
+          return apple === "Northstar Recruitment" && manifest.includes(id);
+        },
+        COMPANY,
+        { timeout: 30_000 },
+      );
+      const launchedManifest = parsed(await readAppManifest(launched));
+      expect(launchedManifest.name).toBe(COMPANY_NAME);
+      expect(launchedManifest.id).toBe(`/overwatch/pwa/${COMPANY}/`);
+      expect(JSON.stringify(launchedManifest)).not.toContain(OTHER_NAME);
+
+      await otherTab.goto(`${origin}/overwatch/feed/`, { waitUntil: "load" });
+      await otherTab.waitForFunction(
+        (id) => {
+          const apple = document.querySelector('meta[name="apple-mobile-web-app-title"]')?.getAttribute("content") || "";
+          const manifest = document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "";
+          return apple === "Harbor Watch" && manifest.includes(id);
+        },
+        OTHER,
+        { timeout: 30_000 },
+      );
+      expect(parsed(await readAppManifest(otherTab)).name).toBe(OTHER_NAME);
+      expect(parsed(await readAppManifest(launched)).name).toBe(COMPANY_NAME);
+
+      await launched.goto(`${origin}/overwatch/more/`, { waitUntil: "load" });
+      await launched.getByRole("button", { name: "Close What's New" }).click({ timeout: 3_000 }).catch(() => undefined);
+      await launched.getByRole("button", { name: "Sign Out" }).click();
+      await launched.waitForTimeout(500);
+      expect(parsed(await readAppManifest(launched)).name).toBe(COMPANY_NAME);
+      expect(parsed(await readAppManifest(otherTab)).name).toBe(OTHER_NAME);
+
+      await launched.goto(`${origin}/overwatch/feed/?ow_company=${COMPANY}`, { waitUntil: "load" });
+      expect(parsed(await readAppManifest(launched)).name).toBe(COMPANY_NAME);
+      expect(parsed(await readAppManifest(launched)).id).toBe(`/overwatch/pwa/${COMPANY}/`);
+    } finally {
+      await browser.close();
+    }
+  }, 120_000);
 });

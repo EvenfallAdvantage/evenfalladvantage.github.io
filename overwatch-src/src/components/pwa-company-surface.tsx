@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
-import { usePathname } from "next/navigation";
-import { useActiveCompany } from "@/stores/auth-store";
+import { useActiveCompany, useAuthStore } from "@/stores/auth-store";
 import { companySurfaceHex, DEFAULT_BRAND } from "@/lib/brand-utils";
 import {
+  LAUNCH_SESSION_KEY,
   SURFACE_COMPANY_KEY,
   SHARED_MANIFEST_PATH,
   activeMembership,
@@ -12,14 +12,15 @@ import {
   buildCompanyManifest,
   companyIconPath,
   companyManifestPath,
+  installedLaunchCompanyId,
   isInstallDocumentPath,
   type InstallMembership,
 } from "@/lib/pwa-company-install";
 import { rasterizeCompanyIcons } from "@/lib/pwa-company-raster";
 import { waitForActiveServiceWorker, writeCompanyCacheInBrowser } from "@/lib/pwa-company-browser";
+import type { CompanyContext } from "@/types";
 
 const SURFACE_NAME_KEY = "overwatch:pwa-surface-name";
-const SURFACE_ONCE_KEY = "overwatch:pwa-surface-control-once";
 const GENERIC_TITLE = "Overwatch";
 const GENERIC_TOUCH_ICON = "/overwatch/images/apple-touch-icon.png?v=2";
 const GENERIC_FAVICON = "/overwatch/favicon.png?v=2";
@@ -114,37 +115,52 @@ export function restoreGenericSurface() {
   } catch { /* private mode */ }
 }
 
+function toMembership(company: CompanyContext): InstallMembership {
+  return {
+    companyId: company.companyId,
+    companyName: company.companyName,
+    companyLogo: company.companyLogo,
+    brandColor: company.brandColor,
+    status: company.membership?.status ?? "active",
+  };
+}
+
+function sessionGet(key: string): string | null {
+  try { return sessionStorage.getItem(key); } catch { return null; }
+}
+
+function manifestHref(): string {
+  return document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "";
+}
+
 /**
- * The browser menu on a signed-in page reads this document, not /install.
- * Publish the active company's name and icon only after its cache is stored
- * and this document is controlled. No company context leaves the generic
- * Overwatch manifest, title, and shield icons in place.
+ * The browser menu reads this document. An installed launch (`?ow_company=` or
+ * the launch session) stays that company when the signed-in company changes
+ * and when the user signs out. With no launch, the active company is published
+ * after its cache is stored and this document is controlled. This does not
+ * navigate; a reload would drop whatever the person is editing.
  */
 export function CompanyInstallSurface() {
-  const path = usePathname();
   const company = useActiveCompany();
+  const userId = useAuthStore((s) => s.user?.id ?? null);
   const companyId = company?.companyId ?? null;
-  const companyName = company?.companyName ?? null;
-  const companyLogo = company?.companyLogo ?? null;
-  const brandColor = company?.brandColor ?? null;
-  const status = company?.membership.status ?? null;
 
   useEffect(() => {
-    if (isInstallDocumentPath(path || "")) return;
-    const membership: InstallMembership | null = companyId
-      ? {
-          companyId,
-          companyName: companyName || "Overwatch",
-          companyLogo,
-          brandColor,
-          status,
-        }
-      : null;
-    if (!membership || !activeMembership([membership], membership.companyId)) {
+    if (isInstallDocumentPath(window.location.pathname)) return;
+    const launchId = installedLaunchCompanyId(window.location.search, sessionGet);
+    const companies = (useAuthStore.getState().user?.companies ?? []).map(toMembership);
+    const launch = launchId ? activeMembership(companies, launchId) : null;
+    const active = !launchId && companyId ? activeMembership(companies, companyId) : null;
+    const target = launch ?? active;
+    if (launchId && !target) return;
+    if (!target) {
       restoreGenericSurface();
       return;
     }
-    const published = membership;
+    if (manifestHref() === companyManifestPath(target.companyId) && sessionGet(SURFACE_COMPANY_KEY) === target.companyId) {
+      return;
+    }
+    const published = target;
     let cancelled = false;
     void (async () => {
       let useLogo = false;
@@ -167,24 +183,17 @@ export function CompanyInstallSurface() {
       if (!built || !("caches" in window)) return;
       await writeCompanyCacheInBrowser(built, useLogo ? icons : []);
       if (cancelled) return;
-      const active = await waitForActiveServiceWorker();
-      if (cancelled || !active) return;
+      const workerReady = await waitForActiveServiceWorker();
+      if (cancelled || !workerReady || !navigator.serviceWorker.controller) return;
       try {
         sessionStorage.setItem(SURFACE_COMPANY_KEY, built.companyId);
         sessionStorage.setItem(SURFACE_NAME_KEY, built.name);
+        if (launchId) sessionStorage.setItem(LAUNCH_SESSION_KEY, launchId);
       } catch { /* private mode */ }
-      if (!navigator.serviceWorker.controller) {
-        let already = false;
-        try { already = sessionStorage.getItem(SURFACE_ONCE_KEY) === built.companyId; } catch { already = true; }
-        if (already) return;
-        try { sessionStorage.setItem(SURFACE_ONCE_KEY, built.companyId); } catch { /* private mode */ }
-        window.location.replace(window.location.href);
-        return;
-      }
       applyCompanySurface(built.companyId, built.name, useLogo);
     })();
     return () => { cancelled = true; };
-  }, [path, companyId, companyName, companyLogo, brandColor, status]);
+  }, [userId, companyId]);
 
   return null;
 }

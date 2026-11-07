@@ -17,6 +17,7 @@ import {
   companyManifestPath,
   INSTALL_CONTROL_ONCE_KEY,
   installCompanyIdFromSearch,
+  installedLaunchCompanyId,
   installableCompanies,
   shouldNavigateToPublishManifest,
   isInstallDocumentPath,
@@ -242,6 +243,16 @@ describe("launch boot script", () => {
     expect(uncontrolled.manifests()).toEqual([]);
     const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [], controlling: true });
     expect(result.manifests()).toEqual([companyManifestPath(A)]);
+  });
+
+  it("reads the installed launch id from the url or the session, and ignores anything else", () => {
+    const read = (saved: string | null) => (key: string) => (key === LAUNCH_SESSION_KEY ? saved : null);
+    expect(installedLaunchCompanyId(`?${LAUNCH_QUERY}=${A}`, read(null))).toBe(A);
+    expect(installedLaunchCompanyId(`?${LAUNCH_QUERY}=${A.toUpperCase()}`, read(B))).toBe(A);
+    expect(installedLaunchCompanyId("", read(B))).toBe(B);
+    expect(installedLaunchCompanyId("?ow_company=not-a-uuid", read(null))).toBeNull();
+    expect(installedLaunchCompanyId("?company=" + A, read(null))).toBeNull();
+    expect(installedLaunchCompanyId("", read("../manifest.json"))).toBeNull();
   });
 
   it("publishes a signed-in company on an app page only while that document is controlled", () => {

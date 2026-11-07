@@ -215,6 +215,24 @@ export function launchSessionMayRetargetManifest(pathname: string): boolean {
   return !isInstallDocumentPath(pathname);
 }
 
+/**
+ * Installed-app identity. `?ow_company=` wins, then the launch session.
+ * Only a uuid is accepted. This is not the company currently selected in the app.
+ */
+export function installedLaunchCompanyId(
+  search: string,
+  readSession: (key: string) => string | null,
+): string | null {
+  const query = search.startsWith("?") ? search.slice(1) : search;
+  const fromUrl = new URLSearchParams(query).get(LAUNCH_QUERY);
+  if (isUuid(fromUrl)) return fromUrl.toLowerCase();
+  try {
+    const saved = readSession(LAUNCH_SESSION_KEY);
+    if (isUuid(saved)) return saved.toLowerCase();
+  } catch { /* private mode */ }
+  return null;
+}
+
 /** Set before the one navigation that publishes the company manifest. */
 export const INSTALL_CONTROL_ONCE_KEY = "overwatch:pwa-install-control-once";
 
