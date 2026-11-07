@@ -14,6 +14,8 @@ import { OVERWATCH_ICONS } from "@/lib/pwa-install-policy";
 export const LAUNCH_QUERY = "ow_company";
 export const INSTALL_QUERY = "company";
 export const LAUNCH_SESSION_KEY = "overwatch:pwa-launched-company";
+/** Active signed-in company whose manifest may be published on app pages. */
+export const SURFACE_COMPANY_KEY = "overwatch:pwa-surface-company";
 export const SHARED_MANIFEST_PATH = "/overwatch/manifest.json";
 export const PWA_SCOPE = "/overwatch/";
 
@@ -252,12 +254,15 @@ export function shouldNavigateToPublishManifest(input: {
  * install document has no manifest link (scripts/strip-install-manifest.mjs).
  * The company URL is inserted only when this document already has a
  * controlling service worker, so the browser's own manifest fetch is not a
- * network 404. Other pages keep their link.
+ * network 404. A signed-in app page publishes its active company the same
+ * way, and only after that company's cache exists. With no company context
+ * the shared Overwatch manifest stays.
  *
  * Marker ow-install-manifest is how the export check finds this script.
  */
 export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
   var KEY=${JSON.stringify(LAUNCH_SESSION_KEY)};
+  var SURFACE=${JSON.stringify(SURFACE_COMPANY_KEY)};
   var SHARED=${JSON.stringify(SHARED_MANIFEST_PATH)};
   var UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   function param(search,name){
@@ -327,6 +332,12 @@ export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
       var saved=sessionStorage.getItem(KEY);
       if(saved&&UUID.test(saved))return companyHref(saved);
     }catch(e2){}
+    if(controlling()){
+      try{
+        var surface=sessionStorage.getItem(SURFACE);
+        if(surface&&UUID.test(surface))return companyHref(surface);
+      }catch(e3){}
+    }
     return "";
   }
   try{

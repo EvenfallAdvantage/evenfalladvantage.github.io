@@ -14,6 +14,7 @@ import { usePageHeader } from "@/stores/page-header-store";
 import { ErrorBoundary } from "@/components/error-boundary";
 import { SyncIndicator } from "@/components/sync-indicator";
 import { ServiceWorkerRegistration } from "@/components/sw-registration";
+import { CompanyInstallSurface } from "@/components/pwa-company-surface";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { WhatsNewModal } from "@/components/updates/whats-new-modal";
 
@@ -99,6 +100,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
         {/* Service worker registration (mount-once, no UI). */}
         <ServiceWorkerRegistration />
+        {/* Signed-in browser-menu install identity. No UI. */}
+        <CompanyInstallSurface />
       </div>
     </TooltipProvider>
   );
