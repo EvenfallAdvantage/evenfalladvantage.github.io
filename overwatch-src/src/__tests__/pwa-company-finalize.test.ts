@@ -75,14 +75,16 @@ function createCompanyRoute(sw: SwApi) {
       await pending;
       if (!buckets.has(companyId)) buckets.set(companyId, new Map());
       const bucket = buckets.get(companyId)!;
-      bucket.set(path, hit);
-      bucket.set(path.split("#")[0].split("?")[0], hit);
+      bucket.set(path.split("#")[0], hit);
     },
     fetch(pathname: string) {
       if (!active || !controlled) return { status: 404, contentType: "text/plain", via: "network" as const, text: "missing", bytes: undefined as Uint8Array | undefined };
-      const match = sw.matchCompanyPwaPath(pathname.split("?")[0]);
+      const key = pathname.split("#")[0];
+      const filePath = key.split("?")[0];
+      const match = sw.matchCompanyPwaPath(filePath);
       if (!match) return { status: 404, contentType: "text/plain", via: "network" as const, text: "missing", bytes: undefined as Uint8Array | undefined };
-      const hit = buckets.get(match.companyId)?.get(pathname.split("?")[0]);
+      const bucket = buckets.get(match.companyId);
+      const hit = bucket?.get(key) || (key === filePath ? bucket?.get(filePath) : undefined);
       if (!hit) return { status: 404, contentType: "text/plain", via: "service-worker" as const, text: "Not found", bytes: undefined as Uint8Array | undefined };
       if (match.file === "manifest.webmanifest" && !sw.manifestBodyMatchesCompany(hit.text || "", match.companyId)) {
         return { status: 404, contentType: "text/plain", via: "service-worker" as const, text: "Not found", bytes: undefined as Uint8Array | undefined };
@@ -169,6 +171,7 @@ describe("company install finalization", () => {
     expect(route.fetch(`/overwatch/pwa/${B}/icon-192.png`).status).toBe(404);
     await route.put(A, builtA.icons[0].src, { contentType: "image/png", bytes: PNG });
     expect(route.fetch(builtA.icons[0].src).bytes).toEqual(PNG);
+    expect(route.fetch(builtA.icons[0].src.split("?")[0]).status).toBe(404);
     expect(route.fetch(`/overwatch/pwa/${B}/icon-192.png`).status).toBe(404);
 
     const wrongBytes = assessCompanyInstallFetch({
