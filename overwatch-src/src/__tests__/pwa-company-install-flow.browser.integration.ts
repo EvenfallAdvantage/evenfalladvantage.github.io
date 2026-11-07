@@ -694,13 +694,17 @@ describe.skipIf(!chromePath).sequential("built company install flow", () => {
       await launched.goto(`${origin}/overwatch/more/`, { waitUntil: "load" });
       await launched.getByRole("button", { name: "Close What's New" }).click({ timeout: 3_000 }).catch(() => undefined);
       await launched.getByRole("button", { name: "Sign Out" }).click();
-      await launched.waitForTimeout(500);
-      expect(parsed(await readAppManifest(launched)).name).toBe(COMPANY_NAME);
+      await launched.waitForFunction(() => !location.pathname.includes("/more"), { timeout: 15_000 });
+      await launched.goto(`${origin}/overwatch/feed/`, { waitUntil: "domcontentloaded" });
+      await launched.waitForFunction(
+        (id) => (document.querySelector('link[rel="manifest"]')?.getAttribute("href") || "").includes(id),
+        COMPANY,
+        { timeout: 15_000 },
+      );
+      const afterSignOut = parsed(await readAppManifest(launched));
+      expect(afterSignOut.name).toBe(COMPANY_NAME);
+      expect(afterSignOut.id).toBe(`/overwatch/pwa/${COMPANY}/`);
       expect(parsed(await readAppManifest(otherTab)).name).toBe(OTHER_NAME);
-
-      await launched.goto(`${origin}/overwatch/feed/?ow_company=${COMPANY}`, { waitUntil: "load" });
-      expect(parsed(await readAppManifest(launched)).name).toBe(COMPANY_NAME);
-      expect(parsed(await readAppManifest(launched)).id).toBe(`/overwatch/pwa/${COMPANY}/`);
     } finally {
       await browser.close();
     }
