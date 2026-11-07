@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { useConfirmDialog } from "@/hooks/use-confirm-dialog";
 import { getIntegrationConnections } from "@/lib/supabase/db-integrations";
 import { getAirtableFieldMapping, getAirtableRosterReport, previewAirtableSync, syncAirtablePurpose } from "@/lib/services/airtable-service";
-import { readPurposeSelection, rosterConfirmDescription, type MappedPurpose, type RosterDiagnosticReport } from "@/lib/integrations/airtable-sync";
+import { readPurposeSelection, rosterConfirmDescription, rosterWriteFailureToast, type MappedPurpose, type RosterDiagnosticReport } from "@/lib/integrations/airtable-sync";
 import { RosterSyncReport } from "@/components/integrations/roster-sync-report";
 
 interface Props {
@@ -73,6 +73,7 @@ export function AirtableExplicitSync({ companyId, purpose, onSynced }: Props) {
       toast.success(purpose === "roster"
         ? `Read ${result.read?.rawRead ?? "?"} records. Created ${result.created}, linked ${result.linked ?? 0}, updated ${result.updated}, removed ${result.removed ?? 0}, write failures ${failed}.`
         : `Synced ${result.created} new and ${result.updated} updated`);
+      if (result.errors.length) toast.error(rosterWriteFailureToast(result.errors.map((row) => row.message)));
       onSynced();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Sync failed");

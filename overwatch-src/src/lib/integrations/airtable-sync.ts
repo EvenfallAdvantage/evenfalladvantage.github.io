@@ -495,7 +495,16 @@ export interface RosterIdentity {
   email: string;
 }
 
-export type RosterRemovalHold = "truncated" | "roster_truncated" | "conflicts" | null;
+export type RosterRemovalHold = "truncated" | "roster_truncated" | "conflicts" | "write_failure" | null;
+
+/** Counts returned by apply_airtable_roster_sync. These are rows that committed. */
+export interface RosterApplyCounts {
+  created: number;
+  attached: number;
+  linked: number;
+  updated: number;
+  removed: number;
+}
 
 /** How the Airtable page was classified. These counts are what a 597-row table must add up to. */
 export interface RosterReadReport {
@@ -561,6 +570,49 @@ export function assertRosterWrite(write: RosterWrite): void {
 function cleanOptional(value: string | undefined): string | undefined {
   const trimmed = value?.trim();
   return trimmed ? trimmed : undefined;
+}
+
+/** Shown for a phone unique violation. No phone number and no other account's identity. */
+export const ROSTER_PHONE_IN_USE =
+  "Phone is already on another Overwatch account. That account was not changed, and this row was not saved. Accounts are not matched or merged by phone.";
+
+/** Digits only. Blank, whitespace, and values with no digits are not phone numbers. */
+export function rosterPhoneDigits(value: string | null | undefined): string | null {
+  const digits = (value ?? "").replace(/\D/g, "");
+  return digits.length > 0 ? digits : null;
+}
+
+/**
+ * Decide one incoming phone for one already-chosen account.
+ * `takenByOther` must be true only when a different account has the same digits.
+ * This never selects that other account.
+ */
+export function decideRosterPhone(
+  incoming: string | null | undefined,
+  current: string | null | undefined,
+  takenByOther: boolean,
+): "omit" | "write" | "refuse" {
+  const digits = rosterPhoneDigits(incoming);
+  if (!digits) return "omit";
+  if (rosterPhoneDigits(current) === digits) return "omit";
+  if (takenByOther) return "refuse";
+  return "write";
+}
+
+/** Rewrite the raw users_phone_key toast. Other messages lose long digit runs. */
+export function scrubRosterWriteError(message: string): string {
+  const raw = message ?? "";
+  if (/users_phone_key|users_phone_unique/i.test(raw) || raw.startsWith("Phone is already on another Overwatch account")) {
+    return ROSTER_PHONE_IN_USE;
+  }
+  return sanitizeDiagnosticMessage(raw).replace(/\+?\d[\d\s().-]{6,}\d/g, "[phone]");
+}
+
+export function rosterWriteFailureToast(messages: readonly string[]): string {
+  const first = scrubRosterWriteError(messages[0] ?? "");
+  if (!first) return "Some rows failed. The report lists them.";
+  if (messages.length <= 1) return first;
+  return `${first} ${messages.length} rows failed. The report lists each one.`;
 }
 
 function normalizeRosterEmail(value: string | null | undefined): string {
@@ -650,6 +702,43 @@ export function planRosterSync(
     return ids;
   };
 
+  // Digits claimed by an account. A later row with the same digits is refused.
+  // It is not linked to the account that already has the number.
+  const phonesByUser = new Map<string, Set<string>>();
+  const claimPhone = (userId: string, phone: string | null | undefined) => {
+    const digits = rosterPhoneDigits(phone);
+    if (!digits) return;
+    const held = phonesByUser.get(userId) ?? new Set<string>();
+    held.add(digits);
+    phonesByUser.set(userId, held);
+  };
+  for (const person of locals) claimPhone(person.userId, person.phone);
+  const takenByOther = (digits: string, userId: string) => {
+    for (const [owner, held] of phonesByUser) {
+      if (owner !== userId && held.has(digits)) return true;
+    }
+    return false;
+  };
+  const resolvePhone = (
+    userId: string,
+    incoming: string | undefined,
+    current: string | null,
+    blanksOnly: boolean,
+  ): { phone?: string; refuse: boolean } => {
+    const digits = rosterPhoneDigits(incoming);
+    const decision = decideRosterPhone(incoming, current, digits ? takenByOther(digits, userId) : false);
+    if (decision === "refuse") return { refuse: true };
+    if (decision === "omit") return { refuse: false };
+    if (blanksOnly && rosterPhoneDigits(current)) return { refuse: false };
+    const phone = cleanOptional(incoming);
+    if (!phone) return { refuse: false };
+    claimPhone(userId, phone);
+    return { phone, refuse: false };
+  };
+  const refusePhone = (airtableId: string, email: string, membershipId?: string) => {
+    plan.conflicts.push({ airtableId, email, reason: "phone_in_use", membershipId });
+  };
+
   const seenIds = new Set<string>();
   const presentIds = new Set<string>();
   const presentEmails = new Set<string>();
@@ -725,7 +814,14 @@ export function planRosterSync(
           continue;
         }
       }
+      const phone = resolvePhone(linked.userId, row.values.phone, linked.phone, false);
+      if (phone.refuse) {
+        refusePhone(row.airtableId, email, linked.membershipId);
+        if (protectedRole) logProtected(linked, row.airtableId, "phone_unchanged");
+        continue;
+      }
       const set = profileSet(row.values, linked, false);
+      if (phone.phone) set.phone = phone.phone;
       if (!set.firstName && !set.lastName && !set.phone && !set.title) plan.unchanged.push(row.airtableId);
       else {
         plan.updates.push({
@@ -786,12 +882,18 @@ export function planRosterSync(
         logProtected(owner, row.airtableId, "email_not_linked");
         continue;
       }
+      const phone = resolvePhone(owner.userId, row.values.phone, owner.phone, true);
+      if (phone.refuse) {
+        refusePhone(row.airtableId, email, owner.membershipId);
+        continue;
+      }
       plan.links.push({
         kind: "link",
         airtableId: row.airtableId,
         membershipId: owner.membershipId,
         userId: owner.userId,
         ...profileSet(row.values, owner, true),
+        ...(phone.phone ? { phone: phone.phone } : {}),
       });
       continue;
     }
@@ -810,6 +912,11 @@ export function planRosterSync(
       });
       continue;
     }
+    const phone = resolvePhone(`create:${row.airtableId}`, row.values.phone, null, false);
+    if (phone.refuse) {
+      refusePhone(row.airtableId, email);
+      continue;
+    }
     plan.creates.push({
       kind: "create",
       airtableId: row.airtableId,
@@ -817,7 +924,7 @@ export function planRosterSync(
       role: "staff",
       firstName: row.values.first_name,
       lastName: cleanOptional(row.values.last_name),
-      phone: cleanOptional(row.values.phone),
+      phone: phone.phone,
       title: cleanOptional(row.values.title),
     });
   }
@@ -909,7 +1016,6 @@ function profileSet(values: Record<string, string>, local: RosterPerson, blanksO
   };
   take("firstName", values.first_name, local.firstName);
   take("lastName", values.last_name, local.lastName);
-  take("phone", values.phone, local.phone);
   take("title", values.title, local.title);
   return next;
 }
@@ -1225,6 +1331,7 @@ const CONFLICT_REASON: Record<string, string> = {
   email_owned_by_other_user: "Email belongs to a different Overwatch account",
   email_already_linked: "Email is already linked to another Airtable record",
   record_matches_multiple_people: "This Airtable record is linked to more than one person",
+  phone_in_use: ROSTER_PHONE_IN_USE,
 };
 
 const SKIP_REASON: Record<string, string> = {
@@ -1260,11 +1367,13 @@ export function rosterReconcileText(report: Pick<RosterDiagnosticReport, "kind" 
     ? "The read was incomplete, so nobody is removed."
     : report.removalHold === "conflicts"
       ? "Identity conflicts are unresolved, so nobody is removed."
-      : report.remove > 0
-        ? report.kind === "preview"
-          ? `${report.remove} company memberships would be removed on sync. Logins stay.`
-          : `${report.remove} company memberships were removed. Logins stay.`
-        : "Nobody is removed.";
+      : report.removalHold === "write_failure"
+        ? "A database write failed, so planned removals were held. Nobody was removed."
+        : report.remove > 0
+          ? report.kind === "preview"
+            ? `${report.remove} company memberships would be removed on sync. Logins stay.`
+            : `${report.remove} company memberships were removed. Logins stay.`
+          : "Nobody is removed.";
   return [
     `Airtable returned ${report.rawRead} records across ${report.pages} page${report.pages === 1 ? "" : "s"} (cap ${report.cap}).`,
     `${report.invalidId} had an unusable id and ${report.duplicateRecord} repeated an id, leaving ${report.seen} distinct records.`,
@@ -1288,6 +1397,8 @@ export function rosterDiagnosticReport(input: {
   namesByMembership?: ReadonlyMap<string, string>;
   failures?: readonly { op: string; airtableId: string; message: string }[];
   writeFailures?: Partial<RosterWriteFailureCounts>;
+  /** Sync only. Planned counts stay on the plan; this is what the function committed. */
+  applied?: RosterApplyCounts;
 }): RosterDiagnosticReport {
   const names = input.namesByRecord ?? new Map<string, string>();
   const memberNames = input.namesByMembership ?? new Map<string, string>();
@@ -1305,13 +1416,24 @@ export function rosterDiagnosticReport(input: {
     remove: input.writeFailures?.remove ?? 0,
   };
   const writeFailureTotal = writeFailures.create + writeFailures.attach + writeFailures.link + writeFailures.update + writeFailures.remove;
+  const earlierWriteFailures = writeFailures.create + writeFailures.attach + writeFailures.link + writeFailures.update;
+  const useApplied = input.kind === "sync" && input.applied != null;
+  // The SQL function skips the whole removal loop after a create, attach, link, or update failure.
+  const removalsSuppressed = useApplied && earlierWriteFailures > 0 && input.plan.removals.length > 0;
+  const removalHold: RosterRemovalHold = removalsSuppressed ? "write_failure" : input.plan.removalHold;
+  const heldRows = removalsSuppressed
+    ? [
+      ...input.plan.held,
+      ...input.plan.removals.map((row) => ({ ...row, airtableId: row.airtableId })),
+    ]
+    : [...input.plan.held];
   const rows: RosterDiagnosticRow[] = [];
   for (const failure of input.failures ?? []) {
     const airtableId = /^rec[A-Za-z0-9]{14}$/.test(failure.airtableId) ? failure.airtableId : "";
     rows.push({
       airtableId,
       op: "failure",
-      reason: `${failure.op}: ${sanitizeDiagnosticMessage(failure.message)}`,
+      reason: `${failure.op}: ${scrubRosterWriteError(failure.message)}`,
       name: nameFor(airtableId),
     });
   }
@@ -1340,11 +1462,14 @@ export function rosterDiagnosticReport(input: {
       name: nameFor(problem.airtableId),
     });
   }
-  for (const row of input.plan.held) {
+  for (const row of heldRows) {
+    const suppressed = removalsSuppressed && input.plan.removals.some((planned) => planned.membershipId === row.membershipId);
     rows.push({
       airtableId: row.airtableId ?? "",
       op: "held",
-      reason: "Not in Airtable. Removal is held until the read is complete and unambiguous.",
+      reason: suppressed
+        ? "Not removed because a roster write failed. The login stays."
+        : "Not in Airtable. Removal is held until the read is complete and unambiguous.",
       name: memberNames.get(row.membershipId) ?? "",
     });
   }
@@ -1373,18 +1498,18 @@ export function rosterDiagnosticReport(input: {
     missingEmail,
     missingFirstName,
     missingRequired: input.plan.read.missingRequired,
-    create: input.plan.read.create,
-    attach: input.plan.read.attach,
-    link: input.plan.read.link,
-    update: input.plan.read.update,
+    create: useApplied ? input.applied!.created : input.plan.read.create,
+    attach: useApplied ? input.applied!.attached : input.plan.read.attach,
+    link: useApplied ? input.applied!.linked : input.plan.read.link,
+    update: useApplied ? input.applied!.updated : input.plan.read.update,
     unchanged: input.plan.read.unchanged,
-    remove: input.kind === "sync" ? input.plan.read.remove : input.plan.removals.length,
-    held: input.plan.held.length,
+    remove: useApplied ? input.applied!.removed : input.kind === "sync" ? input.plan.read.remove : input.plan.removals.length,
+    held: heldRows.length,
     protected: input.plan.protected.length,
     pages: input.pages,
     truncated: input.plan.removalHold === "truncated" || input.plan.removalHold === "roster_truncated",
     cap: input.plan.read.cap,
-    removalHold: input.plan.removalHold,
+    removalHold,
     writeFailures,
     writeFailureTotal,
     writeFailuresListed: kept.filter((row) => row.op === "failure").length,
