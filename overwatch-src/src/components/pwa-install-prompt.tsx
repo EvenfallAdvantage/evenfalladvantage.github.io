@@ -17,6 +17,8 @@ export function PwaInstallPrompt() {
   useEffect(() => {
     let captured = false;
     const handler = (e: Event) => {
+      const path = window.location.pathname;
+      if (path.endsWith("/install") || path.endsWith("/install/")) return;
       if (captured) return;
       captured = true;
       e.preventDefault();

@@ -213,6 +213,33 @@ export function launchSessionMayRetargetManifest(pathname: string): boolean {
   return !isInstallDocumentPath(pathname);
 }
 
+/** Set before the one navigation that publishes the company manifest. */
+export const INSTALL_CONTROL_ONCE_KEY = "overwatch:pwa-install-control-once";
+
+/**
+ * Publish the company manifest with one navigation when this document does not
+ * already have that company's manifest link. A controlling worker is not
+ * enough: the install document's boot script removes manifest links until
+ * parse time, and clients.claim() can set the controller on that same
+ * document without removing the observer. An empty cache does not navigate.
+ * A second automatic attempt does not loop. A link that already points at
+ * this company is left in place.
+ */
+export function shouldNavigateToPublishManifest(input: {
+  pathname: string;
+  companyId: string | null;
+  manifestHref: string | null;
+  cacheReady: boolean;
+  alreadyNavigated: boolean;
+}): boolean {
+  if (!isInstallDocumentPath(input.pathname)) return false;
+  if (!isUuid(input.companyId)) return false;
+  if (input.manifestHref === companyManifestPath(input.companyId)) return false;
+  if (!input.cacheReady) return false;
+  if (input.alreadyNavigated) return false;
+  return true;
+}
+
 /**
  * Inline head script. Runs while the document is parsing.
  *
@@ -222,9 +249,10 @@ export function launchSessionMayRetargetManifest(pathname: string): boolean {
  * (name "Overwatch"). The manifest spec does allow a page to replace the
  * link (https://www.w3.org/TR/appmanifest/, internationalization considerations).
  * This script does not depend on that replacement winning: the exported
- * install document has no manifest link (scripts/strip-install-manifest.mjs),
- * and the href is set before the new link is connected. A shared link added
- * later, while ?company= is a uuid, is removed. Other pages keep their link.
+ * install document has no manifest link (scripts/strip-install-manifest.mjs).
+ * The company URL is inserted only when this document already has a
+ * controlling service worker, so the browser's own manifest fetch is not a
+ * network 404. Other pages keep their link.
  *
  * Marker ow-install-manifest is how the export check finds this script.
  */
@@ -256,6 +284,15 @@ export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
     }
     return found;
   }
+  function controlling(){
+    try{return !!(navigator.serviceWorker&&navigator.serviceWorker.controller);}catch(e){return false;}
+  }
+  function removeManifests(){
+    var links=manifestLinks();
+    for(var i=0;i<links.length;i++){
+      if(links[i].parentNode)links[i].parentNode.removeChild(links[i]);
+    }
+  }
   function setOnly(href){
     var links=manifestLinks();
     var keep=null;
@@ -278,7 +315,7 @@ export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
     var search=location.search||"";
     if(isInstall(path)){
       var chosen=param(search,${JSON.stringify(INSTALL_QUERY)});
-      if(chosen&&UUID.test(chosen))return companyHref(chosen);
+      if(chosen&&UUID.test(chosen))return controlling()?companyHref(chosen):"strip";
       return SHARED;
     }
     var launch=param(search,${JSON.stringify(LAUNCH_QUERY)});
@@ -295,10 +332,19 @@ export const PWA_LAUNCH_BOOT = `(function(){/* ow-install-manifest */
   try{
     var href=desired();
     if(!href)return;
-    setOnly(href);
     var path=location.pathname||"";
     var chosen=param(location.search||"",${JSON.stringify(INSTALL_QUERY)});
-    if(!isInstall(path)||!chosen||!UUID.test(chosen)||typeof MutationObserver!=="function"||!document.head)return;
+    var companyInstall=isInstall(path)&&chosen&&UUID.test(chosen);
+    if(href==="strip"){
+      removeManifests();
+      if(companyInstall&&typeof MutationObserver==="function"&&document.head){
+        var stripObs=new MutationObserver(function(){ if(manifestLinks().length)removeManifests(); });
+        stripObs.observe(document.head,{childList:true,subtree:true,attributes:true,attributeFilter:["href","rel"]});
+      }
+      return;
+    }
+    setOnly(href);
+    if(!companyInstall||typeof MutationObserver!=="function"||!document.head)return;
     var lock=companyHref(chosen);
     var obs=new MutationObserver(function(){
       var links=manifestLinks();

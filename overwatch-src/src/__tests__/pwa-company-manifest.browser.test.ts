@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
+import zlib from "node:zlib";
 import { AddressInfo } from "node:net";
 import type { Page } from "playwright-core";
 import {
@@ -58,7 +59,58 @@ function startServer(files: Map<string, { body: Buffer; type: string }>) {
   });
 }
 
+function solidPng(size: number, rgb: [number, number, number]): Buffer {
+  const row = Buffer.alloc(1 + size * 4);
+  row[0] = 0;
+  for (let x = 0; x < size; x += 1) {
+    row[1 + x * 4] = rgb[0];
+    row[2 + x * 4] = rgb[1];
+    row[3 + x * 4] = rgb[2];
+    row[4 + x * 4] = 255;
+  }
+  const raw = Buffer.concat(Array.from({ length: size }, () => row));
+  const idat = zlib.deflateSync(raw);
+  const chunk = (type: string, data: Buffer) => {
+    const body = Buffer.concat([Buffer.from(type), data]);
+    const out = Buffer.alloc(12 + data.length);
+    out.writeUInt32BE(data.length, 0);
+    body.copy(out, 4);
+    out.writeUInt32BE(crc32(body), 8 + data.length);
+    return out;
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(size, 0);
+  ihdr.writeUInt32BE(size, 4);
+  ihdr[8] = 8;
+  ihdr[9] = 6;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk("IHDR", ihdr), chunk("IDAT", idat), chunk("IEND", Buffer.alloc(0))]);
+}
+
+function crc32(data: Buffer): number {
+  let crc = 0xffffffff;
+  for (const byte of data) {
+    crc ^= byte;
+    for (let bit = 0; bit < 8; bit += 1) crc = (crc >>> 1) ^ (crc & 1 ? 0xedb88320 : 0);
+  }
+  return (crc ^ 0xffffffff) >>> 0;
+}
+
+const MANIFEST_FAILURES = [
+  "manifest-parsing-or-network-error",
+  "manifest-missing-name-or-short-name",
+  "manifest-display-not-supported",
+  "manifest-missing-suitable-icon",
+  "no-acceptable-icon",
+  "start-url-not-valid",
+];
+
 type AppManifest = { url?: string; data?: string; errors?: { message: string }[] };
+
+async function readInstallability(page: Page): Promise<string[]> {
+  const client = await page.context().newCDPSession(page);
+  const result = await client.send("Page.getInstallabilityErrors") as { installabilityErrors?: { errorId: string }[] };
+  return (result.installabilityErrors || []).map((error) => error.errorId);
+}
 
 async function readAppManifest(page: Page): Promise<AppManifest> {
   const client = await page.context().newCDPSession(page);
@@ -356,6 +408,144 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
       expect(observed.stale.status).toBe(404);
       expect(observed.stale.text).not.toContain("Harbor Watch");
       expect(observed.stayed).toBe("/overwatch/");
+    } finally {
+      await browser.close();
+      await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
+    }
+  }, 60_000);
+
+  it("withholds the company manifest until a worker controls the document, then Chrome accepts it", async () => {
+    const membership = (id: string, name: string): InstallMembership => ({
+      companyId: id,
+      companyName: name,
+      companyLogo: `https://abc.supabase.co/storage/v1/object/public/company-logos/${id}/logo.png`,
+      brandColor: "#102030",
+      status: "active",
+    });
+    const first = buildCompanyManifest([membership(COMPANY, COMPANY_NAME)], COMPANY, true)!;
+    const secondName = "Harbor Watch";
+    const second = buildCompanyManifest([membership(OTHER, secondName)], OTHER, true)!;
+    const blue192 = solidPng(192, [20, 80, 220]);
+    const blue512 = solidPng(512, [20, 80, 220]);
+    const green192 = solidPng(192, [20, 160, 40]);
+    const green512 = solidPng(512, [20, 160, 40]);
+    const installHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Overwatch — Security Workforce Management Platform</title><meta name="apple-mobile-web-app-title" content="Overwatch"><link rel="icon" href="/overwatch/favicon.png"><script>${PWA_LAUNCH_BOOT}</script></head><body>install</body></html>`;
+    const homeHtml = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Overwatch</title><link rel="manifest" href="/overwatch/manifest.json"><script>${PWA_LAUNCH_BOOT}</script></head><body>home</body></html>`;
+    const swSource = fs.readFileSync(path.join(rootDir, "public/sw.js"));
+    const files = new Map<string, { body: Buffer; type: string }>([
+      ["/overwatch/index.html", { body: Buffer.from(homeHtml), type: "text/html" }],
+      ["/overwatch/install/index.html", { body: Buffer.from(installHtml), type: "text/html" }],
+      ["/overwatch/manifest.json", { body: fs.readFileSync(path.join(rootDir, "public/manifest.json")), type: "application/manifest+json" }],
+      ["/overwatch/favicon.png", { body: Buffer.from([137, 80, 78, 71]), type: "image/png" }],
+      ["/overwatch/sw.js", { body: swSource, type: "text/javascript" }],
+      ["/overwatch/pwa-company-cache.js", { body: fs.readFileSync(path.join(rootDir, "public/pwa-company-cache.js")), type: "text/javascript" }],
+    ]);
+    const { server, port } = await startServer(files);
+    const origin = `http://127.0.0.1:${port}`;
+    const { chromium } = await import("playwright-core");
+    const browser = await chromium.launch({
+      executablePath: chromePath,
+      headless: true,
+      args: ["--no-sandbox", "--disable-dev-shm-usage"],
+    });
+    const iconFiles = (id: string, small: Buffer, large: Buffer) => [
+      [companyIconPath(id, "icon-192.png"), small],
+      [companyIconPath(id, "icon-512.png"), large],
+      [companyIconPath(id, "icon-maskable-192.png"), small],
+      [companyIconPath(id, "icon-maskable-512.png"), large],
+    ] as const;
+    try {
+      const page = await browser.newPage();
+      await page.goto(`${origin}/overwatch/install/?company=${COMPANY}`, { waitUntil: "load" });
+      const before = await readAppManifest(page);
+      const beforeErrors = await readInstallability(page);
+      const beforeLinks = await page.locator('link[rel="manifest"]').evaluateAll((els) => els.map((el) => el.getAttribute("href")));
+      expect(beforeLinks.some((href) => href?.includes("/overwatch/pwa/"))).toBe(false);
+      expect(await page.title()).not.toBe("Company app");
+      expect(before.data || "").not.toContain(COMPANY_NAME);
+      expect(beforeErrors.some((id) => MANIFEST_FAILURES.includes(id)) || beforeLinks.length === 0).toBe(true);
+      await page.evaluate(() => {
+        const link = document.createElement("link");
+        link.rel = "manifest";
+        link.href = "/overwatch/manifest.json";
+        document.head.appendChild(link);
+      });
+      await page.waitForTimeout(100);
+      const afterHydration = await page.locator('link[rel="manifest"]').evaluateAll((els) => els.map((el) => el.getAttribute("href")));
+      expect(afterHydration).toEqual([]);
+
+      await page.evaluate(async ({ cacheName, manifestPath, manifestBody, icons }) => {
+        const cache = await caches.open(cacheName);
+        await cache.put(new URL(manifestPath, location.origin).toString(), new Response(manifestBody, {
+          headers: { "Content-Type": "application/manifest+json" },
+        }));
+        for (const icon of icons) {
+          await cache.put(new URL(icon.path, location.origin).toString(), new Response(Uint8Array.from(icon.bytes), {
+            headers: { "Content-Type": "image/png" },
+          }));
+        }
+        const claimed = new Promise<void>((resolve) => {
+          if (navigator.serviceWorker.controller) resolve();
+          navigator.serviceWorker.addEventListener("controllerchange", () => resolve(), { once: true });
+        });
+        await navigator.serviceWorker.register("/overwatch/sw.js", { scope: "/overwatch/" });
+        await navigator.serviceWorker.ready;
+        await claimed;
+      }, {
+        cacheName: companyCacheName(COMPANY),
+        manifestPath: first.manifestPath,
+        manifestBody: JSON.stringify(first.body),
+        icons: iconFiles(COMPANY, blue192, blue512).map(([iconPath, bytes]) => ({ path: iconPath, bytes: Array.from(bytes) })),
+      });
+      await page.goto(`${origin}/overwatch/install/?company=${COMPANY}`, { waitUntil: "load" });
+      const after = await readAppManifest(page);
+      const afterErrors = await readInstallability(page);
+      const afterBody = JSON.parse(after.data || "{}") as { name?: string; id?: string; start_url?: string; icons?: { src: string; sizes: string; purpose: string }[] };
+      expect(after.url).toContain(first.manifestPath);
+      expect(afterBody.name).toBe(COMPANY_NAME);
+      expect(afterBody.id).toBe(first.appId);
+      expect(afterBody.start_url).toContain(`ow_company=${COMPANY}`);
+      expect(afterBody.icons?.map((icon) => `${icon.sizes}:${icon.purpose}:${icon.src}`)).toEqual(
+        first.icons.map((icon) => `${icon.sizes}:${icon.purpose}:${icon.src}`),
+      );
+      expect(afterErrors.filter((id) => MANIFEST_FAILURES.includes(id))).toEqual([]);
+
+      await page.evaluate(async ({ cacheName, manifestPath, manifestBody, icons }) => {
+        const cache = await caches.open(cacheName);
+        await cache.put(new URL(manifestPath, location.origin).toString(), new Response(manifestBody, {
+          headers: { "Content-Type": "application/manifest+json" },
+        }));
+        for (const icon of icons) {
+          await cache.put(new URL(icon.path, location.origin).toString(), new Response(Uint8Array.from(icon.bytes), {
+            headers: { "Content-Type": "image/png" },
+          }));
+        }
+      }, {
+        cacheName: companyCacheName(OTHER),
+        manifestPath: second.manifestPath,
+        manifestBody: JSON.stringify(second.body),
+        icons: iconFiles(OTHER, green192, green512).map(([iconPath, bytes]) => ({ path: iconPath, bytes: Array.from(bytes) })),
+      });
+      await page.goto(`${origin}/overwatch/install/?company=${OTHER}`, { waitUntil: "load" });
+      const other = JSON.parse((await readAppManifest(page)).data || "{}") as { name?: string; icons?: { src: string }[] };
+      expect(other.name).toBe(secondName);
+      expect(other.icons?.every((icon) => icon.src.includes(OTHER))).toBe(true);
+      expect(JSON.stringify(other)).not.toContain(COMPANY_NAME);
+
+      await page.goto(`${origin}/overwatch/`, { waitUntil: "load" });
+      const shared = JSON.parse((await readAppManifest(page)).data || "{}") as { name?: string };
+      expect(shared.name).toBe("Overwatch");
+
+      files.set("/overwatch/sw.js", { body: Buffer.concat([swSource, Buffer.from("\n// company cache survives an update\n")]), type: "text/javascript" });
+      await page.goto(`${origin}/overwatch/install/?company=${COMPANY}`, { waitUntil: "load" });
+      await page.evaluate(async () => {
+        const registration = await navigator.serviceWorker.getRegistration();
+        await registration?.update();
+      });
+      await page.waitForTimeout(500);
+      const updated = JSON.parse((await readAppManifest(page)).data || "{}") as { name?: string; id?: string };
+      expect(updated.name).toBe(COMPANY_NAME);
+      expect(updated.id).toBe(first.appId);
     } finally {
       await browser.close();
       await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));

@@ -14,8 +14,10 @@ import {
   companyCacheName,
   companyInstallPath,
   companyManifestPath,
+  INSTALL_CONTROL_ONCE_KEY,
   installCompanyIdFromSearch,
   installableCompanies,
+  shouldNavigateToPublishManifest,
   isInstallDocumentPath,
   launchSessionMayRetargetManifest,
   resolveLaunchCompany,
@@ -52,9 +54,10 @@ const suspended = company({ companyId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", c
 
 function loadSwHelpers() {
   const src = fs.readFileSync(path.join(rootDir, "public/pwa-company-cache.js"), "utf8");
-  const sandbox: { self: { owCompanyPwa?: Record<string, (...args: never[]) => unknown> }; globalThis: object } = {
+  const sandbox: { self: { owCompanyPwa?: Record<string, (...args: never[]) => unknown> }; globalThis: object; URL: typeof URL } = {
     self: {},
     globalThis: {},
+    URL,
   };
   vm.runInNewContext(src, sandbox);
   return sandbox.self.owCompanyPwa as {
@@ -140,7 +143,7 @@ describe("launch boot script", () => {
     setAttribute: (name: string, value: string) => void;
   };
 
-  function run(href: string, session: Record<string, string> = {}, options?: { links?: { rel: string; href: string }[]; observe?: boolean }) {
+  function run(href: string, session: Record<string, string> = {}, options?: { links?: { rel: string; href: string }[]; observe?: boolean; controlling?: boolean }) {
     const store = new Map(Object.entries(session));
     const observers: Array<() => void> = [];
     const head: { children: LinkEl[]; insertBefore: (node: LinkEl, before: LinkEl | null) => void; removeChild: (node: LinkEl) => void } = {
@@ -195,6 +198,7 @@ describe("launch boot script", () => {
       },
       decodeURIComponent,
       queueMicrotask,
+      navigator: { serviceWorker: { controller: options?.controlling ? {} : null } },
     };
     if (options?.observe !== false) {
       sandbox.MutationObserver = class {
@@ -222,14 +226,20 @@ describe("launch boot script", () => {
     expect(stayed.manifests()).toEqual([companyManifestPath(A)]);
     expect(stayed.session[LAUNCH_SESSION_KEY]).toBe(A);
 
-    const installing = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${B}`, { [LAUNCH_SESSION_KEY]: A });
+    const uncontrolled = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${B}`, { [LAUNCH_SESSION_KEY]: A });
+    expect(uncontrolled.manifests()).toEqual([]);
+    expect(uncontrolled.session[LAUNCH_SESSION_KEY]).toBe(A);
+
+    const installing = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${B}`, { [LAUNCH_SESSION_KEY]: A }, { controlling: true });
     expect(installing.manifests()).toEqual([companyManifestPath(B)]);
     expect(installing.session[LAUNCH_SESSION_KEY]).toBe(A);
     expect(installing.manifests().some((href) => href === SHARED_MANIFEST_PATH)).toBe(false);
   });
 
-  it("inserts the company manifest when the install document has no link yet", () => {
-    const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [] });
+  it("inserts the company manifest only when the install document is controlled", () => {
+    const uncontrolled = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [] });
+    expect(uncontrolled.manifests()).toEqual([]);
+    const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [], controlling: true });
     expect(result.manifests()).toEqual([companyManifestPath(A)]);
   });
 
@@ -243,7 +253,7 @@ describe("launch boot script", () => {
   });
 
   it("drops a shared link added after the company install link", async () => {
-    const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [] });
+    const result = run(`https://www.evenfalladvantage.com/overwatch/install/?${INSTALL_QUERY}=${A}`, {}, { links: [], controlling: true });
     expect(result.manifests()).toEqual([companyManifestPath(A)]);
     result.addManifest(SHARED_MANIFEST_PATH);
     await result.flush();
@@ -277,12 +287,22 @@ describe("install navigation", () => {
     expect(buildCompanyManifest([bravo], A, false)).toBeNull();
   });
 
-  it("does not reload the install page while waiting for a worker", () => {
-    const page = fs.readFileSync(path.join(rootDir, "src/app/install/page.tsx"), "utf8");
-    expect(page).not.toContain("location.reload");
-    expect(page).not.toContain("location.replace");
-    expect(page).toContain("finalizeCompanyInstallInBrowser");
-    expect(page).toContain("location.assign");
+  it("navigates when the company link is missing and the cache is stored", () => {
+    const base = {
+      pathname: "/overwatch/install/",
+      companyId: A,
+      manifestHref: null as string | null,
+      cacheReady: true,
+      alreadyNavigated: false,
+    };
+    expect(shouldNavigateToPublishManifest(base)).toBe(true);
+    expect(shouldNavigateToPublishManifest({ ...base, manifestHref: companyManifestPath(A) })).toBe(false);
+    expect(shouldNavigateToPublishManifest({ ...base, manifestHref: SHARED_MANIFEST_PATH })).toBe(true);
+    expect(shouldNavigateToPublishManifest({ ...base, cacheReady: false })).toBe(false);
+    expect(shouldNavigateToPublishManifest({ ...base, alreadyNavigated: true })).toBe(false);
+    expect(shouldNavigateToPublishManifest({ ...base, companyId: null })).toBe(false);
+    expect(shouldNavigateToPublishManifest({ ...base, pathname: "/overwatch/" })).toBe(false);
+    expect(INSTALL_CONTROL_ONCE_KEY).toBe("overwatch:pwa-install-control-once");
   });
 });
 
@@ -321,6 +341,8 @@ describe("service worker company cache separation", () => {
     expect(block).not.toContain("fetch(");
     expect(block).not.toContain("manifest.json");
     expect(block).toContain("owCompanyPwa.manifestBodyMatchesCompany");
+    expect(sw).not.toContain("serveInstallDocumentBrand");
+    expect(sw).not.toContain("installCompanyIdFromUrl");
     expect(sw).toContain("`${BASE_PATH}/install/`");
   });
 
