@@ -12,6 +12,7 @@ import {
   buildCompanyManifest,
   companyCacheName,
   companyIconPath,
+  companyIconSrc,
   companyManifestPath,
   type InstallMembership,
 } from "@/lib/pwa-company-install";
@@ -358,6 +359,7 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
         const after = await read(args.manifestPath);
         const queried = await read(`${args.manifestPath}?v=2`);
         const icon = await fetch(args.iconPath, { cache: "no-store", credentials: "same-origin" });
+        const versioned = await fetch(args.versionedIcon, { cache: "no-store", credentials: "same-origin" });
         const other = await fetch(args.otherIcon, { cache: "no-store", credentials: "same-origin" });
         const cache = await caches.open(args.cacheName);
         await cache.put(new URL(args.manifestPath, location.origin).toString(), new Response(args.staleBody, {
@@ -372,6 +374,8 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
           iconStatus: icon.status,
           iconType: icon.headers.get("content-type"),
           iconBytes: Array.from(new Uint8Array(await icon.arrayBuffer())),
+          versionedStatus: versioned.status,
+          versionedBytes: Array.from(new Uint8Array(await versioned.arrayBuffer())),
           otherStatus: other.status,
           stale,
           stayed: location.pathname + location.search,
@@ -381,6 +385,7 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
         manifestPath: built.manifestPath,
         manifestBody: JSON.stringify(built.body),
         iconPath: companyIconPath(COMPANY, "icon-192.png"),
+        versionedIcon: companyIconSrc(COMPANY, "icon-192.png"),
         otherIcon: companyIconPath(OTHER, "icon-192.png"),
         png: Array.from(PNG),
         staleBody: JSON.stringify(stale),
@@ -398,12 +403,14 @@ describe.skipIf(!chromePath)("chromium company manifest", () => {
       expect(after.name).toBe(COMPANY_NAME);
       expect(after.id).toBe(built.appId);
       expect(after.theme_color).toBe(built.themeColor);
-      expect(after.icons[0].src).toBe(companyIconPath(COMPANY, "icon-192.png"));
+      expect(after.icons[0].src).toBe(companyIconSrc(COMPANY, "icon-192.png"));
       expect(observed.queried.status).toBe(200);
       expect(observed.queried.text).toContain(COMPANY_NAME);
       expect(observed.iconStatus).toBe(200);
       expect(observed.iconType).toContain("image/png");
       expect(Buffer.from(observed.iconBytes)).toEqual(PNG);
+      expect(observed.versionedStatus).toBe(200);
+      expect(Buffer.from(observed.versionedBytes)).toEqual(PNG);
       expect(observed.otherStatus).toBe(404);
       expect(observed.stale.status).toBe(404);
       expect(observed.stale.text).not.toContain("Harbor Watch");

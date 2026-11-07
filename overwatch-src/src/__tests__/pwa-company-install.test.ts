@@ -12,9 +12,12 @@ import {
   activeMembership,
   approvedLogoUrl,
   buildCompanyManifest,
+  COMPANY_ICON_REVISION,
   companyCacheName,
+  companyIconSrc,
   companyInstallPath,
   companyManifestPath,
+  publishedSurfaceIsCurrent,
   INSTALL_CONTROL_ONCE_KEY,
   installCompanyIdFromSearch,
   installedLaunchCompanyId,
@@ -245,6 +248,21 @@ describe("launch boot script", () => {
     expect(result.manifests()).toEqual([companyManifestPath(A)]);
   });
 
+  it("rewrites a published company surface when the icon revision is older", () => {
+    const current = {
+      manifestHref: companyManifestPath(A),
+      surfaceCompanyId: A,
+      storedRevision: COMPANY_ICON_REVISION,
+      companyId: A,
+    };
+    expect(publishedSurfaceIsCurrent(current)).toBe(true);
+    expect(publishedSurfaceIsCurrent({ ...current, storedRevision: null })).toBe(false);
+    expect(publishedSurfaceIsCurrent({ ...current, storedRevision: "1" })).toBe(false);
+    expect(publishedSurfaceIsCurrent({ ...current, surfaceCompanyId: B })).toBe(false);
+    expect(companyIconSrc(A, "icon-192.png")).toBe(`/overwatch/pwa/${A}/icon-192.png?v=${COMPANY_ICON_REVISION}`);
+    expect(companyIconSrc(A, "icon-maskable-512.png")).toContain("icon-maskable-512.png?v=");
+  });
+
   it("reads the installed launch id from the url or the session, and ignores anything else", () => {
     const read = (saved: string | null) => (key: string) => (key === LAUNCH_SESSION_KEY ? saved : null);
     expect(installedLaunchCompanyId(`?${LAUNCH_QUERY}=${A}`, read(null))).toBe(A);
@@ -345,6 +363,8 @@ describe("service worker company cache separation", () => {
     expect(api.matchCompanyPwaPath("/overwatch/pwa/not-a-uuid/manifest.webmanifest")).toBeNull();
     expect(api.matchCompanyPwaPath(`/overwatch/pwa/${B}/icon-512.png`)).toEqual({ companyId: B, file: "icon-512.png" });
     expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${A}/icon-192.png`, A)).toBe(true);
+    expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${A}/icon-192.png?v=${COMPANY_ICON_REVISION}`, A)).toBe(true);
+    expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${B}/icon-192.png?v=${COMPANY_ICON_REVISION}`, A)).toBe(false);
     expect(api.iconSrcAllowedForCompany("/overwatch/images/icon-512.png", A)).toBe(true);
     expect(api.iconSrcAllowedForCompany(`/overwatch/pwa/${B}/icon-512.png`, A)).toBe(false);
     const branded = buildCompanyManifest([alpha], A, true)!;

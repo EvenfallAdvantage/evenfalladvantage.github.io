@@ -24,10 +24,13 @@ export async function writeCompanyCacheInBrowser(
   );
   for (const icon of icons) {
     if (!icon.path.startsWith(`/overwatch/pwa/${built.companyId}/`)) continue;
-    await cache.put(
-      new URL(icon.path, location.origin).toString(),
-      new Response(icon.blob, { headers: { "Content-Type": "image/png" } }),
-    );
+    const png = { headers: { "Content-Type": "image/png" } };
+    const stored = new URL(icon.path, location.origin);
+    await cache.put(stored.toString(), new Response(icon.blob, png));
+    if (stored.search) {
+      stored.search = "";
+      await cache.put(stored.toString(), new Response(icon.blob, png));
+    }
   }
 }
 

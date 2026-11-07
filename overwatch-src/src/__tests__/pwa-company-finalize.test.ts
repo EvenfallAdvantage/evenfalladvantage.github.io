@@ -74,7 +74,9 @@ function createCompanyRoute(sw: SwApi) {
       const pending = commit;
       await pending;
       if (!buckets.has(companyId)) buckets.set(companyId, new Map());
-      buckets.get(companyId)!.set(path, hit);
+      const bucket = buckets.get(companyId)!;
+      bucket.set(path, hit);
+      bucket.set(path.split("#")[0].split("?")[0], hit);
     },
     fetch(pathname: string) {
       if (!active || !controlled) return { status: 404, contentType: "text/plain", via: "network" as const, text: "missing", bytes: undefined as Uint8Array | undefined };
